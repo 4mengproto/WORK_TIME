@@ -70,7 +70,7 @@
         <button type="submit" class="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-extrabold shadow-sm transition">로그인</button>
         <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-600 leading-relaxed">
           <span class="font-bold text-slate-800">기본 관리자 계정:</span> 아이디 <code class="px-1 py-0.5 bg-white rounded border font-bold">admin</code> / 비밀번호 <code class="px-1 py-0.5 bg-white rounded border font-bold">1234</code> (부서: 관리자)<br />
-          부서명에 <strong>관리자</strong>를 입력하면 모든 부서를 조회할 수 있습니다.
+          관리자 계정은 계정·조직도·공휴일 관리 및 전 부서 열람 전용이며, 근무표 작성은 각 부서 계정에서 진행합니다.
         </div>
       </form>
 
@@ -91,7 +91,7 @@
           </div>
         </div>
         <div>
-          <label for="signupDepartment" class="block text-xs font-bold text-slate-700 mb-1">소속 부서명 <span class="text-indigo-600">(관리자 입력 시 전체 부서 열람)</span></label>
+          <label for="signupDepartment" class="block text-xs font-bold text-slate-700 mb-1">소속 부서명 <span class="text-indigo-600">(관리자 입력 시 시스템 관리 전용)</span></label>
           <input id="signupDepartment" type="text" required list="signupDeptDatalist" placeholder="예: 생산부, 생산1팀, 품질팀 또는 관리자" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
           <datalist id="signupDeptDatalist"></datalist>
         </div>
@@ -168,6 +168,19 @@
   <!-- ==================== 메인 컨테이너 ==================== -->
   <main class="max-w-[1640px] mx-auto px-4 py-4 space-y-4">
 
+    <!-- 관리자 전용 관리 모드 안내 배너 -->
+    <div id="adminModeBanner" class="hidden rounded-2xl bg-slate-900 text-white px-4 py-3.5 shadow-sm flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-start sm:items-center gap-2.5 text-xs sm:text-sm">
+        <span class="px-2.5 py-0.5 rounded-full bg-rose-500 text-white font-extrabold text-[11px] shrink-0">관리자 모드</span>
+        <span class="text-slate-200 font-medium">관리자 계정은 <strong class="text-white">계정 · 부서/조직도 · 공휴일 관리</strong> 및 <strong class="text-white">전 부서 현황 열람(읽기 전용)</strong>만 가능하며, 주간 근무표 작성·수정 권한은 제한됩니다.</span>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <button id="btnAdminQuickUser" type="button" class="px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition">계정 관리</button>
+        <button id="btnAdminQuickOrg" type="button" class="px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition">부서/조직도</button>
+        <button id="btnAdminQuickHoliday" type="button" class="px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition">공휴일 관리</button>
+      </div>
+    </div>
+
     <!-- 초기 빈 DB 안내 배너 -->
     <div id="emptyDbBanner" class="hidden rounded-2xl bg-indigo-50 border border-indigo-200 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
       <div class="flex items-center gap-2.5 text-xs sm:text-sm text-indigo-900">
@@ -213,8 +226,8 @@
       <!-- ==================== 좌측 메인 영역 (8/12) ==================== -->
       <div class="xl:col-span-8 space-y-4 min-w-0">
 
-        <!-- 1. 주간 근무표 (일~토) -->
-        <section class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+        <!-- 1. 주간 근무표 (일~토) - 관리자 계정에서는 숨김 -->
+        <section id="weeklyGridSection" class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
           <div class="px-4 py-3 border-b border-slate-200 bg-slate-50/70 flex flex-wrap items-center justify-between gap-2">
             <div>
               <h2 class="text-sm sm:text-base font-extrabold text-slate-900">주간 근무표 (일 ~ 토)</h2>
@@ -234,7 +247,7 @@
           </div>
         </section>
 
-        <!-- 2. 주간 상세 출퇴근 기록 (항목별 검색 + 체크박스 일괄 수정/삭제) -->
+        <!-- 2. 주간 상세 출퇴근 기록 (항목별 검색 + 체크박스 일괄 수정/삭제; 관리자는 읽기 전용) -->
         <section class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
           <div class="px-4 py-3 border-b border-slate-200 bg-slate-50/70 flex flex-wrap items-center justify-between gap-2">
             <div class="flex items-center gap-2">
@@ -245,6 +258,8 @@
                 <span>주간 상세 출퇴근 기록 (24h)</span>
               </button>
               <span id="detailCountBadge" class="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold">0건</span>
+              <span id="detailReadOnlyBadge" class="hidden px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 text-[10px] font-extrabold">열람 전용</span>
+              <button id="btnClearHighlightDetail" type="button" class="hidden px-2.5 py-1 rounded-lg bg-indigo-100 hover:bg-indigo-200 text-indigo-800 text-xs font-bold transition">선택 팀원 필터 해제</button>
             </div>
 
             <!-- 선택 일괄 작업 바 -->
@@ -276,7 +291,7 @@
             <table class="w-full text-left border-collapse text-xs min-w-[760px]">
               <thead class="bg-slate-50 text-slate-600 border-b border-slate-200">
                 <tr>
-                  <th class="px-3 py-2.5 w-9 text-center">
+                  <th id="detailCheckAllTh" class="px-3 py-2.5 w-9 text-center">
                     <input id="detailCheckAll" type="checkbox" class="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" />
                   </th>
                   <th class="px-3 py-2.5 font-bold whitespace-nowrap">날짜</th>
@@ -289,7 +304,7 @@
                   <th class="px-3 py-2.5 font-bold text-right whitespace-nowrap">특근</th>
                   <th class="px-3 py-2.5 font-bold text-right whitespace-nowrap">합계</th>
                   <th class="px-3 py-2.5 font-bold whitespace-nowrap">비고</th>
-                  <th class="px-3 py-2.5 font-bold text-center whitespace-nowrap">관리</th>
+                  <th id="detailManageTh" class="px-3 py-2.5 font-bold text-center whitespace-nowrap">관리</th>
                 </tr>
               </thead>
               <tbody id="detailTableBody" class="divide-y divide-slate-100"></tbody>
@@ -1008,6 +1023,11 @@
       btnLogout: document.getElementById('btnLogout'),
       btnOpenUserManage: document.getElementById('btnOpenUserManage'),
 
+      adminModeBanner: document.getElementById('adminModeBanner'),
+      btnAdminQuickUser: document.getElementById('btnAdminQuickUser'),
+      btnAdminQuickOrg: document.getElementById('btnAdminQuickOrg'),
+      btnAdminQuickHoliday: document.getElementById('btnAdminQuickHoliday'),
+
       btnFirebaseStatus: document.getElementById('btnFirebaseStatus'),
       firebaseDot: document.getElementById('firebaseDot'),
       firebaseStatusText: document.getElementById('firebaseStatusText'),
@@ -1028,7 +1048,9 @@
       weekJumpDate: document.getElementById('weekJumpDate'),
       deptFilterTabs: document.getElementById('deptFilterTabs'),
 
+      weeklyGridSection: document.getElementById('weeklyGridSection'),
       btnClearHighlight: document.getElementById('btnClearHighlight'),
+      btnClearHighlightDetail: document.getElementById('btnClearHighlightDetail'),
       weeklyGridCountBadge: document.getElementById('weeklyGridCountBadge'),
       weeklyGridHead: document.getElementById('weeklyGridHead'),
       weeklyGridBody: document.getElementById('weeklyGridBody'),
@@ -1036,6 +1058,7 @@
       btnToggleDetail: document.getElementById('btnToggleDetail'),
       detailChevron: document.getElementById('detailChevron'),
       detailCountBadge: document.getElementById('detailCountBadge'),
+      detailReadOnlyBadge: document.getElementById('detailReadOnlyBadge'),
       detailSearchBar: document.getElementById('detailSearchBar'),
       detailSearchDate: document.getElementById('detailSearchDate'),
       detailSearchDept: document.getElementById('detailSearchDept'),
@@ -1046,7 +1069,9 @@
       btnDetailBulkEdit: document.getElementById('btnDetailBulkEdit'),
       btnDetailBulkDelete: document.getElementById('btnDetailBulkDelete'),
       detailTableWrapper: document.getElementById('detailTableWrapper'),
+      detailCheckAllTh: document.getElementById('detailCheckAllTh'),
       detailCheckAll: document.getElementById('detailCheckAll'),
+      detailManageTh: document.getElementById('detailManageTh'),
       detailTableBody: document.getElementById('detailTableBody'),
 
       panelFilterSub: document.getElementById('panelFilterSub'),
@@ -1276,7 +1301,7 @@
      * 근로시간 계산 (연차/반차 포함, 08:00 이전 출근 고정, 중식·석식 제외, 주말·공휴일 특근 분리)
      */
     function calculateWorkHours(dateStr, startStr, endStr, leaveType = 'work') {
-      const type = LEAVE_META[leaveType] ? leaveType : 'work';
+      const type = normalizeLeaveType(leaveType);
       const special = isSpecialDay(dateStr);
 
       if (type === 'annual') {
@@ -1505,6 +1530,13 @@
       return Boolean(state.currentUser && (state.currentUser.department || '').trim() === '관리자');
     }
 
+    /**
+     * 근무표 작성·수정·삭제 권한 여부 (관리자 계정은 권한 없음)
+     */
+    function canEditSchedule() {
+      return Boolean(state.currentUser && !isAdminUser());
+    }
+
     function getAllowedTeamIdsForUser() {
       if (!state.currentUser || isAdminUser()) return null; // null = 전체 허용
       const userDept = (state.currentUser.department || '').trim().toLowerCase();
@@ -1713,6 +1745,32 @@
         .join('');
     }
 
+    function syncRolePermissionsUI() {
+      const admin = isAdminUser();
+      const editable = canEditSchedule();
+
+      // 관리자 계정: 계정 관리 버튼 표시, 부서원 일괄 입력 및 주간 근무표 숨김
+      els.btnOpenUserManage.classList.toggle('hidden', !admin);
+      els.btnOpenUserManage.classList.toggle('inline-flex', admin);
+
+      els.btnOpenBatch.classList.toggle('hidden', !editable);
+      els.btnOpenBatch.classList.toggle('inline-flex', editable);
+
+      els.adminModeBanner.classList.toggle('hidden', !admin);
+      els.weeklyGridSection.classList.toggle('hidden', admin);
+
+      els.detailReadOnlyBadge.classList.toggle('hidden', !admin);
+      els.detailCheckAllTh.classList.toggle('hidden', !editable);
+      els.detailManageTh.classList.toggle('hidden', !editable);
+
+      if (!editable) {
+        state.selectedDetailIds.clear();
+        closeSingleModal();
+        closeBatchModal();
+        closeBulkEditModal();
+      }
+    }
+
     function applyLoggedInUser(user) {
       state.currentUser = { username: user.username, department: user.department };
       state.selectedDeptFilter = 'ALL';
@@ -1730,13 +1788,13 @@
         ? 'px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-100 text-rose-700'
         : 'px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-indigo-100 text-indigo-700';
 
-      els.btnOpenUserManage.classList.toggle('hidden', !isAdminUser());
-      els.btnOpenUserManage.classList.toggle('inline-flex', isAdminUser());
+      syncRolePermissionsUI();
       renderAll();
     }
 
     function logoutUser() {
       state.currentUser = null;
+      state.selectedDetailIds.clear();
       try {
         sessionStorage.removeItem(SESSION_USER_KEY);
       } catch (_) {}
@@ -1744,8 +1802,12 @@
       els.userSessionBadge.classList.remove('inline-flex');
       els.btnOpenUserManage.classList.add('hidden');
       els.btnOpenUserManage.classList.remove('inline-flex');
+      els.adminModeBanner.classList.add('hidden');
       closeUserManageModal();
       closeChangePwModal();
+      closeSingleModal();
+      closeBatchModal();
+      closeBulkEditModal();
       els.loginForm.reset();
       els.signupForm.reset();
       setAuthTab('login');
@@ -2104,12 +2166,16 @@
     // 11. 메인 화면 렌더링 (필터, 주간표, 상세표, 52h 패널)
     // =========================================================================
     function renderAll() {
+      syncRolePermissionsUI();
+
       const hasAnyData = state.teams.length > 0 || state.members.length > 0;
       els.emptyDbBanner.classList.toggle('hidden', hasAnyData || !isAdminUser());
 
       renderWeekHeader();
       renderDeptFilterTabs();
-      renderWeeklyGrid();
+      if (!isAdminUser()) {
+        renderWeeklyGrid();
+      }
       renderDetailTable();
       render52hPanel();
 
@@ -2313,22 +2379,24 @@
 
     function renderDetailTable() {
       const records = getVisibleWeekRecords();
+      const editable = canEditSchedule();
       els.detailCountBadge.textContent = `${records.length}건`;
       els.detailTableWrapper.classList.toggle('hidden', state.detailCollapsed);
       els.detailSearchBar.classList.toggle('hidden', state.detailCollapsed);
       els.detailChevron.style.transform = state.detailCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)';
+      els.btnClearHighlightDetail.classList.toggle('hidden', !state.highlightedMemberId || !isAdminUser());
 
       // 현재 목록에 없는 선택 ID 정리
       const validIds = new Set(records.map((r) => r.id));
       Array.from(state.selectedDetailIds).forEach((id) => {
-        if (!validIds.has(id)) state.selectedDetailIds.delete(id);
+        if (!validIds.has(id) || !editable) state.selectedDetailIds.delete(id);
       });
       syncDetailBulkUI(records.length);
 
       if (records.length === 0) {
         els.detailTableBody.innerHTML = `
           <tr>
-            <td colspan="12" class="px-4 py-8 text-center text-slate-400 font-semibold">
+            <td colspan="${editable ? 12 : 10}" class="px-4 py-8 text-center text-slate-400 font-semibold">
               표시할 주간 출퇴근 기록이 없습니다.
             </td>
           </tr>
@@ -2357,11 +2425,23 @@
             leaveType === 'work'
               ? '<span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-bold">일반</span>'
               : `<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-extrabold">${leaveMeta.short}</span>`;
+
+          const checkCell = editable
+            ? `<td class="px-3 py-2 text-center">
+                 <input type="checkbox" data-detail-check="${escapeHtml(rec.id)}" ${checked} class="w-4 h-4 rounded border-slate-300 text-indigo-600 cursor-pointer" />
+               </td>`
+            : '';
+
+          const manageCell = editable
+            ? `<td class="px-3 py-2 text-center whitespace-nowrap">
+                 <button type="button" data-detail-edit="${escapeHtml(rec.id)}" class="px-2 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[11px] font-bold">수정</button>
+                 <button type="button" data-detail-del="${escapeHtml(rec.id)}" class="px-2 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 text-[11px] font-bold ml-1">삭제</button>
+               </td>`
+            : '';
+
           return `
             <tr class="hover:bg-slate-50/90 transition">
-              <td class="px-3 py-2 text-center">
-                <input type="checkbox" data-detail-check="${escapeHtml(rec.id)}" ${checked} class="w-4 h-4 rounded border-slate-300 text-indigo-600 cursor-pointer" />
-              </td>
+              ${checkCell}
               <td class="px-3 py-2 whitespace-nowrap font-mono font-semibold text-slate-800">
                 ${escapeHtml(rec.date)} (${dow})
                 ${hName ? `<span class="ml-1 px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 text-[10px] font-bold">${escapeHtml(hName)}</span>` : ''}
@@ -2375,10 +2455,7 @@
               <td class="px-3 py-2 text-right font-mono font-bold text-rose-700">${formatHours(calc.holidayHours)}h</td>
               <td class="px-3 py-2 text-right font-mono font-extrabold text-slate-900">${formatHours(calc.totalHours)}h</td>
               <td class="px-3 py-2 text-slate-500 max-w-[140px] truncate">${escapeHtml(rec.note || '')}</td>
-              <td class="px-3 py-2 text-center whitespace-nowrap">
-                <button type="button" data-detail-edit="${escapeHtml(rec.id)}" class="px-2 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[11px] font-bold">수정</button>
-                <button type="button" data-detail-del="${escapeHtml(rec.id)}" class="px-2 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 text-[11px] font-bold ml-1">삭제</button>
-              </td>
+              ${manageCell}
             </tr>
           `;
         })
@@ -2386,11 +2463,12 @@
     }
 
     function syncDetailBulkUI(totalCount) {
-      const selCount = state.selectedDetailIds.size;
+      const editable = canEditSchedule();
+      const selCount = editable ? state.selectedDetailIds.size : 0;
       els.detailBulkBar.classList.toggle('hidden', selCount === 0);
       els.detailBulkBar.classList.toggle('flex', selCount > 0);
       els.detailSelectedCount.textContent = `${selCount}건 선택`;
-      els.detailCheckAll.checked = totalCount > 0 && selCount === totalCount;
+      els.detailCheckAll.checked = editable && totalCount > 0 && selCount === totalCount;
     }
 
     function render52hPanel() {
@@ -2572,6 +2650,10 @@
     }
 
     function openSingleModal(dateStr, memberId) {
+      if (!canEditSchedule()) {
+        showToast('관리자 계정은 근무표 작성·수정 권한이 없습니다.', 'warning');
+        return;
+      }
       const members = getAccessibleMembers();
       if (members.length === 0) {
         showToast('먼저 부서/조직도에서 팀원을 추가해 주세요.', 'warning');
@@ -2643,6 +2725,11 @@
 
     async function handleSingleSave(e) {
       e.preventDefault();
+      if (!canEditSchedule()) {
+        closeSingleModal();
+        showToast('관리자 계정은 근무표 작성·수정 권한이 없습니다.', 'warning');
+        return;
+      }
       const dateStr = els.singleDate.value;
       const memberId = els.singleMember.value;
       const leaveType = els.singleLeaveType.value;
@@ -2680,6 +2767,11 @@
     }
 
     async function handleSingleDelete() {
+      if (!canEditSchedule()) {
+        closeSingleModal();
+        showToast('관리자 계정은 근무표 삭제 권한이 없습니다.', 'warning');
+        return;
+      }
       const dateStr = els.singleDate.value;
       const memberId = els.singleMember.value;
       const key = `${dateStr}_${memberId}`;
@@ -2696,6 +2788,10 @@
     // 13. 모달 2: 부서원 일괄 입력 (24h)
     // =========================================================================
     function openBatchModal(dateStr) {
+      if (!canEditSchedule()) {
+        showToast('관리자 계정은 근무표 작성 권한이 없습니다.', 'warning');
+        return;
+      }
       const accessibleTeams = getAccessibleTeams();
       const accessibleMembers = getAccessibleMembers();
       if (accessibleMembers.length === 0) {
@@ -2818,6 +2914,11 @@
     }
 
     async function handleBatchSave() {
+      if (!canEditSchedule()) {
+        closeBatchModal();
+        showToast('관리자 계정은 근무표 작성 권한이 없습니다.', 'warning');
+        return;
+      }
       const dt = els.batchDate.value;
       const rows = els.batchMemberTableBody.querySelectorAll('tr[data-batch-row]');
       const updates = {};
@@ -2864,6 +2965,10 @@
     // 14. 모달 3: 상세 기록 선택 일괄 수정 & 선택 삭제
     // =========================================================================
     function openBulkEditModal() {
+      if (!canEditSchedule()) {
+        showToast('관리자 계정은 근무표 수정 권한이 없습니다.', 'warning');
+        return;
+      }
       const count = state.selectedDetailIds.size;
       if (count === 0) return;
       els.bulkEditSubtitle.textContent = `선택된 ${count}건의 기록을 한 번에 수정합니다.`;
@@ -2884,6 +2989,11 @@
 
     async function handleBulkEditSave(e) {
       e.preventDefault();
+      if (!canEditSchedule()) {
+        closeBulkEditModal();
+        showToast('관리자 계정은 근무표 수정 권한이 없습니다.', 'warning');
+        return;
+      }
       const ids = Array.from(state.selectedDetailIds);
       if (ids.length === 0) return;
 
@@ -2942,6 +3052,10 @@
     }
 
     function handleBulkDeleteDetail() {
+      if (!canEditSchedule()) {
+        showToast('관리자 계정은 근무표 삭제 권한이 없습니다.', 'warning');
+        return;
+      }
       const ids = Array.from(state.selectedDetailIds);
       if (ids.length === 0) return;
       openConfirm('선택 기록 삭제', `선택한 ${ids.length}건의 출퇴근 기록을 모두 삭제하시겠습니까?`, async () => {
@@ -3469,10 +3583,11 @@
         state.currentUser.department = newDept;
         try { sessionStorage.setItem(SESSION_USER_KEY, JSON.stringify(state.currentUser)); } catch (_) {}
         els.currentUserDept.textContent = newDept;
+        syncRolePermissionsUI();
       }
 
       saveLocalBackup();
-      renderUserManageModal();
+      renderAll();
 
       const res = await commitWithTimeout(update(ref(db, `users/${key}`), patch), 'adminUpdateUser');
       if (res.ok) showToast(`'${user.username}' 계정 정보가 수정되었습니다.`, 'success');
@@ -3600,7 +3715,9 @@
       });
 
       const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(gridRows.length ? gridRows : [{ 안내: '데이터 없음' }]), '주간근무표');
+      if (!isAdminUser()) {
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(gridRows.length ? gridRows : [{ 안내: '데이터 없음' }]), '주간근무표');
+      }
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summaryRows.length ? summaryRows : [{ 안내: '데이터 없음' }]), '팀원별_주52시간집계');
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(detailRows.length ? detailRows : [{ 안내: '데이터 없음' }]), '주간상세기록');
 
@@ -3620,6 +3737,11 @@
       els.btnCloseChangePw.addEventListener('click', closeChangePwModal);
       els.btnCancelChangePw.addEventListener('click', closeChangePwModal);
       els.changePwForm.addEventListener('submit', handleChangeMyPassword);
+
+      // 관리자 모드 배너 빠른 이동
+      els.btnAdminQuickUser.addEventListener('click', openUserManageModal);
+      els.btnAdminQuickOrg.addEventListener('click', openManageModal);
+      els.btnAdminQuickHoliday.addEventListener('click', openHolidayModal);
 
       // 관리자 계정 관리 모달
       els.btnOpenUserManage.addEventListener('click', openUserManageModal);
@@ -3762,17 +3884,21 @@
         renderAll();
       });
 
-      els.btnClearHighlight.addEventListener('click', () => {
+      const clearHighlight = () => {
         state.highlightedMemberId = null;
         renderAll();
-      });
+      };
+      els.btnClearHighlight.addEventListener('click', clearHighlight);
+      els.btnClearHighlightDetail.addEventListener('click', clearHighlight);
 
       // 주간 근무표 클릭 (날짜 헤더 → 일괄 입력 / 셀 → 1인 수정)
       els.weeklyGridHead.addEventListener('click', (e) => {
+        if (!canEditSchedule()) return;
         const th = e.target.closest('th[data-batch-date]');
         if (th) openBatchModal(th.dataset.batchDate);
       });
       els.weeklyGridBody.addEventListener('click', (e) => {
+        if (!canEditSchedule()) return;
         const td = e.target.closest('td[data-cell-date]');
         if (td) openSingleModal(td.dataset.cellDate, td.dataset.cellMember);
       });
@@ -3822,14 +3948,16 @@
         renderDetailTable();
       });
 
-      // 상세 기록 체크박스 & 개별 수정/삭제
+      // 상세 기록 체크박스 & 개별 수정/삭제 (일반 부서 계정 전용)
       els.detailCheckAll.addEventListener('change', (e) => {
+        if (!canEditSchedule()) return;
         const records = getVisibleWeekRecords();
         if (e.target.checked) records.forEach((r) => state.selectedDetailIds.add(r.id));
         else state.selectedDetailIds.clear();
         renderDetailTable();
       });
       els.detailTableBody.addEventListener('change', (e) => {
+        if (!canEditSchedule()) return;
         const chk = e.target.closest('input[data-detail-check]');
         if (!chk) return;
         const id = chk.dataset.detailCheck;
@@ -3838,6 +3966,7 @@
         syncDetailBulkUI(getVisibleWeekRecords().length);
       });
       els.detailTableBody.addEventListener('click', (e) => {
+        if (!canEditSchedule()) return;
         const editBtn = e.target.closest('button[data-detail-edit]');
         if (editBtn) {
           const rec = state.recordsMap.get(editBtn.dataset.detailEdit);
