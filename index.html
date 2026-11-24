@@ -46,7 +46,7 @@
               <span id="fbStatusText">동기화 중...</span>
             </button>
           </div>
-          <p class="text-xs text-slate-500 hidden sm:block">정상 08:00~17:00 (08:00 이전 출근 고정) · 중식 12:00~13:00 · 석식 18:00~18:30 제외 · 주 52h 관리 · 연차 8h / 반차 4h</p>
+          <p class="text-xs text-slate-500 hidden sm:block">정상 08:00~17:00 (08:00 이전 출근 고정) · 중식 12:00~13:00 · 석식 18:00~18:30 제외 · 주 52h / 월 연장+특근 52h · 연차 8h / 반차 4h</p>
         </div>
       </div>
 
@@ -217,24 +217,28 @@
           <div class="px-4 py-3.5 border-b border-slate-200 bg-slate-900 text-white">
             <div class="flex items-center justify-between gap-2">
               <h2 class="text-sm sm:text-base font-extrabold">팀원별 주 52시간 현황</h2>
-              <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-white/15 text-slate-100">기준 52h</span>
+              <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-white/15 text-slate-100">주 52h · 월 연장+특근 52h</span>
             </div>
-            <p class="text-[11px] text-slate-300 mt-0.5">카드를 클릭하면 해당 팀원을 강조 표시합니다.</p>
+            <p class="text-[11px] text-slate-300 mt-0.5">팀원 카드를 클릭하면 해당 팀원의 기록만 강조 표시됩니다.</p>
           </div>
 
-          <!-- KPI 요약 3칸 -->
-          <div class="grid grid-cols-3 divide-x divide-slate-200 border-b border-slate-200 bg-slate-50">
-            <div class="p-3 text-center">
-              <div class="text-[11px] font-semibold text-slate-500">총 연장</div>
-              <div id="kpiTotalOvertime" class="text-base sm:text-lg font-extrabold text-amber-600 mt-0.5">0h</div>
+          <!-- KPI 요약 4칸 -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-slate-200 border-b border-slate-200 bg-slate-50">
+            <div class="p-2.5 text-center">
+              <div class="text-[11px] font-semibold text-slate-500">주 연장</div>
+              <div id="kpiTotalOvertime" class="text-sm sm:text-base font-extrabold text-amber-600 mt-0.5">0h</div>
             </div>
-            <div class="p-3 text-center">
-              <div class="text-[11px] font-semibold text-slate-500">총 특근</div>
-              <div id="kpiTotalHoliday" class="text-base sm:text-lg font-extrabold text-rose-600 mt-0.5">0h</div>
+            <div class="p-2.5 text-center">
+              <div class="text-[11px] font-semibold text-slate-500">주 특근</div>
+              <div id="kpiTotalHoliday" class="text-sm sm:text-base font-extrabold text-rose-600 mt-0.5">0h</div>
             </div>
-            <div class="p-3 text-center">
-              <div class="text-[11px] font-semibold text-slate-500">52h 초과</div>
-              <div id="kpiExceededCount" class="text-base sm:text-lg font-extrabold text-slate-900 mt-0.5">0명</div>
+            <div class="p-2.5 text-center">
+              <div class="text-[11px] font-semibold text-slate-500">주 52h 초과</div>
+              <div id="kpiExceededCount" class="text-sm sm:text-base font-extrabold text-slate-900 mt-0.5">0명</div>
+            </div>
+            <div class="p-2.5 text-center">
+              <div class="text-[11px] font-semibold text-slate-500">월 연장+특근 초과</div>
+              <div id="kpiMonthlyExceededCount" class="text-sm sm:text-base font-extrabold text-slate-900 mt-0.5">0명</div>
             </div>
           </div>
 
@@ -484,6 +488,13 @@
         </button>
       </div>
       <form id="detailBulkForm" class="p-5 space-y-4">
+        <div class="space-y-1.5">
+          <label class="inline-flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer">
+            <input id="chkDetailBulkDate" type="checkbox" class="w-4 h-4 rounded border-slate-300 text-indigo-600" />
+            <span>근무 날짜도 함께 일괄 변경</span>
+          </label>
+          <input id="detailBulkDate" type="date" disabled class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm font-semibold disabled:bg-slate-100 disabled:text-slate-400" />
+        </div>
         <div>
           <label for="detailBulkLeave" class="text-xs font-bold text-slate-700 block mb-1">근무 유형</label>
           <select id="detailBulkLeave" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm font-bold bg-white">
@@ -693,17 +704,19 @@
     const DINNER_START_MIN = 18 * 60;    // 18:00
     const DINNER_END_MIN = 18 * 60 + 30; // 18:30
     const WEEKLY_LIMIT_HOURS = 52;
+    const MONTHLY_EXTRA_LIMIT_HOURS = 52;
 
     const DAY_NAMES = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
     const DAY_SHORT = ['일', '월', '화', '수', '목', '금', '토'];
 
     const LEAVE_META = {
-      normal: { label: '일반근무', short: '', creditMin: 0, badgeClass: '' },
-      annual: { label: '연차 (8h)', short: '연차', creditMin: 8 * 60, badgeClass: 'bg-sky-100 text-sky-800 border-sky-200' },
-      half_am: { label: '오전반차 (4h)', short: '오전반차', creditMin: 4 * 60, badgeClass: 'bg-cyan-100 text-cyan-800 border-cyan-200' },
-      half_pm: { label: '오후반차 (4h)', short: '오후반차', creditMin: 4 * 60, badgeClass: 'bg-teal-100 text-teal-800 border-teal-200' },
+      normal:  { label: '일반근무', short: '',       creditMin: 0 },
+      annual:  { label: '연차(8h)', short: '연차',    creditMin: 480 },
+      half_am: { label: '오전반차(4h)', short: '오전반차', creditMin: 240 },
+      half_pm: { label: '오후반차(4h)', short: '오후반차', creditMin: 240 },
     };
 
+    // 대한민국 법정공휴일 및 대체공휴일 (2025~2027)
     const DEFAULT_KR_HOLIDAYS = {
       // 2025년
       '2025-01-01': '신정',
@@ -712,192 +725,103 @@
       '2025-01-29': '설날',
       '2025-01-30': '설날 연휴',
       '2025-03-01': '삼일절',
-      '2025-03-03': '삼일절 대체공휴일',
+      '2025-03-03': '대체공휴일(삼일절)',
       '2025-05-05': '어린이날·부처님오신날',
       '2025-05-06': '대체공휴일',
-      '2025-06-03': '대통령 선거일',
+      '2025-06-03': '대통령선거일',
       '2025-06-06': '현충일',
       '2025-08-15': '광복절',
       '2025-10-03': '개천절',
       '2025-10-05': '추석 연휴',
       '2025-10-06': '추석',
       '2025-10-07': '추석 연휴',
-      '2025-10-08': '추석 대체공휴일',
+      '2025-10-08': '대체공휴일(추석)',
       '2025-10-09': '한글날',
-      '2025-12-25': '기독탄신일',
+      '2025-12-25': '성탄절',
       // 2026년
       '2026-01-01': '신정',
       '2026-02-16': '설날 연휴',
       '2026-02-17': '설날',
       '2026-02-18': '설날 연휴',
       '2026-03-01': '삼일절',
-      '2026-03-02': '삼일절 대체공휴일',
+      '2026-03-02': '대체공휴일(삼일절)',
       '2026-05-05': '어린이날',
       '2026-05-24': '부처님오신날',
-      '2026-05-25': '부처님오신날 대체공휴일',
-      '2026-06-03': '전국동시지방선거',
+      '2026-05-25': '대체공휴일(부처님오신날)',
+      '2026-06-03': '제9회 지방선거일',
       '2026-06-06': '현충일',
       '2026-08-15': '광복절',
-      '2026-08-17': '광복절 대체공휴일',
+      '2026-08-17': '대체공휴일(광복절)',
       '2026-09-24': '추석 연휴',
       '2026-09-25': '추석',
       '2026-09-26': '추석 연휴',
       '2026-10-03': '개천절',
-      '2026-10-05': '개천절 대체공휴일',
+      '2026-10-05': '대체공휴일(개천절)',
       '2026-10-09': '한글날',
-      '2026-12-25': '기독탄신일',
+      '2026-12-25': '성탄절',
       // 2027년
       '2027-01-01': '신정',
       '2027-02-06': '설날 연휴',
       '2027-02-07': '설날',
       '2027-02-08': '설날 연휴',
-      '2027-02-09': '설날 대체공휴일',
+      '2027-02-09': '대체공휴일(설날)',
       '2027-03-01': '삼일절',
       '2027-05-05': '어린이날',
       '2027-05-13': '부처님오신날',
       '2027-06-06': '현충일',
       '2027-08-15': '광복절',
-      '2027-08-16': '광복절 대체공휴일',
+      '2027-08-16': '대체공휴일(광복절)',
       '2027-09-14': '추석 연휴',
       '2027-09-15': '추석',
       '2027-09-16': '추석 연휴',
       '2027-10-03': '개천절',
-      '2027-10-04': '개천절 대체공휴일',
+      '2027-10-04': '대체공휴일(개천절)',
       '2027-10-09': '한글날',
-      '2027-10-11': '한글날 대체공휴일',
-      '2027-12-25': '기독탄신일',
-      '2027-12-27': '기독탄신일 대체공휴일',
+      '2027-10-11': '대체공휴일(한글날)',
+      '2027-12-25': '성탄절',
+      '2027-12-27': '대체공휴일(성탄절)',
     };
 
-    // =========================================================================
-    // 3. 애플리케이션 상태 & localStorage 이중 백업
-    // =========================================================================
-    const LOCAL_BACKUP_KEY = 'work_hours_mgmt_backup_v1';
+    const LOCAL_BACKUP_KEY = 'team_work_hours_rtdb_backup_v1';
 
+    // =========================================================================
+    // 3. 애플리케이션 전역 상태
+    // =========================================================================
     const state = {
-      weekStartDate: '',
-      selectedDept: 'ALL',
+      teams: [],                 // [{ id, name, department, parentId, createdAt }]
+      members: [],               // [{ id, name, teamId, department, createdAt }]
+      recordsMap: new Map(),     // key: `${date}_${memberId}` -> { id, date, memberId, leaveType, startTime, endTime, note }
+      customHolidays: {},        // { 'YYYY-MM-DD': '휴일명' }
+      weekStartDate: '',         // 'YYYY-MM-DD' (일요일)
+      selectedDeptFilter: 'ALL', // 'ALL' 또는 부서 id
       highlightedMemberId: null,
-      detailExpanded: true,
+      detailCollapsed: false,
       selectedDetailIds: new Set(),
-      holidayViewYear: String(new Date().getFullYear()),
-      teams: [],
-      members: [],
-      recordsMap: new Map(),
-      customHolidays: {},
-      fbStatus: 'syncing',
+      holidayYear: new Date().getFullYear(),
+      fbStatus: 'syncing',       // 'syncing' | 'connected' | 'error'
       fbErrorMsg: '',
-      serverSynced: false,
-      initialLoaded: { teams: false, members: false, records: false, holidays: false },
+      loadedFlags: { teams: false, members: false, workRecords: false, customHolidays: false },
+      unsubscribers: [],
+      connectTimer: null,
+      confirmCallback: null,
+      editingSingleDocId: null,
     };
 
-    let activeUnsubscribers = [];
-    let syncTimeoutId = null;
-    let confirmCallback = null;
-
-    function normalizeLeaveType(type) {
-      return LEAVE_META[type] ? type : 'normal';
-    }
-
-    function saveLocalBackup() {
-      try {
-        const payload = {
-          teams: state.teams.map((t) => ({
-            id: t.id,
-            name: getDeptName(t),
-            department: getDeptName(t),
-            parentId: t.parentId || null,
-            order: t.order ?? 999,
-          })),
-          members: state.members.map((m) => ({
-            id: m.id,
-            name: m.name,
-            teamId: m.teamId || null,
-            department: getMemberDept(m),
-            active: m.active !== false,
-          })),
-          records: Array.from(state.recordsMap.values()).map((r) => ({
-            id: r.id,
-            date: r.date,
-            memberId: r.memberId,
-            leaveType: normalizeLeaveType(r.leaveType),
-            startTime: r.startTime || '',
-            endTime: r.endTime || '',
-            note: r.note || '',
-          })),
-          customHolidays: state.customHolidays || {},
-          savedAt: Date.now(),
-        };
-        localStorage.setItem(LOCAL_BACKUP_KEY, JSON.stringify(payload));
-      } catch (e) {
-        console.warn('localStorage 백업 실패:', e);
-      }
-    }
-
-    function loadLocalBackup() {
-      try {
-        const raw = localStorage.getItem(LOCAL_BACKUP_KEY);
-        if (!raw) return false;
-        const data = JSON.parse(raw);
-        if (Array.isArray(data.teams)) state.teams = data.teams;
-        if (Array.isArray(data.members)) state.members = data.members;
-        if (Array.isArray(data.records)) {
-          const map = new Map();
-          data.records.forEach((r) => {
-            if (r && r.id) map.set(r.id, { ...r, leaveType: normalizeLeaveType(r.leaveType) });
-          });
-          state.recordsMap = map;
-        }
-        if (data.customHolidays && typeof data.customHolidays === 'object') {
-          state.customHolidays = data.customHolidays;
-        }
-        return true;
-      } catch (e) {
-        console.warn('localStorage 복원 실패:', e);
-        return false;
-      }
-    }
-
-    async function commitWithTimeout(promise, context = '', timeoutMs = 6000) {
-      let timerId = null;
-      const timeoutPromise = new Promise((_, reject) => {
-        timerId = setTimeout(() => {
-          const err = new Error('Firebase 서버 응답 지연 (로컬에는 안전하게 저장되었습니다)');
-          err.code = 'timeout';
-          reject(err);
-        }, timeoutMs);
-      });
-      try {
-        const res = await Promise.race([promise, timeoutPromise]);
-        clearTimeout(timerId);
-        return { ok: true, res };
-      } catch (err) {
-        clearTimeout(timerId);
-        if (err?.code === 'timeout') {
-          setFbStatus('error', `서버 저장 지연(${context}). 브라우저 로컬에는 저장되어 새로고침해도 유지됩니다.`);
-          showToast('로컬에 저장되었습니다. (Firebase 서버 응답 지연 - 상단 상태 배지 확인)', 'error');
-        } else {
-          handleFirestoreError(err, context);
-        }
-        return { ok: false, err };
-      }
-    }
-
     // =========================================================================
-    // 4. DOM 참조
+    // 4. DOM 요소 참조
     // =========================================================================
     const els = {
       btnFirebaseStatus: document.getElementById('btnFirebaseStatus'),
       fbStatusDot: document.getElementById('fbStatusDot'),
       fbStatusText: document.getElementById('fbStatusText'),
+      emptyDbBanner: document.getElementById('emptyDbBanner'),
+      btnSeedSample: document.getElementById('btnSeedSample'),
+      btnBannerOpenManage: document.getElementById('btnBannerOpenManage'),
+
       btnOpenBatch: document.getElementById('btnOpenBatch'),
       btnOpenManage: document.getElementById('btnOpenManage'),
       btnOpenHoliday: document.getElementById('btnOpenHoliday'),
       btnExportExcel: document.getElementById('btnExportExcel'),
-
-      emptyDbBanner: document.getElementById('emptyDbBanner'),
-      btnSeedSample: document.getElementById('btnSeedSample'),
-      btnBannerOpenManage: document.getElementById('btnBannerOpenManage'),
 
       btnPrevWeek: document.getElementById('btnPrevWeek'),
       btnNextWeek: document.getElementById('btnNextWeek'),
@@ -924,6 +848,7 @@
       kpiTotalOvertime: document.getElementById('kpiTotalOvertime'),
       kpiTotalHoliday: document.getElementById('kpiTotalHoliday'),
       kpiExceededCount: document.getElementById('kpiExceededCount'),
+      kpiMonthlyExceededCount: document.getElementById('kpiMonthlyExceededCount'),
       member52hList: document.getElementById('member52hList'),
 
       // 모달 1: 부서원 일괄 입력
@@ -969,12 +894,14 @@
       singlePreviewOvertime: document.getElementById('singlePreviewOvertime'),
       singlePreviewHoliday: document.getElementById('singlePreviewHoliday'),
 
-      // 모달 3: 상세 일괄 수정
+      // 모달 3: 상세 선택 일괄 수정
       detailBulkModal: document.getElementById('detailBulkModal'),
       btnCloseDetailBulk: document.getElementById('btnCloseDetailBulk'),
       btnCancelDetailBulk: document.getElementById('btnCancelDetailBulk'),
       detailBulkSubtitle: document.getElementById('detailBulkSubtitle'),
       detailBulkForm: document.getElementById('detailBulkForm'),
+      chkDetailBulkDate: document.getElementById('chkDetailBulkDate'),
+      detailBulkDate: document.getElementById('detailBulkDate'),
       detailBulkLeave: document.getElementById('detailBulkLeave'),
       detailBulkTimeWrap: document.getElementById('detailBulkTimeWrap'),
       detailBulkStart: document.getElementById('detailBulkStart'),
@@ -982,7 +909,7 @@
       chkDetailBulkNote: document.getElementById('chkDetailBulkNote'),
       detailBulkNote: document.getElementById('detailBulkNote'),
 
-      // 모달 4: 조직도 관리
+      // 모달 4: 조직도·팀원 관리
       manageModal: document.getElementById('manageModal'),
       btnCloseManage: document.getElementById('btnCloseManage'),
       btnDoneManage: document.getElementById('btnDoneManage'),
@@ -1007,27 +934,25 @@
       fbGuideModal: document.getElementById('fbGuideModal'),
       btnCloseFbGuide: document.getElementById('btnCloseFbGuide'),
       btnOkFbGuide: document.getElementById('btnOkFbGuide'),
-      btnUploadLocalToFb: document.getElementById('btnUploadLocalToFb'),
       btnRetryFbConnect: document.getElementById('btnRetryFbConnect'),
+      btnUploadLocalToFb: document.getElementById('btnUploadLocalToFb'),
       fbGuideStatusText: document.getElementById('fbGuideStatusText'),
       fbCollectionsStatus: document.getElementById('fbCollectionsStatus'),
 
-      // 모달 7: 확인 & 토스트
+      // 모달 7: 확인 대화상자
       confirmModal: document.getElementById('confirmModal'),
       confirmTitle: document.getElementById('confirmTitle'),
       confirmMessage: document.getElementById('confirmMessage'),
       btnConfirmCancel: document.getElementById('btnConfirmCancel'),
       btnConfirmOk: document.getElementById('btnConfirmOk'),
+
+      // 토스트
       toastContainer: document.getElementById('toastContainer'),
     };
 
     // =========================================================================
-    // 5. 날짜 · 시간 · 계층형 부서 유틸리티
+    // 5. 날짜 / 시간 / 계산 유틸리티 함수
     // =========================================================================
-    function uid(prefix = 'id') {
-      return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
-    }
-
     function escapeHtml(str) {
       return String(str ?? '')
         .replace(/&/g, '&amp;')
@@ -1037,11 +962,12 @@
         .replace(/'/g, '&#39;');
     }
 
+    function pad2(n) {
+      return String(n).padStart(2, '0');
+    }
+
     function formatDateStr(dateObj) {
-      const y = dateObj.getFullYear();
-      const m = String(dateObj.getMonth() + 1).padStart(2, '0');
-      const d = String(dateObj.getDate()).padStart(2, '0');
-      return `${y}-${m}-${d}`;
+      return `${dateObj.getFullYear()}-${pad2(dateObj.getMonth() + 1)}-${pad2(dateObj.getDate())}`;
     }
 
     function parseDateStr(str) {
@@ -1053,9 +979,9 @@
       return formatDateStr(new Date());
     }
 
-    function addDays(dateStr, delta) {
+    function addDays(dateStr, diff) {
       const dt = parseDateStr(dateStr);
-      dt.setDate(dt.getDate() + delta);
+      dt.setDate(dt.getDate() + diff);
       return formatDateStr(dt);
     }
 
@@ -1066,280 +992,323 @@
     }
 
     function getWeekDates(sundayStr) {
-      return Array.from({ length: 7 }, (_, i) => addDays(sundayStr, i));
+      const arr = [];
+      for (let i = 0; i < 7; i++) {
+        arr.push(addDays(sundayStr, i));
+      }
+      return arr;
     }
 
     function getHolidayName(dateStr) {
-      if (state.customHolidays && state.customHolidays[dateStr]) return state.customHolidays[dateStr];
+      if (state.customHolidays[dateStr]) return state.customHolidays[dateStr];
       if (DEFAULT_KR_HOLIDAYS[dateStr]) return DEFAULT_KR_HOLIDAYS[dateStr];
-      return null;
+      return '';
     }
 
-    function getDayInfo(dateStr) {
+    function isSpecialDay(dateStr) {
       const dt = parseDateStr(dateStr);
-      const dow = dt.getDay();
-      const holidayName = getHolidayName(dateStr);
-      const isWeekend = dow === 0 || dow === 6;
-      const isSpecialDay = isWeekend || Boolean(holidayName);
-      return {
-        dateStr,
-        dayNum: dt.getDate(),
-        monthNum: dt.getMonth() + 1,
-        dow,
-        dayName: DAY_NAMES[dow],
-        dayShort: DAY_SHORT[dow],
-        holidayName,
-        isWeekend,
-        isSpecialDay,
-      };
+      const day = dt.getDay();
+      if (day === 0 || day === 6) return true;
+      return Boolean(getHolidayName(dateStr));
+    }
+
+    function getDayBadgeInfo(dateStr) {
+      const dt = parseDateStr(dateStr);
+      const day = dt.getDay();
+      const holName = getHolidayName(dateStr);
+      if (holName) {
+        return { text: `${DAY_SHORT[day]} · 공휴일(${holName})`, cls: 'bg-rose-100 text-rose-700', isSpecial: true };
+      }
+      if (day === 0) {
+        return { text: '일 · 휴일(특근)', cls: 'bg-rose-100 text-rose-700', isSpecial: true };
+      }
+      if (day === 6) {
+        return { text: '토 · 휴일(특근)', cls: 'bg-blue-100 text-blue-700', isSpecial: true };
+      }
+      return { text: `${DAY_SHORT[day]} · 평일`, cls: 'bg-slate-100 text-slate-700', isSpecial: false };
+    }
+
+    // 24시간제 시간 문자열 정규화 ('0800' -> '08:00', '8:30' -> '08:30', '24:00' 허용)
+    function normalizeTime24(raw) {
+      const s = String(raw ?? '').trim();
+      if (!s) return '';
+      let hh = -1;
+      let mm = -1;
+      if (/^\d{4}$/.test(s)) {
+        hh = Number(s.slice(0, 2));
+        mm = Number(s.slice(2, 4));
+      } else {
+        const match = s.match(/^(\d{1,2}):(\d{1,2})$/);
+        if (!match) return '';
+        hh = Number(match[1]);
+        mm = Number(match[2]);
+      }
+      if (Number.isNaN(hh) || Number.isNaN(mm)) return '';
+      if (hh === 24 && mm === 0) return '24:00';
+      if (hh < 0 || hh > 23 || mm < 0 || mm > 59) return '';
+      return `${pad2(hh)}:${pad2(mm)}`;
     }
 
     function parseTimeToMin(timeStr) {
-      if (!timeStr || typeof timeStr !== 'string') return null;
-      const trimmed = timeStr.trim();
-      let m = trimmed.match(/^(\d{1,2}):(\d{2})$/);
-      if (!m) {
-        m = trimmed.match(/^(\d{2})(\d{2})$/);
-      }
-      if (!m) return null;
-      const hh = Number(m[1]);
-      const mm = Number(m[2]);
-      if (hh === 24 && mm === 0) return 24 * 60;
-      if (hh < 0 || hh > 23 || mm < 0 || mm > 59) return null;
-      return hh * 60 + mm;
+      const norm = normalizeTime24(timeStr);
+      if (!norm) return null;
+      const [h, m] = norm.split(':').map(Number);
+      return h * 60 + m;
     }
 
-    function normalizeTime24(timeStr) {
-      const mins = parseTimeToMin(timeStr);
-      if (mins === null) return null;
-      const hh = String(Math.floor(mins / 60)).padStart(2, '0');
-      const mm = String(mins % 60).padStart(2, '0');
-      return `${hh}:${mm}`;
-    }
-
-    function formatHoursNum(hours) {
-      const rounded = Math.round(hours * 100) / 100;
-      return Number.isInteger(rounded) ? String(rounded) : String(Number(rounded.toFixed(2)));
+    function minToTime24(min) {
+      const h = Math.floor(min / 60);
+      const m = min % 60;
+      return `${pad2(h)}:${pad2(m)}`;
     }
 
     function overlapMinutes(aStart, aEnd, bStart, bEnd) {
       return Math.max(0, Math.min(aEnd, bEnd) - Math.max(aStart, bStart));
     }
 
-    /** 핵심 근로시간 계산 함수 (08:00 고정, 중식/석식 차감, 주말·공휴일 특근, 연차 8h/반차 4h) */
-    function calculateWorkHours(dateStr, startStr, endStr, leaveType = 'normal') {
-      const lt = normalizeLeaveType(leaveType);
-      const dayInfo = getDayInfo(dateStr);
-      const leaveCreditMin = LEAVE_META[lt].creditMin;
+    function normalizeLeaveType(lt) {
+      return LEAVE_META[lt] ? lt : 'normal';
+    }
 
-      // 연차는 출퇴근 입력 없이 정상 8h 포함
+    function formatHoursNum(h) {
+      const rounded = Math.round(h * 100) / 100;
+      if (Math.abs(rounded) < 0.001) return '0';
+      return Number(rounded.toFixed(2)).toString();
+    }
+
+    /**
+     * 핵심 근로시간 계산 함수
+     * - 연차: 8시간 정상 근무시간 인정
+     * - 오전/오후반차: 4시간 정상 근무시간 인정 + 실제 출퇴근 시간 합산
+     * - 출근 < 08:00 이면 08:00 고정
+     * - 중식(12:00~13:00), 석식(18:00~18:30) 중복 시간 차감
+     * - 주말/공휴일: 실제 근무시간 전체를 특근(h)으로 계산
+     */
+    function calculateWorkHours(dateStr, startTime, endTime, leaveType = 'normal') {
+      const lt = normalizeLeaveType(leaveType);
+      const leaveCreditMin = LEAVE_META[lt].creditMin;
+      const special = isSpecialDay(dateStr);
+
+      // 연차는 출퇴근 입력 없이 8시간 인정
       if (lt === 'annual') {
         return {
           valid: true,
           leaveType: lt,
-          isSpecialDay: dayInfo.isSpecialDay,
-          holidayName: dayInfo.holidayName,
-          clampedStart: false,
+          isSpecial: special,
           effectiveStartStr: '',
-          lunchMin: 0,
-          dinnerMin: 0,
-          regularHours: 8,
+          effectiveEndStr: '',
+          clampedStart: false,
+          lunchDeduct: 0,
+          dinnerDeduct: 0,
+          regularHours: leaveCreditMin / 60,
           overtimeHours: 0,
           holidayHours: 0,
-          totalHours: 8,
+          totalHours: leaveCreditMin / 60,
         };
       }
 
-      const rawStart = parseTimeToMin(startStr);
-      const rawEnd = parseTimeToMin(endStr);
+      const sMinRaw = parseTimeToMin(startTime);
+      const eMinRaw = parseTimeToMin(endTime);
 
-      // 반차인데 출퇴근 시간이 비어 있으면 반차 4h만 인정
-      if ((lt === 'half_am' || lt === 'half_pm') && !startStr && !endStr) {
+      // 반차이면서 출퇴근을 비워둔 경우 4시간만 인정
+      if ((lt === 'half_am' || lt === 'half_pm') && sMinRaw === null && eMinRaw === null) {
         return {
           valid: true,
           leaveType: lt,
-          isSpecialDay: dayInfo.isSpecialDay,
-          holidayName: dayInfo.holidayName,
-          clampedStart: false,
+          isSpecial: special,
           effectiveStartStr: '',
-          lunchMin: 0,
-          dinnerMin: 0,
-          regularHours: 4,
+          effectiveEndStr: '',
+          clampedStart: false,
+          lunchDeduct: 0,
+          dinnerDeduct: 0,
+          regularHours: leaveCreditMin / 60,
           overtimeHours: 0,
           holidayHours: 0,
-          totalHours: 4,
+          totalHours: leaveCreditMin / 60,
         };
       }
 
-      if (rawStart === null || rawEnd === null || rawEnd <= rawStart) {
-        return { valid: false, error: '출근/퇴근 시간(24h)을 올바르게 입력해 주세요.' };
+      if (sMinRaw === null || eMinRaw === null || eMinRaw <= sMinRaw) {
+        return {
+          valid: false,
+          leaveType: lt,
+          isSpecial: special,
+          regularHours: 0,
+          overtimeHours: 0,
+          holidayHours: 0,
+          totalHours: 0,
+        };
       }
 
-      const clampedStart = rawStart < WORK_START_MIN;
-      const effStart = Math.max(rawStart, WORK_START_MIN);
-      const effEnd = rawEnd;
+      const clampedStart = sMinRaw < WORK_START_MIN;
+      const effStart = clampedStart ? WORK_START_MIN : sMinRaw;
+      const effEnd = eMinRaw;
 
       if (effEnd <= effStart) {
-        if (leaveCreditMin > 0) {
-          const hrs = leaveCreditMin / 60;
-          return {
-            valid: true,
-            leaveType: lt,
-            isSpecialDay: dayInfo.isSpecialDay,
-            holidayName: dayInfo.holidayName,
-            clampedStart,
-            effectiveStartStr: '08:00',
-            lunchMin: 0,
-            dinnerMin: 0,
-            regularHours: hrs,
-            overtimeHours: 0,
-            holidayHours: 0,
-            totalHours: hrs,
-          };
-        }
-        return { valid: false, error: '08:00 이후 실제 근로시간이 없습니다.' };
+        return {
+          valid: true,
+          leaveType: lt,
+          isSpecial: special,
+          effectiveStartStr: minToTime24(effStart),
+          effectiveEndStr: minToTime24(effEnd),
+          clampedStart,
+          lunchDeduct: 0,
+          dinnerDeduct: 0,
+          regularHours: leaveCreditMin / 60,
+          overtimeHours: 0,
+          holidayHours: 0,
+          totalHours: leaveCreditMin / 60,
+        };
       }
 
-      const lunchMin = overlapMinutes(effStart, effEnd, LUNCH_START_MIN, LUNCH_END_MIN);
-      const dinnerMin = overlapMinutes(effStart, effEnd, DINNER_START_MIN, DINNER_END_MIN);
-      const netWorkMin = Math.max(0, effEnd - effStart - lunchMin - dinnerMin);
+      const lunchDeduct = overlapMinutes(effStart, effEnd, LUNCH_START_MIN, LUNCH_END_MIN);
+      const dinnerDeduct = overlapMinutes(effStart, effEnd, DINNER_START_MIN, DINNER_END_MIN);
 
-      let regularMin = leaveCreditMin;
-      let overtimeMin = 0;
-      let holidayMin = 0;
+      let regMin = leaveCreditMin;
+      let otMin = 0;
+      let holMin = 0;
 
-      if (dayInfo.isSpecialDay) {
-        holidayMin = netWorkMin;
+      if (special) {
+        // 주말·공휴일: 전체 실근무시간을 특근으로 분리
+        holMin = Math.max(0, (effEnd - effStart) - lunchDeduct - dinnerDeduct);
       } else {
-        const regIntervalMin = overlapMinutes(effStart, effEnd, WORK_START_MIN, REGULAR_END_MIN);
-        const regLunchMin = overlapMinutes(effStart, Math.min(effEnd, REGULAR_END_MIN), LUNCH_START_MIN, LUNCH_END_MIN);
-        const workedRegularMin = Math.max(0, regIntervalMin - regLunchMin);
-
-        const otIntervalMin = overlapMinutes(effStart, effEnd, REGULAR_END_MIN, 24 * 60);
-        const otDinnerMin = overlapMinutes(Math.max(effStart, REGULAR_END_MIN), effEnd, DINNER_START_MIN, DINNER_END_MIN);
-        const workedOtMin = Math.max(0, otIntervalMin - otDinnerMin);
-
-        regularMin += workedRegularMin;
-        overtimeMin = workedOtMin;
+        // 평일: 08:00~17:00 정상(중식 차감), 17:00 이후 연장(석식 차감)
+        const regRaw = overlapMinutes(effStart, effEnd, WORK_START_MIN, REGULAR_END_MIN);
+        const regNet = Math.max(0, regRaw - lunchDeduct);
+        const otRaw = Math.max(0, effEnd - Math.max(effStart, REGULAR_END_MIN));
+        const otNet = Math.max(0, otRaw - dinnerDeduct);
+        regMin += regNet;
+        otMin = otNet;
       }
-
-      const totalMin = regularMin + overtimeMin + holidayMin;
-      const effHh = String(Math.floor(effStart / 60)).padStart(2, '0');
-      const effMm = String(effStart % 60).padStart(2, '0');
 
       return {
         valid: true,
         leaveType: lt,
-        isSpecialDay: dayInfo.isSpecialDay,
-        holidayName: dayInfo.holidayName,
+        isSpecial: special,
+        effectiveStartStr: minToTime24(effStart),
+        effectiveEndStr: minToTime24(effEnd),
         clampedStart,
-        effectiveStartStr: `${effHh}:${effMm}`,
-        lunchMin,
-        dinnerMin,
-        regularHours: regularMin / 60,
-        overtimeHours: overtimeMin / 60,
-        holidayHours: holidayMin / 60,
-        totalHours: totalMin / 60,
+        lunchDeduct,
+        dinnerDeduct,
+        regularHours: regMin / 60,
+        overtimeHours: otMin / 60,
+        holidayHours: holMin / 60,
+        totalHours: (regMin + otMin + holMin) / 60,
       };
     }
 
-    // 계층형 부서(하위팀) 헬퍼
+    // =========================================================================
+    // 6. 계층형 부서(하위팀) 및 팀원 조회 헬퍼
+    // =========================================================================
     function getDeptName(team) {
       if (!team) return '미지정';
-      return (team.name || team.department || team.teamName || '미지정').trim();
+      return (team.name || team.department || '미지정').trim();
     }
 
     function getTeamById(id) {
       return state.teams.find((t) => t.id === id) || null;
     }
 
-    function getChildTeams(parentId) {
-      return state.teams
-        .filter((t) => (t.parentId || null) === (parentId || null))
-        .sort((a, b) => (a.order ?? 999) - (b.order ?? 999) || getDeptName(a).localeCompare(getDeptName(b), 'ko'));
+    function getMemberById(id) {
+      return state.members.find((m) => m.id === id) || null;
     }
 
-    function getRootTeams() {
-      const validIds = new Set(state.teams.map((t) => t.id));
-      return state.teams
-        .filter((t) => !t.parentId || !validIds.has(t.parentId))
-        .sort((a, b) => (a.order ?? 999) - (b.order ?? 999) || getDeptName(a).localeCompare(getDeptName(b), 'ko'));
-    }
-
-    function getTeamPath(team) {
-      if (!team) return '미지정';
-      const parts = [];
-      let curr = team;
-      const visited = new Set();
-      while (curr && !visited.has(curr.id)) {
-        visited.add(curr.id);
-        parts.unshift(getDeptName(curr));
-        curr = curr.parentId ? getTeamById(curr.parentId) : null;
+    function getMemberTeam(member) {
+      if (!member) return null;
+      if (member.teamId) {
+        const found = getTeamById(member.teamId);
+        if (found) return found;
       }
-      return parts.join(' > ');
-    }
-
-    function getFlattenedTeamTree() {
-      const result = [];
-      const visited = new Set();
-      function walk(parentId, depth) {
-        const list = parentId === null ? getRootTeams() : getChildTeams(parentId);
-        list.forEach((team) => {
-          if (visited.has(team.id)) return;
-          visited.add(team.id);
-          result.push({ team, depth });
-          walk(team.id, depth + 1);
-        });
-      }
-      walk(null, 0);
-      return result;
-    }
-
-    function getDescendantTeamIds(teamId) {
-      const ids = new Set([teamId]);
-      const queue = [teamId];
-      while (queue.length > 0) {
-        const curr = queue.shift();
-        state.teams.forEach((t) => {
-          if (t.parentId === curr && !ids.has(t.id)) {
-            ids.add(t.id);
-            queue.push(t.id);
-          }
-        });
-      }
-      return ids;
-    }
-
-    function getMemberTeam(m) {
-      if (m.teamId) {
-        const t = getTeamById(m.teamId);
-        if (t) return t;
-      }
-      if (m.department) {
-        return state.teams.find((t) => getDeptName(t) === m.department) || null;
+      if (member.department) {
+        const byName = state.teams.find((t) => getDeptName(t) === member.department);
+        if (byName) return byName;
       }
       return null;
     }
 
-    function getMemberDept(m) {
-      const t = getMemberTeam(m);
-      return t ? getDeptName(t) : (m.department || '미지정');
+    function getMemberDept(member) {
+      const t = getMemberTeam(member);
+      if (t) return getDeptName(t);
+      return member?.department || '미지정';
     }
 
-    function getMemberDeptPath(m) {
-      const t = getMemberTeam(m);
-      return t ? getTeamPath(t) : (m.department || '미지정');
+    function getDeptPath(teamId) {
+      const parts = [];
+      let cur = getTeamById(teamId);
+      const visited = new Set();
+      while (cur && !visited.has(cur.id)) {
+        visited.add(cur.id);
+        parts.unshift(getDeptName(cur));
+        cur = cur.parentId ? getTeamById(cur.parentId) : null;
+      }
+      return parts.join(' > ') || '미지정';
+    }
+
+    function getMemberDeptPath(member) {
+      const t = getMemberTeam(member);
+      if (t) return getDeptPath(t.id);
+      return member?.department || '미지정';
+    }
+
+    // 트리 순서로 평탄화된 부서 목록 반환 [{ team, depth, path }]
+    function getFlattenedDepts() {
+      const result = [];
+      const visited = new Set();
+      const sorted = [...state.teams].sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0) || getDeptName(a).localeCompare(getDeptName(b), 'ko'));
+
+      function walk(parentId, depth) {
+        const children = sorted.filter((t) => (t.parentId || '') === (parentId || ''));
+        children.forEach((child) => {
+          if (visited.has(child.id)) return;
+          visited.add(child.id);
+          result.push({ team: child, depth, path: getDeptPath(child.id) });
+          walk(child.id, depth + 1);
+        });
+      }
+
+      walk('', 0);
+      // 부모가 삭제된 고아 노드가 있다면 최상위로 포함
+      sorted.forEach((t) => {
+        if (!visited.has(t.id)) {
+          visited.add(t.id);
+          result.push({ team: t, depth: 0, path: getDeptPath(t.id) });
+        }
+      });
+      return result;
+    }
+
+    // 특정 부서 및 모든 하위 부서 ID 집합 반환
+    function getDescendantDeptIds(rootId) {
+      const setIds = new Set([rootId]);
+      let added = true;
+      while (added) {
+        added = false;
+        state.teams.forEach((t) => {
+          if (t.parentId && setIds.has(t.parentId) && !setIds.has(t.id)) {
+            setIds.add(t.id);
+            added = true;
+          }
+        });
+      }
+      return setIds;
+    }
+
+    function getMembersInDeptTree(deptId) {
+      const sorted = [...state.members].sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0) || a.name.localeCompare(b.name, 'ko'));
+      if (!deptId || deptId === 'ALL') return sorted;
+      const validIds = getDescendantDeptIds(deptId);
+      const validNames = new Set(
+        Array.from(validIds).map((id) => getDeptName(getTeamById(id)))
+      );
+      return sorted.filter((m) => {
+        const t = getMemberTeam(m);
+        if (t) return validIds.has(t.id);
+        return validNames.has(m.department || '');
+      });
     }
 
     function getVisibleMembers() {
-      const active = state.members.filter((m) => m.active !== false);
-      if (state.selectedDept === 'ALL') return active;
-      const allowedIds = getDescendantTeamIds(state.selectedDept);
-      const allowedNames = new Set(Array.from(allowedIds).map((id) => getDeptName(getTeamById(id))));
-      return active.filter((m) => {
-        if (m.teamId && allowedIds.has(m.teamId)) return true;
-        return allowedNames.has(getMemberDept(m));
-      });
+      return getMembersInDeptTree(state.selectedDeptFilter);
     }
 
     function getRecord(dateStr, memberId) {
@@ -1347,470 +1316,516 @@
     }
 
     function getVisibleWeekRecords() {
-      const weekDates = new Set(getWeekDates(state.weekStartDate));
-      const visibleIds = new Set(getVisibleMembers().map((m) => m.id));
+      const dates = new Set(getWeekDates(state.weekStartDate));
+      const memberIds = new Set(getVisibleMembers().map((m) => m.id));
       const list = [];
       state.recordsMap.forEach((rec) => {
-        if (weekDates.has(rec.date) && visibleIds.has(rec.memberId)) {
-          list.push(rec);
-        }
+        if (!rec || !dates.has(rec.date) || !memberIds.has(rec.memberId)) return;
+        if (state.highlightedMemberId && rec.memberId !== state.highlightedMemberId) return;
+        list.push(rec);
       });
       return list.sort((a, b) => a.date.localeCompare(b.date) || a.memberId.localeCompare(b.memberId));
     }
 
     function getActiveFilterLabel() {
-      if (state.selectedDept === 'ALL') return '전체 부서';
-      const t = getTeamById(state.selectedDept);
-      return t ? getTeamPath(t) : '전체 부서';
+      if (state.selectedDeptFilter === 'ALL') return '전체 부서';
+      return getDeptPath(state.selectedDeptFilter);
+    }
+
+    function genId(prefix) {
+      return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
     }
 
     // =========================================================================
-    // 6. 토스트 & 확인 모달
+    // 7. 토스트 & 확인 모달
     // =========================================================================
     function showToast(message, type = 'info') {
       const colors = {
         success: 'bg-emerald-600 text-white',
         error: 'bg-rose-600 text-white',
+        warning: 'bg-amber-600 text-white',
         info: 'bg-slate-900 text-white',
       };
       const div = document.createElement('div');
-      div.className = `${colors[type] || colors.info} px-4 py-3 rounded-xl shadow-lg text-xs sm:text-sm font-semibold pointer-events-auto transition-all duration-300`;
-      div.textContent = message;
+      div.className = `pointer-events-auto px-4 py-3 rounded-xl shadow-lg text-xs sm:text-sm font-bold flex items-center justify-between gap-3 transition-all ${colors[type] || colors.info}`;
+      div.innerHTML = `<span>${escapeHtml(message)}</span>`;
       els.toastContainer.appendChild(div);
       setTimeout(() => {
         div.classList.add('opacity-0', 'translate-y-2');
-        setTimeout(() => div.remove(), 300);
+        setTimeout(() => div.remove(), 250);
       }, 3200);
     }
 
     function openConfirm(title, message, onOk) {
       els.confirmTitle.textContent = title;
       els.confirmMessage.textContent = message;
-      confirmCallback = onOk;
+      state.confirmCallback = onOk;
       els.confirmModal.classList.remove('hidden');
     }
 
     function closeConfirm() {
       els.confirmModal.classList.add('hidden');
-      confirmCallback = null;
+      state.confirmCallback = null;
     }
 
     // =========================================================================
-    // 7. Firebase 실시간 구독 & 상태 관리
+    // 8. 로컬 백업(localStorage) & Firebase Realtime Database 동기화
     // =========================================================================
-    function setFbStatus(status, errorMsg = '') {
-      state.fbStatus = status;
-      state.fbErrorMsg = errorMsg;
+    function saveLocalBackup() {
+      try {
+        const payload = {
+          teams: state.teams,
+          members: state.members,
+          records: Array.from(state.recordsMap.entries()),
+          customHolidays: state.customHolidays,
+          savedAt: Date.now(),
+        };
+        localStorage.setItem(LOCAL_BACKUP_KEY, JSON.stringify(payload));
+      } catch (err) {
+        console.warn('localStorage 백업 실패:', err);
+      }
+    }
 
+    function loadLocalBackup() {
+      try {
+        const raw = localStorage.getItem(LOCAL_BACKUP_KEY);
+        if (!raw) return false;
+        const data = JSON.parse(raw);
+        if (Array.isArray(data.teams)) state.teams = data.teams;
+        if (Array.isArray(data.members)) state.members = data.members;
+        if (Array.isArray(data.records)) {
+          state.recordsMap = new Map(data.records);
+        }
+        if (data.customHolidays && typeof data.customHolidays === 'object') {
+          state.customHolidays = data.customHolidays;
+        }
+        return true;
+      } catch (err) {
+        console.warn('localStorage 복원 실패:', err);
+        return false;
+      }
+    }
+
+    function setFirebaseStatus(status, msg = '') {
+      state.fbStatus = status;
+      state.fbErrorMsg = msg;
       if (status === 'connected') {
         els.btnFirebaseStatus.className = 'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition';
         els.fbStatusDot.className = 'w-2 h-2 rounded-full bg-emerald-500';
         els.fbStatusText.textContent = 'Firebase 연결됨';
-        els.fbGuideStatusText.textContent = 'Firebase Realtime Database(asia-southeast1)에 정상 연결되어 있습니다.';
       } else if (status === 'error') {
         els.btnFirebaseStatus.className = 'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 transition';
         els.fbStatusDot.className = 'w-2 h-2 rounded-full bg-rose-500';
-        els.fbStatusText.textContent = '연결 오류 (확인)';
-        els.fbGuideStatusText.textContent = errorMsg || 'Firebase 연결에 실패했습니다. (로컬 백업으로 계속 사용 가능)';
+        els.fbStatusText.textContent = '연결 오류 (로컬 저장됨)';
       } else {
         els.btnFirebaseStatus.className = 'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition';
         els.fbStatusDot.className = 'w-2 h-2 rounded-full bg-amber-500 animate-pulse';
         els.fbStatusText.textContent = '동기화 중...';
-        els.fbGuideStatusText.textContent = 'Firebase Realtime Database와 초기 동기화를 진행하고 있습니다...';
+      }
+      updateFbGuideModalInfo();
+    }
+
+    function updateFbGuideModalInfo() {
+      const f = state.loadedFlags;
+      const summary = `teams:${f.teams ? 'OK' : '대기'} | members:${f.members ? 'OK' : '대기'} | workRecords:${f.workRecords ? 'OK' : '대기'} | customHolidays:${f.customHolidays ? 'OK' : '대기'}`;
+      els.fbCollectionsStatus.textContent = summary;
+      if (state.fbStatus === 'connected') {
+        els.fbGuideStatusText.textContent = 'Firebase Realtime Database와 실시간 동기화 중입니다.';
+      } else if (state.fbStatus === 'error') {
+        els.fbGuideStatusText.textContent = `서버 연결 실패: ${state.fbErrorMsg || '권한(Rules) 또는 네트워크를 확인해 주세요.'}`;
+      } else {
+        els.fbGuideStatusText.textContent = 'Firebase Realtime Database에 연결하는 중입니다...';
       }
     }
 
-    function updateFbCollectionsGuide() {
-      const st = state.initialLoaded;
-      els.fbCollectionsStatus.textContent =
-        `teams:${st.teams ? 'OK' : '대기'} | members:${st.members ? 'OK' : '대기'} | workRecords:${st.records ? 'OK' : '대기'} | customHolidays:${st.holidays ? 'OK' : '대기'}`;
-    }
-
-    function handleFirestoreError(err, context = '') {
-      console.error(`Firebase RTDB 오류 [${context}]:`, err);
-      const isPerm = err?.code === 'PERMISSION_DENIED' || String(err?.message || '').includes('permission_denied');
-      const msg = isPerm
-        ? `Firebase 접근 권한이 거부되었습니다 (${context}). Realtime Database 규칙을 확인해 주세요.`
-        : `Firebase 오류 (${context}): ${err?.message || err}`;
-      setFbStatus('error', msg);
-      showToast(msg, 'error');
+    // 6초 타임아웃으로 서버 저장 검증
+    async function commitWithTimeout(promise, label = 'save') {
+      try {
+        await Promise.race([
+          promise,
+          new Promise((_, reject) => setTimeout(() => reject(new Error('서버 응답 시간 초과 (6초)')), 6000)),
+        ]);
+        if (state.fbStatus !== 'connected') setFirebaseStatus('connected');
+        return { ok: true };
+      } catch (err) {
+        console.warn(`[Firebase ${label}]`, err);
+        setFirebaseStatus('error', err.message || String(err));
+        showToast('로컬에 저장되었습니다. (Firebase 서버 동기화 지연/실패)', 'warning');
+        return { ok: false, error: err };
+      }
     }
 
     function unsubscribeAll() {
-      activeUnsubscribers.forEach((unsub) => {
-        try { unsub(); } catch (_) {}
+      state.unsubscribers.forEach((fn) => {
+        try { fn(); } catch (_) {}
       });
-      activeUnsubscribers = [];
-      if (syncTimeoutId) {
-        clearTimeout(syncTimeoutId);
-        syncTimeoutId = null;
+      state.unsubscribers = [];
+      if (state.connectTimer) {
+        clearTimeout(state.connectTimer);
+        state.connectTimer = null;
       }
     }
 
-    function subscribeFirestore() {
+    function subscribeRealtimeDB() {
       unsubscribeAll();
-      state.initialLoaded = { teams: false, members: false, records: false, holidays: false };
-      setFbStatus('syncing');
-      updateFbCollectionsGuide();
+      state.loadedFlags = { teams: false, members: false, workRecords: false, customHolidays: false };
+      setFirebaseStatus('syncing');
 
-      syncTimeoutId = setTimeout(() => {
-        if (state.fbStatus === 'syncing') {
-          const pending = Object.entries(state.initialLoaded)
-            .filter(([, ok]) => !ok)
-            .map(([k]) => k)
-            .join(', ');
-          setFbStatus(
-            'error',
-            `서버 응답 지연 (대기 경로: ${pending || 'all'}). Realtime Database 규칙 또는 네트워크를 확인해 주세요. 로컬 백업으로 계속 작업할 수 있습니다.`
-          );
+      state.connectTimer = setTimeout(() => {
+        const allOk = Object.values(state.loadedFlags).every(Boolean);
+        if (!allOk) {
+          setFirebaseStatus('error', '8초 이상 응답이 없습니다. Realtime Database 규칙(.read/.write)이나 네트워크를 확인하세요.');
         }
       }, 8000);
 
       const checkAllLoaded = () => {
-        updateFbCollectionsGuide();
-        const { teams, members, records, holidays } = state.initialLoaded;
-        if (teams && members && records && holidays) {
-          if (syncTimeoutId) {
-            clearTimeout(syncTimeoutId);
-            syncTimeoutId = null;
+        updateFbGuideModalInfo();
+        if (Object.values(state.loadedFlags).every(Boolean)) {
+          if (state.connectTimer) {
+            clearTimeout(state.connectTimer);
+            state.connectTimer = null;
           }
-          state.serverSynced = true;
-          setFbStatus('connected');
-          els.emptyDbBanner.classList.toggle('hidden', state.members.length > 0 || state.teams.length > 0);
+          setFirebaseStatus('connected');
+          saveLocalBackup();
         }
       };
 
-      activeUnsubscribers.push(
-        onValue(
-          ref(db, 'teams'),
-          (snap) => {
-            const val = snap.val() || {};
-            const serverTeams = Object.entries(val)
-              .map(([id, data]) => {
-                const deptLabel = (data?.name || data?.department || data?.teamName || '').trim();
-                return {
-                  id,
-                  ...data,
-                  name: deptLabel,
-                  department: deptLabel,
-                  parentId: data?.parentId || null,
-                };
-              })
-              .sort((a, b) => (a.order ?? 999) - (b.order ?? 999) || getDeptName(a).localeCompare(getDeptName(b), 'ko'));
+      const onErr = (name) => (err) => {
+        console.error(`RTDB [${name}] error:`, err);
+        setFirebaseStatus('error', `${name}: ${err.message || err.code}`);
+      };
 
-            if (serverTeams.length > 0 || state.serverSynced) {
-              state.teams = serverTeams;
-              saveLocalBackup();
-            }
-            state.initialLoaded.teams = true;
-            checkAllLoaded();
-            renderAll();
-            if (!els.manageModal.classList.contains('hidden')) renderManageModal();
-          },
-          (err) => handleFirestoreError(err, 'teams')
-        )
-      );
-
-      activeUnsubscribers.push(
-        onValue(
-          ref(db, 'members'),
-          (snap) => {
-            const val = snap.val() || {};
-            const serverMembers = Object.entries(val).map(([id, data]) => ({
+      // 1) teams
+      const unsubTeams = onValue(
+        ref(db, 'teams'),
+        (snap) => {
+          const val = snap.val();
+          if (val && typeof val === 'object') {
+            state.teams = Object.entries(val).map(([id, item]) => ({
               id,
-              ...data,
-              department: (data?.department || data?.team || '').trim(),
+              name: item?.name || item?.department || '미지정',
+              department: item?.department || item?.name || '미지정',
+              parentId: item?.parentId || '',
+              createdAt: item?.createdAt || 0,
             }));
-
-            if (serverMembers.length > 0 || state.serverSynced) {
-              state.members = serverMembers;
-              saveLocalBackup();
-            }
-            state.initialLoaded.members = true;
-            checkAllLoaded();
-            renderAll();
-            if (!els.manageModal.classList.contains('hidden')) renderManageModal();
-          },
-          (err) => handleFirestoreError(err, 'members')
-        )
+          } else if (state.loadedFlags.teams || state.teams.length === 0) {
+            state.teams = [];
+          }
+          state.loadedFlags.teams = true;
+          checkAllLoaded();
+          renderAll();
+        },
+        onErr('teams')
       );
 
-      activeUnsubscribers.push(
-        onValue(
-          ref(db, 'workRecords'),
-          (snap) => {
-            const val = snap.val() || {};
-            const map = new Map();
-            Object.entries(val).forEach(([id, data]) => {
-              if (data) {
-                const docKey = (data.date && data.memberId) ? `${data.date}_${data.memberId}` : id;
-                map.set(docKey, { id: docKey, ...data, leaveType: normalizeLeaveType(data.leaveType) });
-              }
+      // 2) members
+      const unsubMembers = onValue(
+        ref(db, 'members'),
+        (snap) => {
+          const val = snap.val();
+          if (val && typeof val === 'object') {
+            state.members = Object.entries(val).map(([id, item]) => ({
+              id,
+              name: item?.name || '이름없음',
+              teamId: item?.teamId || '',
+              department: item?.department || '',
+              createdAt: item?.createdAt || 0,
+            }));
+          } else if (state.loadedFlags.members || state.members.length === 0) {
+            state.members = [];
+          }
+          state.loadedFlags.members = true;
+          checkAllLoaded();
+          renderAll();
+        },
+        onErr('members')
+      );
+
+      // 3) workRecords (키 정규화: `${date}_${memberId}`)
+      const unsubRecords = onValue(
+        ref(db, 'workRecords'),
+        (snap) => {
+          const val = snap.val();
+          if (val && typeof val === 'object') {
+            const nextMap = new Map();
+            Object.entries(val).forEach(([key, item]) => {
+              if (!item || !item.date || !item.memberId) return;
+              const normKey = `${item.date}_${item.memberId}`;
+              nextMap.set(normKey, {
+                id: normKey,
+                date: item.date,
+                memberId: item.memberId,
+                leaveType: normalizeLeaveType(item.leaveType),
+                startTime: item.startTime || '',
+                endTime: item.endTime || '',
+                note: item.note || '',
+              });
             });
-
-            if (map.size > 0 || state.serverSynced) {
-              state.recordsMap = map;
-              saveLocalBackup();
-            }
-            state.initialLoaded.records = true;
-            checkAllLoaded();
-            renderAll();
-          },
-          (err) => handleFirestoreError(err, 'workRecords')
-        )
+            state.recordsMap = nextMap;
+          } else if (state.loadedFlags.workRecords || state.recordsMap.size === 0) {
+            state.recordsMap = new Map();
+          }
+          state.loadedFlags.workRecords = true;
+          checkAllLoaded();
+          renderAll();
+        },
+        onErr('workRecords')
       );
 
-      activeUnsubscribers.push(
-        onValue(
-          ref(db, 'customHolidays'),
-          (snap) => {
-            const val = snap.val() || {};
-            const obj = {};
-            Object.entries(val).forEach(([key, data]) => {
-              const dateKey = data?.date || key;
-              const nameVal = typeof data === 'string' ? data : data?.name;
-              if (dateKey && nameVal) obj[dateKey] = nameVal;
+      // 4) customHolidays
+      const unsubHolidays = onValue(
+        ref(db, 'customHolidays'),
+        (snap) => {
+          const val = snap.val();
+          if (val && typeof val === 'object') {
+            const nextHol = {};
+            Object.entries(val).forEach(([dateKey, item]) => {
+              nextHol[dateKey] = typeof item === 'string' ? item : (item?.name || '지정휴일');
             });
-
-            if (Object.keys(obj).length > 0 || state.serverSynced) {
-              state.customHolidays = obj;
-              saveLocalBackup();
-            }
-            state.initialLoaded.holidays = true;
-            checkAllLoaded();
-            renderAll();
-            if (!els.holidayModal.classList.contains('hidden')) renderHolidayModal();
-          },
-          (err) => handleFirestoreError(err, 'customHolidays')
-        )
+            state.customHolidays = nextHol;
+          } else if (state.loadedFlags.customHolidays || Object.keys(state.customHolidays).length === 0) {
+            state.customHolidays = {};
+          }
+          state.loadedFlags.customHolidays = true;
+          checkAllLoaded();
+          renderAll();
+        },
+        onErr('customHolidays')
       );
+
+      state.unsubscribers.push(unsubTeams, unsubMembers, unsubRecords, unsubHolidays);
     }
 
-    async function uploadLocalDataToFirestore() {
-      try {
-        setFbStatus('syncing');
-        const updates = {};
-        state.teams.forEach((t) => {
-          updates[`teams/${t.id}`] = {
-            id: t.id,
-            name: getDeptName(t),
-            department: getDeptName(t),
-            parentId: t.parentId || null,
-            order: t.order ?? 1,
-            createdAt: Date.now(),
-          };
-        });
-        state.members.forEach((m) => {
-          updates[`members/${m.id}`] = {
-            id: m.id,
-            name: m.name,
-            teamId: m.teamId || null,
-            department: getMemberDept(m),
-            active: m.active !== false,
-          };
-        });
-        state.recordsMap.forEach((r, docId) => {
-          updates[`workRecords/${docId}`] = {
-            date: r.date,
-            memberId: r.memberId,
-            leaveType: normalizeLeaveType(r.leaveType),
-            startTime: r.startTime || '',
-            endTime: r.endTime || '',
-            note: r.note || '',
-            updatedAt: Date.now(),
-          };
-        });
-        Object.entries(state.customHolidays || {}).forEach(([date, name]) => {
-          updates[`customHolidays/${date}`] = { date, name };
-        });
+    async function uploadLocalDataToFirebase() {
+      const payload = {
+        teams: {},
+        members: {},
+        workRecords: {},
+        customHolidays: {},
+      };
+      state.teams.forEach((t) => {
+        payload.teams[t.id] = {
+          name: getDeptName(t),
+          department: getDeptName(t),
+          parentId: t.parentId || '',
+          createdAt: t.createdAt || Date.now(),
+        };
+      });
+      state.members.forEach((m) => {
+        payload.members[m.id] = {
+          name: m.name,
+          teamId: m.teamId || '',
+          department: getMemberDept(m),
+          createdAt: m.createdAt || Date.now(),
+        };
+      });
+      state.recordsMap.forEach((rec, key) => {
+        payload.workRecords[key] = {
+          date: rec.date,
+          memberId: rec.memberId,
+          leaveType: normalizeLeaveType(rec.leaveType),
+          startTime: rec.startTime || '',
+          endTime: rec.endTime || '',
+          note: rec.note || '',
+          updatedAt: Date.now(),
+        };
+      });
+      Object.entries(state.customHolidays).forEach(([dateStr, name]) => {
+        payload.customHolidays[dateStr] = { name };
+      });
 
-        const res = await commitWithTimeout(update(ref(db), updates), 'uploadLocal', 8000);
-        if (res.ok) {
-          state.serverSynced = true;
-          setFbStatus('connected');
-          showToast('로컬 데이터를 Firebase 서버에 성공적으로 업로드했습니다.', 'success');
-        }
-      } catch (err) {
-        handleFirestoreError(err, 'uploadLocal');
+      const res = await commitWithTimeout(update(ref(db), payload), 'uploadLocal');
+      if (res.ok) {
+        showToast('로컬 데이터를 Firebase 서버에 성공적으로 업로드했습니다.', 'success');
       }
     }
 
-    async function seedSampleDataToFirestore() {
-      try {
-        const sun = state.weekStartDate;
-        const mon = addDays(sun, 1);
-        const tue = addDays(sun, 2);
-        const wed = addDays(sun, 3);
-        const thu = addDays(sun, 4);
-        const fri = addDays(sun, 5);
-        const sat = addDays(sun, 6);
+    // 샘플 데이터 시딩
+    async function seedSampleData() {
+      const now = Date.now();
+      const sampleTeams = [
+        { id: 'dept_prod', name: '생산부', department: '생산부', parentId: '', createdAt: now },
+        { id: 'dept_prod_1', name: '생산1팀', department: '생산1팀', parentId: 'dept_prod', createdAt: now + 1 },
+        { id: 'dept_prod_2', name: '생산2팀', department: '생산2팀', parentId: 'dept_prod', createdAt: now + 2 },
+        { id: 'dept_qa', name: '품질팀', department: '품질팀', parentId: '', createdAt: now + 3 },
+      ];
+      const sampleMembers = [
+        { id: 'mem_1', name: '김왕근', teamId: 'dept_prod_1', department: '생산1팀', createdAt: now + 10 },
+        { id: 'mem_2', name: '김홍열', teamId: 'dept_prod_1', department: '생산1팀', createdAt: now + 11 },
+        { id: 'mem_3', name: '유화석', teamId: 'dept_prod_1', department: '생산1팀', createdAt: now + 12 },
+        { id: 'mem_4', name: '백승현', teamId: 'dept_prod_2', department: '생산2팀', createdAt: now + 13 },
+        { id: 'mem_5', name: '김창선', teamId: 'dept_prod_2', department: '생산2팀', createdAt: now + 14 },
+        { id: 'mem_6', name: '신재수', teamId: 'dept_qa', department: '품질팀', createdAt: now + 15 },
+      ];
 
-        const sampleTeams = [
-          { id: 'dept_prod', name: '생산부', department: '생산부', parentId: null, order: 1 },
-          { id: 'dept_prod1', name: '생산1팀', department: '생산1팀', parentId: 'dept_prod', order: 1 },
-          { id: 'dept_prod2', name: '생산2팀', department: '생산2팀', parentId: 'dept_prod', order: 2 },
-          { id: 'dept_qa', name: '품질관리팀', department: '품질관리팀', parentId: null, order: 2 },
-        ];
+      const weekDates = getWeekDates(state.weekStartDate);
+      const updates = {};
 
-        const sampleMembers = [
-          { id: 'm_1', name: '김왕근', teamId: 'dept_prod1', department: '생산1팀', active: true },
-          { id: 'm_2', name: '김홍열', teamId: 'dept_prod1', department: '생산1팀', active: true },
-          { id: 'm_3', name: '유화석', teamId: 'dept_prod1', department: '생산1팀', active: true },
-          { id: 'm_4', name: '김희중', teamId: 'dept_prod2', department: '생산2팀', active: true },
-          { id: 'm_5', name: '백승현', teamId: 'dept_prod2', department: '생산2팀', active: true },
-          { id: 'm_6', name: '김창선', teamId: 'dept_qa', department: '품질관리팀', active: true },
-        ];
+      sampleTeams.forEach((t) => {
+        updates[`teams/${t.id}`] = t;
+      });
+      sampleMembers.forEach((m) => {
+        updates[`members/${m.id}`] = m;
+      });
 
-        const sampleRecords = [
-          { date: mon, memberId: 'm_1', leaveType: 'normal', startTime: '07:40', endTime: '20:00', note: '' },
-          { date: tue, memberId: 'm_1', leaveType: 'normal', startTime: '08:00', endTime: '20:30', note: '' },
-          { date: wed, memberId: 'm_1', leaveType: 'normal', startTime: '08:00', endTime: '20:00', note: '' },
-          { date: thu, memberId: 'm_1', leaveType: 'half_pm', startTime: '08:00', endTime: '12:00', note: '병원 진료' },
-          { date: fri, memberId: 'm_1', leaveType: 'normal', startTime: '08:00', endTime: '21:00', note: '' },
-          { date: sat, memberId: 'm_1', leaveType: 'normal', startTime: '08:00', endTime: '12:00', note: '주말 특근' },
-          { date: mon, memberId: 'm_2', leaveType: 'normal', startTime: '08:00', endTime: '19:30', note: '' },
-          { date: tue, memberId: 'm_2', leaveType: 'annual', startTime: '', endTime: '', note: '개인 연차' },
-          { date: wed, memberId: 'm_2', leaveType: 'normal', startTime: '08:00', endTime: '19:00', note: '' },
-          { date: thu, memberId: 'm_2', leaveType: 'normal', startTime: '08:00', endTime: '17:00', note: '' },
-          { date: fri, memberId: 'm_2', leaveType: 'normal', startTime: '08:00', endTime: '17:00', note: '' },
-          { date: mon, memberId: 'm_4', leaveType: 'normal', startTime: '08:00', endTime: '21:30', note: '라인 증설' },
-          { date: tue, memberId: 'm_4', leaveType: 'normal', startTime: '08:00', endTime: '21:30', note: '라인 증설' },
-          { date: wed, memberId: 'm_4', leaveType: 'normal', startTime: '08:00', endTime: '21:30', note: '' },
-          { date: thu, memberId: 'm_4', leaveType: 'normal', startTime: '08:00', endTime: '21:00', note: '' },
-          { date: fri, memberId: 'm_4', leaveType: 'normal', startTime: '08:00', endTime: '21:00', note: '' },
-          { date: sat, memberId: 'm_4', leaveType: 'normal', startTime: '08:00', endTime: '17:00', note: '주말 특근' },
-          { date: mon, memberId: 'm_6', leaveType: 'half_am', startTime: '13:00', endTime: '18:00', note: '' },
-          { date: tue, memberId: 'm_6', leaveType: 'normal', startTime: '08:00', endTime: '17:00', note: '' },
-        ];
-
-        const updates = {};
-        sampleTeams.forEach((t) => { updates[`teams/${t.id}`] = { ...t, createdAt: Date.now() }; });
-        sampleMembers.forEach((m) => { updates[`members/${m.id}`] = m; });
-        sampleRecords.forEach((r) => {
-          const docId = `${r.date}_${r.memberId}`;
-          updates[`workRecords/${docId}`] = { ...r, updatedAt: Date.now() };
-        });
-
-        state.teams = sampleTeams;
-        state.members = sampleMembers;
-        const map = new Map(state.recordsMap);
-        sampleRecords.forEach((r) => {
-          const docId = `${r.date}_${r.memberId}`;
-          map.set(docId, { id: docId, ...r });
-        });
-        state.recordsMap = map;
-        saveLocalBackup();
-        els.emptyDbBanner.classList.add('hidden');
-        renderAll();
-
-        const res = await commitWithTimeout(update(ref(db), updates), 'seedSample');
-        if (res.ok) {
-          setFbStatus('connected');
-          showToast('샘플 부서·팀원·주간 기록을 저장했습니다.', 'success');
+      // 이번 주 월~토 샘플 기록 생성
+      const sampleEndTimes = ['19:30', '20:30', '18:30', '17:00', '21:30'];
+      sampleMembers.forEach((m, mIdx) => {
+        for (let d = 1; d <= 5; d++) {
+          const dateStr = weekDates[d];
+          const docId = `${dateStr}_${m.id}`;
+          const rec = {
+            date: dateStr,
+            memberId: m.id,
+            leaveType: (mIdx === 5 && d === 3) ? 'annual' : 'normal',
+            startTime: (mIdx === 5 && d === 3) ? '' : '07:50',
+            endTime: (mIdx === 5 && d === 3) ? '' : sampleEndTimes[(mIdx + d) % sampleEndTimes.length],
+            note: (mIdx === 5 && d === 3) ? '개인 연차' : '',
+            updatedAt: now,
+          };
+          updates[`workRecords/${docId}`] = rec;
+          state.recordsMap.set(docId, { id: docId, ...rec });
         }
-      } catch (err) {
-        handleFirestoreError(err, 'seedSample');
-      }
+        if (mIdx < 3) {
+          const satStr = weekDates[6];
+          const docId = `${satStr}_${m.id}`;
+          const rec = {
+            date: satStr,
+            memberId: m.id,
+            leaveType: 'normal',
+            startTime: '08:00',
+            endTime: '12:00',
+            note: '토요 특근',
+            updatedAt: now,
+          };
+          updates[`workRecords/${docId}`] = rec;
+          state.recordsMap.set(docId, { id: docId, ...rec });
+        }
+      });
+
+      state.teams = sampleTeams;
+      state.members = sampleMembers;
+      saveLocalBackup();
+      renderAll();
+
+      const res = await commitWithTimeout(update(ref(db), updates), 'seedSample');
+      if (res.ok) showToast('샘플 부서·팀원 및 주간 기록을 불러왔습니다.', 'success');
     }
 
     // =========================================================================
-    // 8. 메인 화면 렌더링 (필터, 주간 그리드, 52h 패널, 상세 테이블)
+    // 9. 화면 렌더링 함수들
     // =========================================================================
     function renderAll() {
+      // 필터 유효성 체크
+      if (state.selectedDeptFilter !== 'ALL' && !getTeamById(state.selectedDeptFilter)) {
+        state.selectedDeptFilter = 'ALL';
+      }
+      if (state.highlightedMemberId && !getMemberById(state.highlightedMemberId)) {
+        state.highlightedMemberId = null;
+      }
+
+      // 빈 DB 배너 토글
+      els.emptyDbBanner.classList.toggle('hidden', state.teams.length > 0 || state.members.length > 0);
+
       renderWeekHeader();
       renderDeptFilterTabs();
       renderWeeklyGrid();
-      render52hPanel();
       renderDetailTable();
+      render52hPanel();
+
+      if (!els.manageModal.classList.contains('hidden')) {
+        renderOrgChartModal();
+      }
+      if (!els.holidayModal.classList.contains('hidden')) {
+        renderHolidayModal();
+      }
     }
 
     function renderWeekHeader() {
       const dates = getWeekDates(state.weekStartDate);
-      const start = parseDateStr(dates[0]);
-      const end = parseDateStr(dates[6]);
-      els.weekRangeLabel.textContent = `${start.getFullYear()}.${String(start.getMonth() + 1).padStart(2, '0')}.${String(start.getDate()).padStart(2, '0')} (일) ~ ${String(end.getMonth() + 1).padStart(2, '0')}.${String(end.getDate()).padStart(2, '0')} (토)`;
+      const s = parseDateStr(dates[0]);
+      const e = parseDateStr(dates[6]);
+      els.weekRangeLabel.textContent = `${s.getFullYear()}.${pad2(s.getMonth() + 1)}.${pad2(s.getDate())}(일) ~ ${e.getFullYear()}.${pad2(e.getMonth() + 1)}.${pad2(e.getDate())}(토)`;
       els.jumpDateInput.value = state.weekStartDate;
       els.activeFilterBadge.textContent = getActiveFilterLabel();
     }
 
     function renderDeptFilterTabs() {
-      const flat = getFlattenedTeamTree();
-      if (state.selectedDept !== 'ALL' && !getTeamById(state.selectedDept)) {
-        state.selectedDept = 'ALL';
-      }
+      const flat = getFlattenedDepts();
+      const totalMembers = state.members.length;
+      const isAll = state.selectedDeptFilter === 'ALL';
 
-      const activeMembersCount = state.members.filter((m) => m.active !== false).length;
-      const btns = [];
-
-      const isAll = state.selectedDept === 'ALL';
-      btns.push(`
-        <button type="button" data-filter-dept="ALL" class="px-3 py-1.5 rounded-xl text-xs font-bold transition border ${
-          isAll ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm' : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
-        }">전체 부서 (${activeMembersCount})</button>
-      `);
+      const btnHtml = [
+        `<button type="button" data-filter-dept="ALL" class="px-3 py-1.5 rounded-xl text-xs font-bold border transition ${
+          isAll
+            ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+            : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+        }">전체 부서 <span class="opacity-80">(${totalMembers})</span></button>`,
+      ];
 
       flat.forEach(({ team, depth }) => {
-        const descIds = getDescendantTeamIds(team.id);
-        const count = state.members.filter((m) => m.active !== false && descIds.has(m.teamId)).length;
-        const isActive = state.selectedDept === team.id;
-        const prefix = depth > 0 ? `${'↳ '.repeat(Math.min(depth, 2))}` : '';
-        btns.push(`
-          <button type="button" data-filter-dept="${escapeHtml(team.id)}" class="px-3 py-1.5 rounded-xl text-xs font-bold transition border ${
-            isActive
+        const active = state.selectedDeptFilter === team.id;
+        const cnt = getMembersInDeptTree(team.id).length;
+        const prefix = depth > 0 ? `${'↳ '.repeat(depth)}` : '';
+        btnHtml.push(`
+          <button type="button" data-filter-dept="${escapeHtml(team.id)}" class="px-3 py-1.5 rounded-xl text-xs font-bold border transition ${
+            active
               ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
               : depth > 0
-                ? 'bg-white hover:bg-indigo-50 text-slate-600 border-slate-200'
-                : 'bg-slate-50 hover:bg-slate-100 text-slate-800 border-slate-300'
-          }">${prefix}${escapeHtml(getDeptName(team))} (${count})</button>
+                ? 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-indigo-50'
+                : 'bg-white text-slate-800 border-slate-300 hover:bg-slate-50'
+          }">${escapeHtml(prefix + getDeptName(team))} <span class="opacity-75">(${cnt})</span></button>
         `);
       });
 
-      els.deptFilterTabs.innerHTML = btns.join('');
+      els.deptFilterTabs.innerHTML = btnHtml.join('');
     }
 
     function renderWeeklyGrid() {
       const dates = getWeekDates(state.weekStartDate);
-      const dayInfos = dates.map(getDayInfo);
       const members = getVisibleMembers();
 
-      // 2단 헤더 (요일/날짜 클릭 -> 해당 날짜 일괄 입력)
-      let row1 = `<th rowspan="2" class="px-3 py-2.5 bg-slate-900 text-white font-bold text-left border border-slate-700 min-w-[115px] sticky left-0 z-10">성명 / 부서</th>`;
-      let row2 = '';
+      // 1) 테이블 헤더 (일~토)
+      const headRow1 = ['<th rowspan="2" class="px-3 py-2.5 bg-slate-800 text-white font-extrabold text-left border border-slate-700 min-w-[115px] sticky left-0 z-10">성명 / 부서</th>'];
+      const headRow2 = [];
 
-      dayInfos.forEach((d) => {
-        let headBg = 'bg-slate-800 hover:bg-slate-700 text-white';
-        let subBg = 'bg-slate-100 text-slate-700';
-        if (d.dow === 0 || d.holidayName) {
-          headBg = 'bg-rose-700 hover:bg-rose-600 text-white';
-          subBg = 'bg-rose-50 text-rose-800';
-        } else if (d.dow === 6) {
-          headBg = 'bg-blue-700 hover:bg-blue-600 text-white';
-          subBg = 'bg-blue-50 text-blue-800';
+      dates.forEach((dStr, idx) => {
+        const dt = parseDateStr(dStr);
+        const holName = getHolidayName(dStr);
+        const isSunOrHol = idx === 0 || Boolean(holName);
+        const isSat = idx === 6 && !holName;
+
+        let thBg = 'bg-slate-800 text-white border-slate-700 hover:bg-slate-700';
+        let subBg = 'bg-slate-100 text-slate-700 border-slate-200';
+        if (isSunOrHol) {
+          thBg = 'bg-rose-700 text-white border-rose-800 hover:bg-rose-800';
+          subBg = 'bg-rose-50 text-rose-700 border-rose-200';
+        } else if (isSat) {
+          thBg = 'bg-blue-700 text-white border-blue-800 hover:bg-blue-800';
+          subBg = 'bg-blue-50 text-blue-700 border-blue-200';
         }
 
-        const holidayTag = d.holidayName
-          ? `<div class="text-[10px] font-semibold bg-white/20 rounded px-1 mt-0.5 truncate max-w-[110px] mx-auto" title="${escapeHtml(d.holidayName)}">${escapeHtml(d.holidayName)}</div>`
-          : '';
-
-        row1 += `
-          <th colspan="2" data-batch-date="${d.dateStr}" class="px-2 py-2 ${headBg} border border-slate-300/40 text-center cursor-pointer transition select-none" title="클릭하여 ${d.dateStr} 부서원 일괄 입력">
-            <div class="font-extrabold text-xs">${d.dayName}</div>
-            <div class="text-[11px] opacity-90">${d.monthNum}/${d.dayNum}</div>
-            ${holidayTag}
+        headRow1.push(`
+          <th colspan="2" data-header-date="${dStr}" title="클릭하여 ${dStr} 부서원 일괄 입력" class="px-2 py-2 border cursor-pointer transition select-none ${thBg}">
+            <div class="font-extrabold text-xs">${DAY_NAMES[idx]}</div>
+            <div class="text-[11px] font-semibold opacity-95 mt-0.5">${dt.getMonth() + 1}/${dt.getDate()}일</div>
+            ${holName ? `<div class="mt-0.5 inline-block px-1.5 py-0.2 rounded bg-white/20 text-[10px] font-bold truncate max-w-[105px]">${escapeHtml(holName)}</div>` : ''}
           </th>
-        `;
-        row2 += `
-          <th class="px-1.5 py-1.5 ${subBg} border border-slate-200 text-center font-bold text-[11px] min-w-[52px]">연장(h)</th>
-          <th class="px-1.5 py-1.5 ${subBg} border border-slate-200 text-center font-bold text-[11px] min-w-[52px]">특근(h)</th>
-        `;
+        `);
+
+        headRow2.push(`
+          <th class="px-1.5 py-1.5 border text-[11px] font-bold text-center min-w-[54px] ${subBg}">연장(h)</th>
+          <th class="px-1.5 py-1.5 border text-[11px] font-bold text-center min-w-[54px] ${subBg}">특근(h)</th>
+        `);
       });
 
-      els.weeklyGridHead.innerHTML = `<tr>${row1}</tr><tr>${row2}</tr>`;
+      els.weeklyGridHead.innerHTML = `<tr>${headRow1.join('')}</tr><tr>${headRow2.join('')}</tr>`;
 
+      // 2) 테이블 본문
       if (members.length === 0) {
         els.weeklyGridBody.innerHTML = `
           <tr>
-            <td colspan="15" class="px-4 py-10 text-center text-slate-400 font-medium">
+            <td colspan="15" class="py-12 text-center text-slate-400 font-medium">
               표시할 팀원이 없습니다. 상단 <b>조직도·팀원 관리</b>에서 부서와 팀원을 등록해 주세요.
             </td>
           </tr>
@@ -1818,82 +1833,191 @@
         return;
       }
 
-      const rowsHtml = members.map((m) => {
+      const bodyRows = members.map((m) => {
         const isHighlighted = state.highlightedMemberId === m.id;
-        const rowClass = isHighlighted ? 'bg-indigo-50/70' : 'hover:bg-slate-50/80';
+        const rowCls = isHighlighted ? 'bg-indigo-50/70' : 'bg-white hover:bg-slate-50/70';
 
-        let cells = `
-          <td class="px-3 py-2.5 border border-slate-200 sticky left-0 z-10 ${isHighlighted ? 'bg-indigo-50' : 'bg-white'}">
-            <div class="font-extrabold text-slate-900 text-xs">${escapeHtml(m.name)}</div>
-            <div class="text-[10px] text-slate-500 truncate max-w-[110px]" title="${escapeHtml(getMemberDeptPath(m))}">${escapeHtml(getMemberDept(m))}</div>
-          </td>
-        `;
+        const cells = [
+          `<td class="px-3 py-2 border border-slate-200 sticky left-0 z-10 ${isHighlighted ? 'bg-indigo-50' : 'bg-white'}">
+            <div class="font-extrabold text-slate-900 whitespace-nowrap">${escapeHtml(m.name)}</div>
+            <div class="text-[10px] text-slate-500 whitespace-nowrap truncate max-w-[110px]">${escapeHtml(getMemberDept(m))}</div>
+          </td>`,
+        ];
 
-        dayInfos.forEach((d) => {
-          const rec = getRecord(d.dateStr, m.id);
-          let otDisp = '';
-          let holDisp = '';
-          let normalDisp = '';
-          let badgeHtml = '';
-          let tooltip = `${m.name} · ${d.dateStr} (클릭하여 입력)`;
+        dates.forEach((dStr, idx) => {
+          const rec = getRecord(dStr, m.id);
+          const holName = getHolidayName(dStr);
+          const isSpecial = idx === 0 || idx === 6 || Boolean(holName);
+          const baseCellBg = isSpecial ? 'bg-amber-50/35' : 'bg-white';
 
-          if (rec) {
-            const calc = calculateWorkHours(rec.date, rec.startTime, rec.endTime, rec.leaveType);
-            if (calc.valid) {
-              if (calc.overtimeHours > 0) otDisp = formatHoursNum(calc.overtimeHours);
-              if (calc.holidayHours > 0) holDisp = formatHoursNum(calc.holidayHours);
-              const meta = LEAVE_META[calc.leaveType];
-              if (meta.short) {
-                badgeHtml = `<span class="inline-block px-1 py-0.5 rounded text-[9px] font-bold border ${meta.badgeClass}">${meta.short}${calc.leaveType === 'annual' ? ' 8h' : ''}</span>`;
-              } else if (calc.overtimeHours === 0 && calc.holidayHours === 0 && calc.regularHours > 0) {
-                normalDisp = `<span class="inline-block px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold whitespace-nowrap">정상 ${formatHoursNum(calc.regularHours)}h</span>`;
-              }
-              const timeRange = calc.leaveType === 'annual' ? '연차(8h)' : `${rec.startTime || '-'}~${rec.endTime || '-'}`;
-              tooltip = `${m.name} (${d.dateStr})\n${meta.label} ${timeRange}\n정상 ${formatHoursNum(calc.regularHours)}h / 연장 ${formatHoursNum(calc.overtimeHours)}h / 특근 ${formatHoursNum(calc.holidayHours)}h`;
-            } else {
-              normalDisp = `<span class="inline-block px-1 py-0.5 rounded bg-rose-50 text-rose-600 text-[10px] font-bold">오류</span>`;
-            }
+          if (!rec) {
+            cells.push(`
+              <td colspan="2" data-cell-date="${dStr}" data-cell-member="${escapeHtml(m.id)}" class="px-1.5 py-2 border border-slate-200 text-center cursor-pointer hover:bg-indigo-50 transition ${baseCellBg}">
+                <span class="text-slate-300 text-[11px]">-</span>
+              </td>
+            `);
+            return;
           }
 
-          const cellBgOt = otDisp
-            ? 'bg-amber-50/90 text-amber-800 font-extrabold'
-            : (normalDisp || badgeHtml)
-              ? 'bg-emerald-50/30 text-slate-700'
-              : 'text-slate-300';
-          const cellBgHol = holDisp ? 'bg-rose-50/90 text-rose-700 font-extrabold' : 'text-slate-300';
+          const calc = calculateWorkHours(rec.date, rec.startTime, rec.endTime, rec.leaveType);
+          const lt = calc.leaveType;
+          const otVal = calc.overtimeHours;
+          const holVal = calc.holidayHours;
+          const regVal = calc.regularHours;
 
-          const otCellContent = otDisp
-            ? `<div>${otDisp}</div>${badgeHtml}`
-            : (badgeHtml || normalDisp || '-');
-
-          cells += `
-            <td data-cell-date="${d.dateStr}" data-cell-member="${escapeHtml(m.id)}" title="${escapeHtml(tooltip)}" class="px-1.5 py-2 border border-slate-200 text-center cursor-pointer hover:ring-2 hover:ring-inset hover:ring-indigo-400 transition ${cellBgOt}">
-              ${otCellContent}
-            </td>
-            <td data-cell-date="${d.dateStr}" data-cell-member="${escapeHtml(m.id)}" title="${escapeHtml(tooltip)}" class="px-1.5 py-2 border border-slate-200 text-center cursor-pointer hover:ring-2 hover:ring-inset hover:ring-indigo-400 transition ${cellBgHol}">
-              ${holDisp || '-'}
-            </td>
-          `;
+          // 연장 또는 특근이 있는 경우 2칸 분리 표시
+          if (otVal > 0.001 || holVal > 0.001) {
+            const leaveTag = lt !== 'normal'
+              ? `<div class="text-[9px] font-bold text-sky-700 leading-tight">${LEAVE_META[lt].short}</div>`
+              : '';
+            cells.push(`
+              <td data-cell-date="${dStr}" data-cell-member="${escapeHtml(m.id)}" class="px-1 py-1.5 border border-slate-200 text-center cursor-pointer hover:bg-indigo-50 transition ${otVal > 0.001 ? 'bg-amber-50/90' : baseCellBg}">
+                ${otVal > 0.001 ? `<span class="font-extrabold text-amber-800">${formatHoursNum(otVal)}</span>` : '<span class="text-slate-300">-</span>'}
+                ${leaveTag}
+              </td>
+              <td data-cell-date="${dStr}" data-cell-member="${escapeHtml(m.id)}" class="px-1 py-1.5 border border-slate-200 text-center cursor-pointer hover:bg-indigo-50 transition ${holVal > 0.001 ? 'bg-rose-50/90' : baseCellBg}">
+                ${holVal > 0.001 ? `<span class="font-extrabold text-rose-700">${formatHoursNum(holVal)}</span>` : '<span class="text-slate-300">-</span>'}
+              </td>
+            `);
+          } else {
+            // 정상근무(08:00~17:00) 또는 연차/반차만 있는 경우 명확한 배지로 2칸 병합 표시
+            let badgeHtml = `<span class="inline-block px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">정상 ${formatHoursNum(regVal)}h</span>`;
+            if (lt === 'annual') {
+              badgeHtml = `<span class="inline-block px-1.5 py-0.5 rounded bg-sky-100 text-sky-800 border border-sky-200 text-[10px] font-bold">연차 8h</span>`;
+            } else if (lt === 'half_am') {
+              badgeHtml = `<span class="inline-block px-1.5 py-0.5 rounded bg-sky-50 text-sky-700 border border-sky-200 text-[10px] font-bold">오전반차 ${formatHoursNum(regVal)}h</span>`;
+            } else if (lt === 'half_pm') {
+              badgeHtml = `<span class="inline-block px-1.5 py-0.5 rounded bg-sky-50 text-sky-700 border border-sky-200 text-[10px] font-bold">오후반차 ${formatHoursNum(regVal)}h</span>`;
+            }
+            cells.push(`
+              <td colspan="2" data-cell-date="${dStr}" data-cell-member="${escapeHtml(m.id)}" class="px-1 py-1.5 border border-slate-200 text-center cursor-pointer hover:bg-indigo-50 transition ${baseCellBg}">
+                ${badgeHtml}
+              </td>
+            `);
+          }
         });
 
-        return `<tr class="${rowClass}">${cells}</tr>`;
+        return `<tr class="${rowCls}">${cells.join('')}</tr>`;
       });
 
-      els.weeklyGridBody.innerHTML = rowsHtml.join('');
+      els.weeklyGridBody.innerHTML = bodyRows.join('');
+    }
+
+    function renderDetailTable() {
+      const records = getVisibleWeekRecords();
+      els.detailCountBadge.textContent = `${records.length}건`;
+
+      // 현재 보이는 목록에 없는 선택 ID 정리
+      const visibleIds = new Set(records.map((r) => r.id));
+      Array.from(state.selectedDetailIds).forEach((id) => {
+        if (!visibleIds.has(id)) state.selectedDetailIds.delete(id);
+      });
+      updateDetailBulkBar();
+
+      els.detailTableWrapper.classList.toggle('hidden', state.detailCollapsed);
+      els.detailChevron.style.transform = state.detailCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)';
+
+      if (records.length === 0) {
+        els.chkDetailAll.checked = false;
+        els.detailTableBody.innerHTML = `
+          <tr>
+            <td colspan="11" class="py-8 text-center text-slate-400">해당 주간에 등록된 출퇴근 기록이 없습니다.</td>
+          </tr>
+        `;
+        return;
+      }
+
+      els.chkDetailAll.checked = records.length > 0 && records.every((r) => state.selectedDetailIds.has(r.id));
+
+      const rows = records.map((rec) => {
+        const m = getMemberById(rec.memberId);
+        const calc = calculateWorkHours(rec.date, rec.startTime, rec.endTime, rec.leaveType);
+        const badge = getDayBadgeInfo(rec.date);
+        const checked = state.selectedDetailIds.has(rec.id);
+
+        const typeBadges = [];
+        if (calc.leaveType !== 'normal') {
+          typeBadges.push(`<span class="px-1.5 py-0.5 rounded bg-sky-100 text-sky-800 font-bold text-[10px]">${LEAVE_META[calc.leaveType].label}</span>`);
+        }
+        if (badge.isSpecial && calc.holidayHours > 0) {
+          typeBadges.push(`<span class="px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 font-bold text-[10px]">특근</span>`);
+        } else if (calc.leaveType === 'normal') {
+          typeBadges.push(`<span class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-semibold text-[10px]">평일</span>`);
+        }
+
+        const timeDisplay = calc.leaveType === 'annual'
+          ? '<span class="text-sky-700 font-bold">연차 (8h)</span>'
+          : (rec.startTime && rec.endTime)
+            ? `<span class="font-bold text-slate-800">${escapeHtml(rec.startTime)} ~ ${escapeHtml(rec.endTime)}</span>${calc.clampedStart ? '<span class="ml-1 text-[10px] text-indigo-600 font-semibold">(08:00적용)</span>' : ''}`
+            : '<span class="text-slate-400">-</span>';
+
+        return `
+          <tr class="hover:bg-slate-50 transition ${checked ? 'bg-indigo-50/50' : ''}">
+            <td class="px-3 py-2 text-center">
+              <input type="checkbox" data-detail-chk="${escapeHtml(rec.id)}" ${checked ? 'checked' : ''} class="w-4 h-4 rounded border-slate-300 text-indigo-600 cursor-pointer" />
+            </td>
+            <td class="px-3 py-2 whitespace-nowrap">
+              <span class="font-bold text-slate-800">${rec.date}</span>
+              <span class="ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold ${badge.cls}">${DAY_SHORT[parseDateStr(rec.date).getDay()]}</span>
+            </td>
+            <td class="px-3 py-2 whitespace-nowrap">
+              <span class="font-extrabold text-slate-900">${escapeHtml(m ? m.name : rec.memberId)}</span>
+              <span class="text-[11px] text-slate-500 ml-1">${escapeHtml(m ? getMemberDept(m) : '')}</span>
+            </td>
+            <td class="px-3 py-2 whitespace-nowrap space-x-1">${typeBadges.join('')}</td>
+            <td class="px-3 py-2 whitespace-nowrap">${timeDisplay}</td>
+            <td class="px-3 py-2 text-right font-semibold text-slate-700">${formatHoursNum(calc.regularHours)}</td>
+            <td class="px-3 py-2 text-right font-extrabold ${calc.overtimeHours > 0 ? 'text-amber-700' : 'text-slate-400'}">${formatHoursNum(calc.overtimeHours)}</td>
+            <td class="px-3 py-2 text-right font-extrabold ${calc.holidayHours > 0 ? 'text-rose-700' : 'text-slate-400'}">${formatHoursNum(calc.holidayHours)}</td>
+            <td class="px-3 py-2 text-right font-extrabold text-indigo-700">${formatHoursNum(calc.totalHours)}</td>
+            <td class="px-3 py-2 text-slate-600 max-w-[160px] truncate" title="${escapeHtml(rec.note || '')}">${escapeHtml(rec.note || '-')}</td>
+            <td class="px-3 py-2 text-center whitespace-nowrap">
+              <button type="button" data-edit-rec="${escapeHtml(rec.id)}" class="px-2 py-1 rounded-lg bg-slate-100 hover:bg-indigo-100 text-slate-700 hover:text-indigo-700 font-bold text-[11px] transition">수정</button>
+              <button type="button" data-del-rec="${escapeHtml(rec.id)}" class="px-2 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-[11px] transition ml-1">삭제</button>
+            </td>
+          </tr>
+        `;
+      });
+
+      els.detailTableBody.innerHTML = rows.join('');
+    }
+
+    function updateDetailBulkBar() {
+      const cnt = state.selectedDetailIds.size;
+      els.detailBulkBar.classList.toggle('hidden', cnt === 0);
+      els.detailSelectedCount.textContent = `${cnt}건 선택`;
     }
 
     function render52hPanel() {
       const dates = getWeekDates(state.weekStartDate);
       const members = getVisibleMembers();
 
+      // 현재 주간의 기준 월 (수요일 기준 YYYY-MM)
+      const refMonthStr = dates[3].slice(0, 7);
+      const refMonthNum = Number(refMonthStr.slice(5, 7));
+
+      // 팀원별 해당 월 연장+특근 합계 사전 집계
+      const monthlyExtraMap = new Map();
+      state.recordsMap.forEach((rec) => {
+        if (!rec || !rec.date || !rec.date.startsWith(refMonthStr)) return;
+        const calc = calculateWorkHours(rec.date, rec.startTime, rec.endTime, rec.leaveType);
+        if (!calc.valid) return;
+        const prev = monthlyExtraMap.get(rec.memberId) || { overtime: 0, holiday: 0 };
+        prev.overtime += calc.overtimeHours;
+        prev.holiday += calc.holidayHours;
+        monthlyExtraMap.set(rec.memberId, prev);
+      });
+
       let sumOvertime = 0;
       let sumHoliday = 0;
       let exceededCount = 0;
+      let monthlyExceededCount = 0;
 
       if (members.length === 0) {
         els.kpiTotalOvertime.textContent = '0h';
         els.kpiTotalHoliday.textContent = '0h';
         els.kpiExceededCount.textContent = '0명';
+        els.kpiMonthlyExceededCount.textContent = '0명';
         els.member52hList.innerHTML = `<div class="py-10 text-center text-xs text-slate-400">등록된 팀원이 없습니다.</div>`;
         return;
       }
@@ -1923,6 +2047,26 @@
         sumOvertime += overtime;
         sumHoliday += holiday;
         if (diff > 0.001) exceededCount += 1;
+
+        // 해당 월 연장+특근 52h 기준 계산
+        const mExtra = monthlyExtraMap.get(m.id) || { overtime: 0, holiday: 0 };
+        const mTotalExtra = mExtra.overtime + mExtra.holiday;
+        const mDiff = mTotalExtra - MONTHLY_EXTRA_LIMIT_HOURS;
+        if (mDiff > 0.001) monthlyExceededCount += 1;
+        const mPct = Math.min(100, Math.round((mTotalExtra / MONTHLY_EXTRA_LIMIT_HOURS) * 100));
+
+        let mStatusBadge = '';
+        let mBarColor = 'bg-amber-500';
+        if (mDiff > 0.001) {
+          mBarColor = 'bg-rose-600';
+          mStatusBadge = `<span class="px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-100 text-rose-700 border border-rose-200">월 52h 초과 +${formatHoursNum(mDiff)}h</span>`;
+        } else if (Math.abs(mDiff) <= 0.001) {
+          mBarColor = 'bg-emerald-500';
+          mStatusBadge = `<span class="px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-700 border border-emerald-200">월 52h 충족</span>`;
+        } else {
+          mBarColor = mTotalExtra >= 44 ? 'bg-amber-500' : 'bg-sky-500';
+          mStatusBadge = `<span class="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">여유 -${formatHoursNum(Math.abs(mDiff))}h</span>`;
+        }
 
         const pct = Math.min(100, Math.round((total / WEEKLY_LIMIT_HOURS) * 100));
         let statusBadge = '';
@@ -1990,6 +2134,21 @@
                 <div class="h-full rounded-full transition-all ${barColor}" style="width: ${pct}%"></div>
               </div>
             </div>
+
+            <!-- 해당 월 연장+특근 52시간 기준 현황 -->
+            <div class="mt-2.5 pt-2.5 border-t border-slate-100">
+              <div class="flex items-center justify-between gap-1 mb-1">
+                <span class="text-[10px] font-bold text-slate-600">${refMonthNum}월 연장+특근 (${formatHoursNum(mTotalExtra)} / 52h)</span>
+                ${mStatusBadge}
+              </div>
+              <div class="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                <div class="h-full rounded-full transition-all ${mBarColor}" style="width: ${mPct}%"></div>
+              </div>
+              <div class="mt-1 flex items-center justify-between text-[10px] text-slate-400 font-medium">
+                <span>연장 ${formatHoursNum(mExtra.overtime)}h · 특근 ${formatHoursNum(mExtra.holiday)}h</span>
+                <span>${mPct}%</span>
+              </div>
+            </div>
           </div>
         `;
       });
@@ -1997,96 +2156,18 @@
       els.kpiTotalOvertime.textContent = `${formatHoursNum(sumOvertime)}h`;
       els.kpiTotalHoliday.textContent = `${formatHoursNum(sumHoliday)}h`;
       els.kpiExceededCount.textContent = `${exceededCount}명`;
-      els.kpiExceededCount.className = `text-base sm:text-lg font-extrabold mt-0.5 ${exceededCount > 0 ? 'text-rose-600' : 'text-slate-900'}`;
+      els.kpiExceededCount.className = `text-sm sm:text-base font-extrabold mt-0.5 ${exceededCount > 0 ? 'text-rose-600' : 'text-slate-900'}`;
+      els.kpiMonthlyExceededCount.textContent = `${monthlyExceededCount}명`;
+      els.kpiMonthlyExceededCount.className = `text-sm sm:text-base font-extrabold mt-0.5 ${monthlyExceededCount > 0 ? 'text-rose-600' : 'text-slate-900'}`;
       els.member52hList.innerHTML = cards.join('');
     }
 
-    function renderDetailTable() {
-      const records = getVisibleWeekRecords();
-      els.detailCountBadge.textContent = `${records.length}건`;
-
-      // 현재 보이는 기록에 없는 선택 ID 정리
-      const validIds = new Set(records.map((r) => r.id));
-      Array.from(state.selectedDetailIds).forEach((id) => {
-        if (!validIds.has(id)) state.selectedDetailIds.delete(id);
-      });
-
-      const selectedCount = state.selectedDetailIds.size;
-      els.detailBulkBar.classList.toggle('hidden', selectedCount === 0);
-      els.detailSelectedCount.textContent = `${selectedCount}건 선택`;
-      els.chkDetailAll.checked = records.length > 0 && selectedCount === records.length;
-
-      if (records.length === 0) {
-        els.detailTableBody.innerHTML = `
-          <tr>
-            <td colspan="11" class="px-4 py-8 text-center text-slate-400">해당 주의 출퇴근 기록이 없습니다.</td>
-          </tr>
-        `;
-        return;
-      }
-
-      const memberMap = new Map(state.members.map((m) => [m.id, m]));
-      const rows = records.map((rec) => {
-        const m = memberMap.get(rec.memberId);
-        const dayInfo = getDayInfo(rec.date);
-        const calc = calculateWorkHours(rec.date, rec.startTime, rec.endTime, rec.leaveType);
-        const meta = LEAVE_META[normalizeLeaveType(rec.leaveType)];
-        const checked = state.selectedDetailIds.has(rec.id) ? 'checked' : '';
-
-        const dateBadgeColor = dayInfo.dow === 0 || dayInfo.holidayName
-          ? 'text-rose-600'
-          : dayInfo.dow === 6
-            ? 'text-blue-600'
-            : 'text-slate-700';
-
-        const typeBadge = meta.short
-          ? `<span class="px-1.5 py-0.5 rounded border text-[10px] font-bold ${meta.badgeClass}">${meta.short}</span>`
-          : dayInfo.isSpecialDay
-            ? `<span class="px-1.5 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-bold">특근</span>`
-            : `<span class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 text-[10px] font-semibold">평일</span>`;
-
-        const timeDisplay = calc.leaveType === 'annual'
-          ? `<span class="text-sky-700 font-bold">연차 (8h)</span>`
-          : `<span class="font-mono font-bold text-slate-800">${escapeHtml(rec.startTime || '-')} ~ ${escapeHtml(rec.endTime || '-')}</span>${
-              calc.clampedStart ? ` <span class="text-[10px] text-indigo-600 font-semibold">(→08:00)</span>` : ''
-            }`;
-
-        return `
-          <tr class="hover:bg-slate-50">
-            <td class="px-3 py-2 text-center">
-              <input type="checkbox" data-detail-chk="${escapeHtml(rec.id)}" ${checked} class="w-4 h-4 rounded border-slate-300 text-indigo-600 cursor-pointer" />
-            </td>
-            <td class="px-3 py-2 whitespace-nowrap font-bold ${dateBadgeColor}">
-              ${rec.date} (${dayInfo.dayShort})${dayInfo.holidayName ? ` <span class="text-[10px] font-semibold">· ${escapeHtml(dayInfo.holidayName)}</span>` : ''}
-            </td>
-            <td class="px-3 py-2 whitespace-nowrap">
-              <span class="font-bold text-slate-900">${escapeHtml(m ? m.name : rec.memberId)}</span>
-              <span class="text-[11px] text-slate-500 ml-1">${escapeHtml(m ? getMemberDept(m) : '')}</span>
-            </td>
-            <td class="px-3 py-2 whitespace-nowrap">${typeBadge}</td>
-            <td class="px-3 py-2 whitespace-nowrap">${timeDisplay}</td>
-            <td class="px-3 py-2 text-right font-semibold text-slate-700">${calc.valid ? formatHoursNum(calc.regularHours) : '-'}</td>
-            <td class="px-3 py-2 text-right font-bold text-amber-700">${calc.valid && calc.overtimeHours > 0 ? formatHoursNum(calc.overtimeHours) : '-'}</td>
-            <td class="px-3 py-2 text-right font-bold text-rose-700">${calc.valid && calc.holidayHours > 0 ? formatHoursNum(calc.holidayHours) : '-'}</td>
-            <td class="px-3 py-2 text-right font-extrabold text-indigo-700">${calc.valid ? formatHoursNum(calc.totalHours) : '-'}</td>
-            <td class="px-3 py-2 text-slate-600 max-w-[160px] truncate" title="${escapeHtml(rec.note || '')}">${escapeHtml(rec.note || '')}</td>
-            <td class="px-3 py-2 text-center whitespace-nowrap">
-              <button type="button" data-detail-edit-date="${rec.date}" data-detail-edit-member="${escapeHtml(rec.memberId)}" class="px-2 py-1 rounded-lg bg-slate-100 hover:bg-indigo-100 text-slate-700 hover:text-indigo-700 font-bold mr-1">수정</button>
-              <button type="button" data-detail-del-id="${escapeHtml(rec.id)}" class="px-2 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold">삭제</button>
-            </td>
-          </tr>
-        `;
-      });
-
-      els.detailTableBody.innerHTML = rows.join('');
-    }
-
     // =========================================================================
-    // 9. 모달 1: 부서원 일괄 입력
+    // 10. 모달 1: 부서원 일괄 입력
     // =========================================================================
     function openBatchModal(dateStr = null) {
       if (state.members.length === 0) {
-        showToast('먼저 조직도·팀원 관리에서 부서와 팀원을 등록해 주세요.', 'error');
+        showToast('먼저 조직도·팀원 관리에서 부서와 팀원을 등록해 주세요.', 'warning');
         openManageModal();
         return;
       }
@@ -2094,17 +2175,22 @@
       const targetDate = dateStr || getTodayStr();
       els.batchDateInput.value = targetDate;
 
-      // 부서 셀렉트 채우기
-      const flat = getFlattenedTeamTree();
-      const opts = [`<option value="ALL">전체 부서 (${state.members.filter((m) => m.active !== false).length}명)</option>`];
+      // 부서 선택 드롭다운 채우기
+      const flat = getFlattenedDepts();
+      const opts = [`<option value="ALL">전체 부서 (${state.members.length}명)</option>`];
       flat.forEach(({ team, depth }) => {
-        const descIds = getDescendantTeamIds(team.id);
-        const cnt = state.members.filter((m) => m.active !== false && descIds.has(m.teamId)).length;
-        const indent = depth > 0 ? `${'　'.repeat(depth)}↳ ` : '';
-        opts.push(`<option value="${escapeHtml(team.id)}">${indent}${escapeHtml(getDeptName(team))} (${cnt}명)</option>`);
+        const cnt = getMembersInDeptTree(team.id).length;
+        const prefix = depth > 0 ? `${'　'.repeat(depth)}↳ ` : '';
+        opts.push(`<option value="${escapeHtml(team.id)}">${escapeHtml(prefix + getDeptName(team))} (${cnt}명)</option>`);
       });
       els.batchDeptSelect.innerHTML = opts.join('');
-      els.batchDeptSelect.value = state.selectedDept;
+      els.batchDeptSelect.value = state.selectedDeptFilter;
+
+      els.batchCommonLeave.value = 'normal';
+      els.batchCommonStart.value = '08:00';
+      els.batchCommonEnd.value = '17:00';
+      els.batchCommonNote.value = '';
+      els.chkBatchAll.checked = true;
 
       renderBatchTable();
       els.batchModal.classList.remove('hidden');
@@ -2114,32 +2200,17 @@
       els.batchModal.classList.add('hidden');
     }
 
-    function getBatchMembers() {
-      const deptVal = els.batchDeptSelect.value;
-      const active = state.members.filter((m) => m.active !== false);
-      if (!deptVal || deptVal === 'ALL') return active;
-      const descIds = getDescendantTeamIds(deptVal);
-      return active.filter((m) => descIds.has(m.teamId));
-    }
-
     function renderBatchTable() {
       const dateStr = els.batchDateInput.value || getTodayStr();
-      const dayInfo = getDayInfo(dateStr);
+      const badge = getDayBadgeInfo(dateStr);
+      els.batchDateBadge.textContent = badge.text;
+      els.batchDateBadge.className = `text-[11px] font-bold px-2 py-0.5 rounded-full ${badge.cls}`;
 
-      if (dayInfo.holidayName) {
-        els.batchDateBadge.className = 'text-[11px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700';
-        els.batchDateBadge.textContent = `${dayInfo.dayShort} · ${dayInfo.holidayName} (특근)`;
-      } else if (dayInfo.isWeekend) {
-        els.batchDateBadge.className = 'text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700';
-        els.batchDateBadge.textContent = `${dayInfo.dayShort} · 주말 특근`;
-      } else {
-        els.batchDateBadge.className = 'text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-700';
-        els.batchDateBadge.textContent = `${dayInfo.dayShort} · 평일`;
-      }
+      const deptId = els.batchDeptSelect.value || 'ALL';
+      const members = getMembersInDeptTree(deptId);
 
-      const members = getBatchMembers();
       if (members.length === 0) {
-        els.batchTableBody.innerHTML = `<tr><td colspan="8" class="px-4 py-8 text-center text-slate-400">선택한 부서에 소속 팀원이 없습니다.</td></tr>`;
+        els.batchTableBody.innerHTML = `<tr><td colspan="8" class="py-8 text-center text-slate-400">선택한 부서에 소속된 팀원이 없습니다.</td></tr>`;
         els.batchSelectedInfo.textContent = '0명 선택됨';
         return;
       }
@@ -2150,19 +2221,19 @@
         const st = existing ? (existing.startTime || '') : '08:00';
         const et = existing ? (existing.endTime || '') : '17:00';
         const note = existing ? (existing.note || '') : '';
-        const disabledTime = lt === 'annual' ? 'disabled' : '';
+        const isAnnual = lt === 'annual';
 
         return `
           <tr data-batch-row="${escapeHtml(m.id)}" class="hover:bg-slate-50">
             <td class="px-3 py-2 text-center">
-              <input type="checkbox" data-batch-chk checked class="w-4 h-4 rounded border-slate-300 text-indigo-600 cursor-pointer" />
+              <input type="checkbox" class="batch-row-chk w-4 h-4 rounded border-slate-300 text-indigo-600 cursor-pointer" checked />
             </td>
             <td class="px-3 py-2 whitespace-nowrap">
-              <div class="font-bold text-slate-900">${escapeHtml(m.name)}</div>
+              <div class="font-extrabold text-slate-900">${escapeHtml(m.name)}</div>
               <div class="text-[10px] text-slate-500">${escapeHtml(getMemberDept(m))}</div>
             </td>
             <td class="px-3 py-2">
-              <select data-batch-leave class="px-2 py-1.5 rounded-lg border border-slate-300 text-xs font-bold bg-white">
+              <select class="batch-row-leave px-2 py-1.5 rounded-lg border border-slate-300 bg-white text-xs font-bold">
                 <option value="normal" ${lt === 'normal' ? 'selected' : ''}>일반근무</option>
                 <option value="annual" ${lt === 'annual' ? 'selected' : ''}>연차(8h)</option>
                 <option value="half_am" ${lt === 'half_am' ? 'selected' : ''}>오전반차(4h)</option>
@@ -2170,157 +2241,76 @@
               </select>
             </td>
             <td class="px-3 py-2">
-              <input type="text" data-batch-start value="${escapeHtml(st)}" maxlength="5" ${disabledTime} placeholder="08:00" class="w-16 px-2 py-1.5 rounded-lg border border-slate-300 text-xs font-bold text-center disabled:bg-slate-100" />
+              <input type="text" maxlength="5" value="${escapeHtml(st)}" ${isAnnual ? 'disabled' : ''} placeholder="08:00" class="batch-row-start w-16 px-2 py-1.5 rounded-lg border border-slate-300 text-xs font-bold text-center disabled:bg-slate-100 disabled:text-slate-400" />
             </td>
             <td class="px-3 py-2">
-              <input type="text" data-batch-end value="${escapeHtml(et)}" maxlength="5" ${disabledTime} placeholder="17:00" class="w-16 px-2 py-1.5 rounded-lg border border-slate-300 text-xs font-bold text-center disabled:bg-slate-100" />
+              <input type="text" maxlength="5" value="${escapeHtml(et)}" ${isAnnual ? 'disabled' : ''} placeholder="17:00" class="batch-row-end w-16 px-2 py-1.5 rounded-lg border border-slate-300 text-xs font-bold text-center disabled:bg-slate-100 disabled:text-slate-400" />
             </td>
-            <td class="px-3 py-2 whitespace-nowrap" data-batch-calc>-</td>
+            <td class="px-3 py-2 whitespace-nowrap batch-row-result"></td>
             <td class="px-3 py-2">
-              <input type="text" data-batch-note value="${escapeHtml(note)}" placeholder="비고" class="w-full min-w-[90px] px-2 py-1.5 rounded-lg border border-slate-300 text-xs" />
+              <input type="text" value="${escapeHtml(note)}" placeholder="비고" class="batch-row-note w-full min-w-[90px] px-2 py-1.5 rounded-lg border border-slate-300 text-xs" />
             </td>
             <td class="px-3 py-2 text-center whitespace-nowrap">
-              ${existing ? `<button type="button" data-batch-del-doc="${escapeHtml(existing.id)}" class="px-2 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-[11px]">삭제</button>` : `<span class="text-slate-300">-</span>`}
+              ${existing ? '<span class="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 text-[10px] font-bold">기록있음</span>' : '<span class="text-[10px] text-slate-400">신규</span>'}
             </td>
           </tr>
         `;
       });
 
       els.batchTableBody.innerHTML = rows.join('');
-      els.chkBatchAll.checked = true;
-      updateAllBatchRowCalcs();
+      els.batchTableBody.querySelectorAll('tr[data-batch-row]').forEach(updateBatchRowPreview);
+      updateBatchSelectedInfo();
     }
 
-    function updateBatchRowCalc(tr) {
-      const dateStr = els.batchDateInput.value;
-      const lt = tr.querySelector('[data-batch-leave]').value;
-      const stInput = tr.querySelector('[data-batch-start]');
-      const etInput = tr.querySelector('[data-batch-end]');
-      const calcEl = tr.querySelector('[data-batch-calc]');
+    function updateBatchRowPreview(tr) {
+      const dateStr = els.batchDateInput.value || getTodayStr();
+      const lt = tr.querySelector('.batch-row-leave').value;
+      const startInput = tr.querySelector('.batch-row-start');
+      const endInput = tr.querySelector('.batch-row-end');
+      const resCell = tr.querySelector('.batch-row-result');
 
       const isAnnual = lt === 'annual';
-      stInput.disabled = isAnnual;
-      etInput.disabled = isAnnual;
+      startInput.disabled = isAnnual;
+      endInput.disabled = isAnnual;
 
-      const calc = calculateWorkHours(dateStr, stInput.value, etInput.value, lt);
+      const calc = calculateWorkHours(dateStr, startInput.value, endInput.value, lt);
       if (!calc.valid) {
-        calcEl.innerHTML = `<span class="text-rose-600 font-bold">시간 오류</span>`;
+        resCell.innerHTML = '<span class="text-rose-600 font-bold">시간 확인</span>';
         return;
       }
-      const parts = [];
-      if (calc.regularHours > 0) parts.push(`정상 ${formatHoursNum(calc.regularHours)}h`);
-      if (calc.overtimeHours > 0) parts.push(`<span class="text-amber-700 font-bold">연장 ${formatHoursNum(calc.overtimeHours)}h</span>`);
-      if (calc.holidayHours > 0) parts.push(`<span class="text-rose-700 font-bold">특근 ${formatHoursNum(calc.holidayHours)}h</span>`);
-      calcEl.innerHTML = parts.join(' · ') || '0h';
+      const tags = [];
+      if (calc.regularHours > 0) tags.push(`<span class="text-slate-700 font-bold">정${formatHoursNum(calc.regularHours)}</span>`);
+      if (calc.overtimeHours > 0) tags.push(`<span class="text-amber-700 font-extrabold">연${formatHoursNum(calc.overtimeHours)}</span>`);
+      if (calc.holidayHours > 0) tags.push(`<span class="text-rose-700 font-extrabold">특${formatHoursNum(calc.holidayHours)}</span>`);
+      resCell.innerHTML = tags.join(' / ') || '<span class="text-slate-400">0h</span>';
     }
 
-    function updateAllBatchRowCalcs() {
-      const rows = els.batchTableBody.querySelectorAll('tr[data-batch-row]');
-      let checkedCnt = 0;
-      rows.forEach((tr) => {
-        if (tr.querySelector('[data-batch-chk]').checked) checkedCnt += 1;
-        updateBatchRowCalc(tr);
-      });
-      els.batchSelectedInfo.textContent = `${checkedCnt}명 선택됨 / 전체 ${rows.length}명`;
-    }
-
-    async function saveBatchModal() {
-      const dateStr = els.batchDateInput.value;
-      if (!dateStr) {
-        showToast('근무 날짜를 선택해 주세요.', 'error');
-        return;
-      }
-
+    function updateBatchSelectedInfo() {
       const rows = Array.from(els.batchTableBody.querySelectorAll('tr[data-batch-row]'));
-      const itemsToSave = [];
-
-      for (const tr of rows) {
-        if (!tr.querySelector('[data-batch-chk]').checked) continue;
-        const memberId = tr.dataset.batchRow;
-        const leaveType = normalizeLeaveType(tr.querySelector('[data-batch-leave]').value);
-        let startTime = tr.querySelector('[data-batch-start]').value.trim();
-        let endTime = tr.querySelector('[data-batch-end]').value.trim();
-        const note = tr.querySelector('[data-batch-note]').value.trim();
-
-        if (leaveType === 'annual') {
-          startTime = '';
-          endTime = '';
-        } else {
-          if (startTime || endTime) {
-            const ns = normalizeTime24(startTime);
-            const ne = normalizeTime24(endTime);
-            if (!ns || !ne) {
-              showToast('24시간제 형식(예: 08:00, 19:30)으로 입력해 주세요.', 'error');
-              return;
-            }
-            startTime = ns;
-            endTime = ne;
-          }
-          const calc = calculateWorkHours(dateStr, startTime, endTime, leaveType);
-          if (!calc.valid) {
-            showToast(calc.error, 'error');
-            return;
-          }
-        }
-        itemsToSave.push({ memberId, leaveType, startTime, endTime, note });
-      }
-
-      if (itemsToSave.length === 0) {
-        showToast('저장할 인원을 1명 이상 선택해 주세요.', 'error');
-        return;
-      }
-
-      // 저장 버튼 클릭 시 팝업 즉시 종료
-      closeBatchModal();
-
-      const updates = {};
-      itemsToSave.forEach((item) => {
-        const docId = `${dateStr}_${item.memberId}`;
-        const recObj = {
-          date: dateStr,
-          memberId: item.memberId,
-          leaveType: item.leaveType,
-          startTime: item.startTime,
-          endTime: item.endTime,
-          note: item.note,
-        };
-        state.recordsMap.set(docId, { id: docId, ...recObj });
-        updates[`workRecords/${docId}`] = { ...recObj, updatedAt: Date.now() };
-      });
-
-      saveLocalBackup();
-      const targetSunday = getSundayOfWeek(dateStr);
-      if (targetSunday !== state.weekStartDate) {
-        state.weekStartDate = targetSunday;
-      }
-      renderAll();
-
-      const res = await commitWithTimeout(update(ref(db), updates), 'saveBatch');
-      if (res.ok) {
-        showToast(`${dateStr} 기준 ${itemsToSave.length}명의 근무 기록을 일괄 저장했습니다.`, 'success');
-      }
+      const checked = rows.filter((tr) => tr.querySelector('.batch-row-chk')?.checked).length;
+      els.batchSelectedInfo.textContent = `${checked}명 선택됨 / 총 ${rows.length}명`;
+      els.chkBatchAll.checked = rows.length > 0 && checked === rows.length;
     }
 
     // =========================================================================
-    // 10. 모달 2: 1인 출퇴근 수정 (24h)
+    // 11. 모달 2: 1인 출퇴근 입력/수정 (24h)
     // =========================================================================
     function initSingle24hSelects() {
-      const hourOpts = Array.from({ length: 25 }, (_, h) => {
-        const hh = String(h).padStart(2, '0');
-        return `<option value="${hh}">${hh}시</option>`;
-      }).join('');
-      const minOpts = Array.from({ length: 12 }, (_, i) => {
-        const mm = String(i * 5).padStart(2, '0');
-        return `<option value="${mm}">${mm}분</option>`;
-      }).join('');
-
-      els.singleStartHour.innerHTML = hourOpts;
-      els.singleEndHour.innerHTML = hourOpts;
-      els.singleStartMin.innerHTML = minOpts;
-      els.singleEndMin.innerHTML = minOpts;
+      const hourOpts = [];
+      for (let h = 0; h <= 24; h++) {
+        hourOpts.push(`<option value="${pad2(h)}">${pad2(h)}시</option>`);
+      }
+      const minOpts = [];
+      for (let m = 0; m < 60; m += 5) {
+        minOpts.push(`<option value="${pad2(m)}">${pad2(m)}분</option>`);
+      }
+      els.singleStartHour.innerHTML = hourOpts.join('');
+      els.singleEndHour.innerHTML = hourOpts.join('');
+      els.singleStartMin.innerHTML = minOpts.join('');
+      els.singleEndMin.innerHTML = minOpts.join('');
     }
 
-    function syncSingleSelectsFromText(which) {
+    function syncSingleSelectFromText(which) {
       const textEl = which === 'start' ? els.singleStartText : els.singleEndText;
       const hEl = which === 'start' ? els.singleStartHour : els.singleEndHour;
       const mEl = which === 'start' ? els.singleStartMin : els.singleEndMin;
@@ -2328,97 +2318,92 @@
       if (!norm) return;
       const [hh, mm] = norm.split(':');
       hEl.value = hh;
-      if (Array.from(mEl.options).some((o) => o.value === mm)) {
-        mEl.value = mm;
+      const roundedMin = pad2(Math.floor(Number(mm) / 5) * 5);
+      if (Array.from(mEl.options).some((o) => o.value === roundedMin)) {
+        mEl.value = roundedMin;
       }
     }
 
-    function syncSingleTextFromSelects(which) {
+    function syncSingleTextFromSelect(which) {
       const textEl = which === 'start' ? els.singleStartText : els.singleEndText;
       const hEl = which === 'start' ? els.singleStartHour : els.singleEndHour;
       const mEl = which === 'start' ? els.singleStartMin : els.singleEndMin;
       if (hEl.value === '24') mEl.value = '00';
       textEl.value = `${hEl.value}:${mEl.value}`;
-      updateSinglePreview();
     }
 
     function openSingleModal(dateStr, memberId) {
-      const activeMembers = state.members.filter((m) => m.active !== false);
-      if (activeMembers.length === 0) {
-        showToast('먼저 조직도·팀원 관리에서 팀원을 추가해 주세요.', 'error');
+      if (state.members.length === 0) {
+        showToast('먼저 조직도·팀원 관리에서 팀원을 추가해 주세요.', 'warning');
         return;
       }
 
-      els.singleMember.innerHTML = activeMembers
+      const sortedMembers = [...state.members].sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+      els.singleMember.innerHTML = sortedMembers
         .map((m) => `<option value="${escapeHtml(m.id)}">[${escapeHtml(getMemberDept(m))}] ${escapeHtml(m.name)}</option>`)
         .join('');
 
       els.singleDate.value = dateStr || getTodayStr();
-      els.singleMember.value = memberId || activeMembers[0].id;
-      loadSingleRecordIntoForm();
+      els.singleMember.value = memberId || sortedMembers[0].id;
+
+      loadExistingIntoSingleModal();
       els.singleModal.classList.remove('hidden');
     }
 
-    function loadSingleRecordIntoForm() {
-      const rec = getRecord(els.singleDate.value, els.singleMember.value);
+    function loadExistingIntoSingleModal() {
+      const dateStr = els.singleDate.value || getTodayStr();
+      const memberId = els.singleMember.value;
+      const rec = getRecord(dateStr, memberId);
+
+      state.editingSingleDocId = rec ? rec.id : null;
+      els.btnDeleteSingle.classList.toggle('hidden', !rec);
+
       if (rec) {
         els.singleLeaveType.value = normalizeLeaveType(rec.leaveType);
         els.singleStartText.value = rec.startTime || '08:00';
         els.singleEndText.value = rec.endTime || '17:00';
         els.singleNote.value = rec.note || '';
-        els.btnDeleteSingle.classList.remove('hidden');
       } else {
         els.singleLeaveType.value = 'normal';
         els.singleStartText.value = '08:00';
         els.singleEndText.value = '17:00';
         els.singleNote.value = '';
-        els.btnDeleteSingle.classList.add('hidden');
       }
-      syncSingleSelectsFromText('start');
-      syncSingleSelectsFromText('end');
+
+      syncSingleSelectFromText('start');
+      syncSingleSelectFromText('end');
       updateSinglePreview();
     }
 
-    function closeSingleModal() {
-      els.singleModal.classList.add('hidden');
-    }
-
     function updateSinglePreview() {
-      const dateStr = els.singleDate.value;
-      if (!dateStr) return;
-      const dayInfo = getDayInfo(dateStr);
+      const dateStr = els.singleDate.value || getTodayStr();
+      const badge = getDayBadgeInfo(dateStr);
+      els.singleDateBadge.textContent = badge.text;
+      els.singleDateBadge.className = `text-[11px] font-bold px-2 py-0.5 rounded-full ${badge.cls}`;
+
       const lt = normalizeLeaveType(els.singleLeaveType.value);
-
       els.singleTimeFields.classList.toggle('hidden', lt === 'annual');
-
-      if (dayInfo.holidayName) {
-        els.singleDateBadge.className = 'text-[11px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700';
-        els.singleDateBadge.textContent = `${dayInfo.dayShort} · ${dayInfo.holidayName}`;
-      } else if (dayInfo.isWeekend) {
-        els.singleDateBadge.className = 'text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700';
-        els.singleDateBadge.textContent = `${dayInfo.dayShort} · 특근`;
-      } else {
-        els.singleDateBadge.className = 'text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600';
-        els.singleDateBadge.textContent = `${dayInfo.dayShort} · 평일`;
-      }
 
       const calc = calculateWorkHours(dateStr, els.singleStartText.value, els.singleEndText.value, lt);
       if (!calc.valid) {
-        els.singlePreviewRange.textContent = calc.error;
-        els.singlePreviewDeduct.textContent = '-';
-        els.singlePreviewRegular.textContent = '-';
-        els.singlePreviewOvertime.textContent = '-';
-        els.singlePreviewHoliday.textContent = '-';
+        els.singlePreviewRange.textContent = '적용 구간: 시간 입력 확인 필요';
+        els.singlePreviewDeduct.textContent = '제외: -';
+        els.singlePreviewRegular.textContent = '0';
+        els.singlePreviewOvertime.textContent = '0';
+        els.singlePreviewHoliday.textContent = '0';
         return;
       }
 
       if (lt === 'annual') {
-        els.singlePreviewRange.textContent = '연차 8시간 자동 포함';
+        els.singlePreviewRange.textContent = '연차 8시간 자동 반영';
+        els.singlePreviewDeduct.textContent = '제외: 없음';
+      } else if (!calc.effectiveStartStr) {
+        els.singlePreviewRange.textContent = `${LEAVE_META[lt].label} 기본 4시간 반영`;
         els.singlePreviewDeduct.textContent = '제외: 없음';
       } else {
-        const rangeText = `${calc.effectiveStartStr || '-'}~${normalizeTime24(els.singleEndText.value) || '-'}${calc.clampedStart ? ' (08:00 고정)' : ''}`;
-        els.singlePreviewRange.textContent = `적용 구간: ${rangeText}`;
-        els.singlePreviewDeduct.textContent = `제외: 중${calc.lunchMin}/석${calc.dinnerMin}분`;
+        const clampNote = calc.clampedStart ? ' (08:00 보정)' : '';
+        els.singlePreviewRange.textContent = `적용 구간: ${calc.effectiveStartStr}~${calc.effectiveEndStr}${clampNote}`;
+        els.singlePreviewDeduct.textContent = `제외: 중${calc.lunchDeduct}/석${calc.dinnerDeduct}분`;
       }
 
       els.singlePreviewRegular.textContent = formatHoursNum(calc.regularHours);
@@ -2426,13 +2411,22 @@
       els.singlePreviewHoliday.textContent = formatHoursNum(calc.holidayHours);
     }
 
+    function closeSingleModal() {
+      els.singleModal.classList.add('hidden');
+    }
+
     // =========================================================================
-    // 11. 모달 3: 상세 기록 선택 일괄 수정
+    // 12. 모달 3: 상세 기록 선택 일괄 수정
     // =========================================================================
     function openDetailBulkModal() {
       const cnt = state.selectedDetailIds.size;
       if (cnt === 0) return;
       els.detailBulkSubtitle.textContent = `선택한 ${cnt}건의 출퇴근 기록을 한 번에 수정합니다.`;
+      els.chkDetailBulkDate.checked = false;
+      const firstId = Array.from(state.selectedDetailIds)[0];
+      const firstRec = state.recordsMap.get(firstId);
+      els.detailBulkDate.value = firstRec ? firstRec.date : getTodayStr();
+      els.detailBulkDate.disabled = true;
       els.detailBulkLeave.value = 'normal';
       els.detailBulkStart.value = '08:00';
       els.detailBulkEnd.value = '17:00';
@@ -2448,10 +2442,10 @@
     }
 
     // =========================================================================
-    // 12. 모달 4: 조직도 기반 부서(하위팀) / 팀원 관리
+    // 13. 모달 4: 조직도 기반 부서(하위팀) · 팀원 관리
     // =========================================================================
     function openManageModal() {
-      renderManageModal();
+      renderOrgChartModal();
       els.manageModal.classList.remove('hidden');
     }
 
@@ -2459,107 +2453,115 @@
       els.manageModal.classList.add('hidden');
     }
 
-    function renderManageModal() {
-      const flat = getFlattenedTeamTree();
-      const activeMembers = state.members.filter((m) => m.active !== false);
-      els.orgSummaryText.textContent = `부서·팀 ${state.teams.length}개 · 팀원 ${activeMembers.length}명`;
+    function renderOrgChartModal() {
+      els.orgSummaryText.textContent = `부서·팀 ${state.teams.length}개 · 전체 팀원 ${state.members.length}명`;
 
       // 상위 부서 선택 드롭다운 갱신
-      const parentOpts = [`<option value="">최상위 부서로 추가</option>`];
+      const flat = getFlattenedDepts();
+      const parentOpts = ['<option value="">최상위 부서로 추가</option>'];
       flat.forEach(({ team, depth }) => {
-        const indent = depth > 0 ? `${'　'.repeat(depth)}↳ ` : '';
-        parentOpts.push(`<option value="${escapeHtml(team.id)}">${indent}${escapeHtml(getDeptName(team))} 하위 팀으로 추가</option>`);
+        const prefix = depth > 0 ? `${'　'.repeat(depth)}↳ ` : '';
+        parentOpts.push(`<option value="${escapeHtml(team.id)}">[하위팀] ${escapeHtml(prefix + getDeptName(team))} 아래 추가</option>`);
       });
       els.newDeptParent.innerHTML = parentOpts.join('');
 
       if (state.teams.length === 0) {
         els.orgChartContainer.innerHTML = `
-          <div class="bg-white rounded-2xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-400">
-            등록된 부서가 없습니다. 위 입력창에서 첫 부서를 추가해 조직도를 만들어 보세요.
+          <div class="py-12 text-center bg-white rounded-2xl border border-dashed border-slate-300 text-slate-400 text-sm">
+            등록된 부서가 없습니다. 위 입력창에서 첫 번째 부서를 추가해 주세요.
           </div>
         `;
         return;
       }
 
-      const moveOptionsHtml = flat
-        .map(({ team, depth }) => {
-          const indent = depth > 0 ? `${'　'.repeat(depth)}↳ ` : '';
-          return `<option value="${escapeHtml(team.id)}">${indent}${escapeHtml(getDeptName(team))}</option>`;
-        })
-        .join('');
+      const sortedTeams = [...state.teams].sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+      const teamIds = new Set(sortedTeams.map((t) => t.id));
+      const rootTeams = sortedTeams.filter((t) => !t.parentId || !teamIds.has(t.parentId));
 
-      function renderTeamNode(team, depth = 0) {
-        const deptName = getDeptName(team);
-        const directMembers = activeMembers.filter((m) => m.teamId === team.id);
-        const children = getChildTeams(team.id);
+      // 팀원 이동용 전체 부서 옵션 HTML
+      const moveOptsHtml = flat.map(({ team, depth }) => {
+        const prefix = depth > 0 ? `${'↳ '.repeat(depth)}` : '';
+        return `<option value="${escapeHtml(team.id)}">${escapeHtml(prefix + getDeptName(team))}</option>`;
+      }).join('');
 
-        const membersHtml = directMembers.length === 0
-          ? `<div class="text-xs text-slate-400 py-2">직속 팀원이 없습니다. 아래 입력창에 성명을 입력해 추가하세요.</div>`
-          : directMembers
-              .map((m) => `
-                <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-xl bg-slate-50 border border-slate-200">
-                  <span class="text-xs font-bold text-slate-800">${escapeHtml(m.name)}</span>
-                  <div class="flex items-center gap-1.5">
-                    <select data-move-member="${escapeHtml(m.id)}" class="text-[11px] px-1.5 py-1 rounded-lg border border-slate-300 bg-white text-slate-600 max-w-[130px]" title="부서 이동">
-                      ${moveOptionsHtml.replace(`value="${escapeHtml(team.id)}"`, `value="${escapeHtml(team.id)}" selected`)}
-                    </select>
-                    <button type="button" data-del-member="${escapeHtml(m.id)}" class="px-2 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 text-[11px] font-bold">삭제</button>
-                  </div>
+      function buildNodeCard(team, depth) {
+        const directMembers = state.members
+          .filter((m) => {
+            const mt = getMemberTeam(m);
+            return mt && mt.id === team.id;
+          })
+          .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0) || a.name.localeCompare(b.name, 'ko'));
+
+        const children = sortedTeams.filter((t) => t.parentId === team.id);
+        const totalInSubtree = getMembersInDeptTree(team.id).length;
+
+        const memberChips = directMembers.length === 0
+          ? `<div class="text-xs text-slate-400 py-1.5">직속 팀원이 없습니다. 아래 입력창에서 여러 명을 한 번에 추가하세요.</div>`
+          : `<div class="flex flex-wrap gap-2">
+              ${directMembers.map((m) => `
+                <div class="inline-flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+                  <span class="font-extrabold text-slate-800">${escapeHtml(m.name)}</span>
+                  <select data-move-member="${escapeHtml(m.id)}" title="부서 이동" class="text-[10px] bg-white border border-slate-200 rounded-md px-1 py-0.5 text-slate-600 max-w-[95px]">
+                    ${moveOptsHtml.replace(`value="${escapeHtml(team.id)}"`, `value="${escapeHtml(team.id)}" selected`)}
+                  </select>
+                  <button type="button" data-del-member="${escapeHtml(m.id)}" class="p-0.5 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition" title="팀원 삭제">✕</button>
                 </div>
-              `)
-              .join('');
+              `).join('')}
+            </div>`;
 
         const childrenHtml = children.length > 0
-          ? `<div class="mt-3 pl-4 sm:pl-6 border-l-2 border-indigo-200 space-y-3">${children.map((c) => renderTeamNode(c, depth + 1)).join('')}</div>`
+          ? `<div class="mt-3 pl-4 sm:pl-6 border-l-2 border-indigo-200 space-y-3">
+              ${children.map((ch) => buildNodeCard(ch, depth + 1)).join('')}
+            </div>`
           : '';
 
-        const headerStyle = depth === 0 ? 'bg-slate-900 text-white' : 'bg-indigo-50 text-indigo-950 border-b border-indigo-100';
-
         return `
-          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-            <div class="px-4 py-2.5 ${headerStyle} flex flex-wrap items-center justify-between gap-2">
+          <div class="bg-white rounded-2xl border ${depth === 0 ? 'border-slate-300 shadow-sm' : 'border-indigo-200 bg-indigo-50/15'} p-4 space-y-3">
+            <!-- 부서 헤더 -->
+            <div class="flex flex-wrap items-center justify-between gap-2">
               <div class="flex items-center gap-2">
-                <span class="text-xs font-extrabold">${depth > 0 ? '↳ ' : ''}${escapeHtml(deptName)}</span>
-                <span class="text-[11px] px-2 py-0.5 rounded-full ${depth === 0 ? 'bg-white/15 text-white' : 'bg-indigo-100 text-indigo-800'} font-bold">팀원 ${directMembers.length}명</span>
+                <span class="px-2 py-0.5 rounded-lg text-[11px] font-extrabold ${depth === 0 ? 'bg-slate-800 text-white' : 'bg-indigo-100 text-indigo-800'}">
+                  ${depth === 0 ? '부서' : '하위팀'}
+                </span>
+                <h5 class="text-sm sm:text-base font-extrabold text-slate-900">${escapeHtml(getDeptName(team))}</h5>
+                <span class="text-xs font-semibold text-slate-500">직속 ${directMembers.length}명${children.length ? ` · 전체 ${totalInSubtree}명` : ''}</span>
               </div>
               <div class="flex items-center gap-1.5">
-                <button type="button" data-toggle-subform="${escapeHtml(team.id)}" class="px-2.5 py-1 rounded-lg text-[11px] font-bold ${depth === 0 ? 'bg-indigo-500 hover:bg-indigo-400 text-white' : 'bg-white hover:bg-indigo-100 text-indigo-700 border border-indigo-200'}">+ 하위팀</button>
-                <button type="button" data-del-team="${escapeHtml(team.id)}" class="px-2.5 py-1 rounded-lg text-[11px] font-bold ${depth === 0 ? 'bg-rose-500/80 hover:bg-rose-500 text-white' : 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200'}">부서 삭제</button>
+                <button type="button" data-toggle-subdept="${escapeHtml(team.id)}" class="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold transition">+ 하위팀</button>
+                <button type="button" data-del-dept="${escapeHtml(team.id)}" class="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 text-xs font-bold transition">부서 삭제</button>
               </div>
             </div>
 
-            <div class="p-3.5 space-y-3">
-              <!-- 인라인 하위팀 추가 폼 -->
-              <form data-org-add-subdept="${escapeHtml(team.id)}" class="hidden p-2.5 rounded-xl bg-indigo-50 border border-indigo-200 flex flex-wrap items-center gap-2">
-                <input type="text" data-subdept-input required placeholder="'${escapeHtml(deptName)}' 하위 팀명 입력" class="flex-1 min-w-[160px] px-3 py-1.5 rounded-lg border border-indigo-300 bg-white text-xs font-medium" />
-                <button type="submit" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold">하위팀 추가</button>
-              </form>
-
-              <!-- 직속 팀원 목록 -->
-              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                ${membersHtml}
-              </div>
-
-              <!-- 다중 팀원 일괄 추가 폼 -->
-              <form data-org-add-members="${escapeHtml(team.id)}" data-org-dept-name="${escapeHtml(deptName)}" class="pt-2 border-t border-slate-100 flex flex-wrap items-center gap-2">
-                <input type="text" data-org-names-input placeholder="팀원 다중 추가 (예: 홍길동, 김철수, 이영희)" class="flex-1 min-w-[200px] px-3 py-1.5 rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                <button type="submit" class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold transition">+ 팀원 추가</button>
-              </form>
-
-              ${childrenHtml}
+            <!-- 인라인 하위팀 추가 영역 (토글) -->
+            <div id="subdeptForm_${escapeHtml(team.id)}" class="hidden p-2.5 rounded-xl bg-indigo-50 border border-indigo-200 flex flex-wrap items-center gap-2">
+              <input type="text" data-subdept-input="${escapeHtml(team.id)}" placeholder="${escapeHtml(getDeptName(team))} 하위 팀명 입력 (예: 1조, 야간팀)" class="flex-1 min-w-[160px] px-3 py-1.5 rounded-lg border border-indigo-300 bg-white text-xs font-medium" />
+              <button type="button" data-subdept-submit="${escapeHtml(team.id)}" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold">하위팀 추가</button>
             </div>
+
+            <!-- 소속 팀원 목록 -->
+            <div>${memberChips}</div>
+
+            <!-- 다중 팀원 일괄 추가 입력창 -->
+            <div class="pt-2 border-t border-slate-100 flex flex-wrap items-center gap-2">
+              <input type="text" data-bulk-members-input="${escapeHtml(team.id)}" placeholder="팀원 성명 여러 명 입력 (쉼표·공백 구분 예: 홍길동, 김철수, 이영희)" class="flex-1 min-w-[200px] px-3 py-1.5 rounded-xl border border-slate-300 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              <button type="button" data-bulk-members-btn="${escapeHtml(team.id)}" class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold transition">팀원 추가</button>
+            </div>
+
+            <!-- 하위 팀 트리 -->
+            ${childrenHtml}
           </div>
         `;
       }
 
-      const roots = getRootTeams();
-      els.orgChartContainer.innerHTML = roots.map((t) => renderTeamNode(t, 0)).join('');
+      els.orgChartContainer.innerHTML = rootTeams.map((rt) => buildNodeCard(rt, 0)).join('');
     }
 
     // =========================================================================
-    // 13. 모달 5: 공휴일 관리
+    // 14. 모달 5: 공휴일 관리
     // =========================================================================
     function openHolidayModal() {
+      const curYear = parseDateStr(state.weekStartDate).getFullYear();
+      state.holidayYear = [2025, 2026, 2027].includes(curYear) ? curYear : 2026;
       renderHolidayModal();
       els.holidayModal.classList.remove('hidden');
     }
@@ -2569,31 +2571,27 @@
     }
 
     function renderHolidayModal() {
-      const years = ['2025', '2026', '2027'];
-      Object.keys(state.customHolidays || {}).forEach((d) => {
-        const y = d.slice(0, 4);
-        if (y && !years.includes(y)) years.push(y);
-      });
-      years.sort();
-      if (!years.includes(state.holidayViewYear)) state.holidayViewYear = years[0];
-
+      const years = [2025, 2026, 2027];
       els.holidayYearTabs.innerHTML = years
         .map((y) => `
-          <button type="button" data-holiday-year="${y}" class="px-3 py-1.5 rounded-xl text-xs font-bold border transition ${
-            state.holidayViewYear === y ? 'bg-slate-900 text-white border-slate-900' : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-200'
+          <button type="button" data-hol-year="${y}" class="px-3.5 py-1.5 rounded-xl text-xs font-bold border transition ${
+            state.holidayYear === y
+              ? 'bg-rose-600 text-white border-rose-600'
+              : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
           }">${y}년</button>
         `)
         .join('');
 
-      const merged = new Map();
-      Object.entries(DEFAULT_KR_HOLIDAYS).forEach(([date, name]) => {
-        if (date.startsWith(state.holidayViewYear)) merged.set(date, { date, name, isCustom: false });
+      const prefix = `${state.holidayYear}-`;
+      const combined = new Map();
+      Object.entries(DEFAULT_KR_HOLIDAYS).forEach(([d, name]) => {
+        if (d.startsWith(prefix)) combined.set(d, { date: d, name, isCustom: false });
       });
-      Object.entries(state.customHolidays || {}).forEach(([date, name]) => {
-        if (date.startsWith(state.holidayViewYear)) merged.set(date, { date, name, isCustom: true });
+      Object.entries(state.customHolidays).forEach(([d, name]) => {
+        if (d.startsWith(prefix)) combined.set(d, { date: d, name, isCustom: true });
       });
 
-      const list = Array.from(merged.values()).sort((a, b) => a.date.localeCompare(b.date));
+      const list = Array.from(combined.values()).sort((a, b) => a.date.localeCompare(b.date));
       if (list.length === 0) {
         els.holidayListContainer.innerHTML = `<div class="p-6 text-center text-xs text-slate-400">등록된 공휴일이 없습니다.</div>`;
         return;
@@ -2601,15 +2599,15 @@
 
       els.holidayListContainer.innerHTML = list
         .map((item) => {
-          const info = getDayInfo(item.date);
+          const dayStr = DAY_SHORT[parseDateStr(item.date).getDay()];
           return `
             <div class="px-4 py-2.5 flex items-center justify-between gap-2 text-xs">
               <div class="flex items-center gap-2.5">
-                <span class="font-mono font-bold text-slate-800">${item.date} (${info.dayShort})</span>
-                <span class="font-bold text-rose-700">${escapeHtml(item.name)}</span>
-                ${item.isCustom ? `<span class="px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 text-[10px] font-bold">사용자 지정</span>` : `<span class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 text-[10px] font-semibold">법정공휴일</span>`}
+                <span class="font-bold text-slate-800">${item.date} (${dayStr})</span>
+                <span class="font-extrabold text-rose-700">${escapeHtml(item.name)}</span>
+                ${item.isCustom ? '<span class="px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700 text-[10px] font-bold">회사 지정</span>' : '<span class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 text-[10px] font-semibold">법정</span>'}
               </div>
-              ${item.isCustom ? `<button type="button" data-del-custom-holiday="${item.date}" class="px-2 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold">삭제</button>` : ''}
+              ${item.isCustom ? `<button type="button" data-del-holiday="${item.date}" class="px-2 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold">삭제</button>` : ''}
             </div>
           `;
         })
@@ -2617,27 +2615,30 @@
     }
 
     // =========================================================================
-    // 14. 엑셀 다운로드 (.xlsx - 3개 시트)
+    // 15. 엑셀 다운로드 (.xlsx - 3개 시트)
     // =========================================================================
     function exportToExcel() {
       if (typeof XLSX === 'undefined') {
         showToast('엑셀 라이브러리를 불러오는 중입니다. 잠시 후 다시 시도해 주세요.', 'error');
         return;
       }
-
       const dates = getWeekDates(state.weekStartDate);
       const members = getVisibleMembers();
+      if (members.length === 0) {
+        showToast('내보낼 팀원 데이터가 없습니다.', 'warning');
+        return;
+      }
+
       const wb = XLSX.utils.book_new();
 
-      // 시트 1: 주간근무표
-      const gridRows = [];
-      const header1 = ['부서', '성명'];
-      dates.forEach((d) => {
-        const info = getDayInfo(d);
-        header1.push(`${d}(${info.dayShort}) 연장(h)`, `${d}(${info.dayShort}) 특근(h)`);
+      // 시트 1: 주간 근무표
+      const gridHeader = ['부서', '성명'];
+      dates.forEach((d, i) => {
+        const hol = getHolidayName(d);
+        const label = `${d.slice(5)}(${DAY_SHORT[i]}${hol ? '/' + hol : ''})`;
+        gridHeader.push(`${label} 연장(h)`, `${label} 특근(h)`);
       });
-      gridRows.push(header1);
-
+      const gridRows = [gridHeader];
       members.forEach((m) => {
         const row = [getMemberDeptPath(m), m.name];
         dates.forEach((d) => {
@@ -2647,8 +2648,8 @@
           } else {
             const c = calculateWorkHours(rec.date, rec.startTime, rec.endTime, rec.leaveType);
             row.push(
-              c.valid && c.overtimeHours > 0 ? Number(c.overtimeHours.toFixed(2)) : '',
-              c.valid && c.holidayHours > 0 ? Number(c.holidayHours.toFixed(2)) : ''
+              c.overtimeHours > 0 ? Number(c.overtimeHours.toFixed(2)) : (c.leaveType !== 'normal' ? LEAVE_META[c.leaveType].short : ''),
+              c.holidayHours > 0 ? Number(c.holidayHours.toFixed(2)) : ''
             );
           }
         });
@@ -2656,8 +2657,22 @@
       });
       XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(gridRows), '주간근무표');
 
-      // 시트 2: 팀원별 주 52시간 집계
-      const sumRows = [['부서', '성명', '정상(h)', '연장(h)', '특근(h)', '주간합계(h)', '52h 대비(h)', '상태', '연차(일)', '반차(회)']];
+      // 시트 2: 팀원별 주 52시간 집계 (월간 연장+특근 52h 포함)
+      const refMonthStr = dates[3].slice(0, 7);
+      const refMonthNum = Number(refMonthStr.slice(5, 7));
+      const monthlyExtraMap = new Map();
+      state.recordsMap.forEach((rec) => {
+        if (!rec || !rec.date || !rec.date.startsWith(refMonthStr)) return;
+        const c = calculateWorkHours(rec.date, rec.startTime, rec.endTime, rec.leaveType);
+        if (!c.valid) return;
+        const prev = monthlyExtraMap.get(rec.memberId) || 0;
+        monthlyExtraMap.set(rec.memberId, prev + c.overtimeHours + c.holidayHours);
+      });
+
+      const sumRows = [[
+        '부서', '성명', '정상(h)', '연장(h)', '특근(h)', '주간합계(h)', '주52h 대비(h)', '주52h 상태',
+        `${refMonthNum}월 연장+특근(h)`, `${refMonthNum}월 52h 대비(h)`, `${refMonthNum}월 상태`, '연차(일)', '반차(회)',
+      ]];
       members.forEach((m) => {
         let reg = 0, ot = 0, hol = 0, ann = 0, half = 0;
         dates.forEach((d) => {
@@ -2674,6 +2689,9 @@
         const total = reg + ot + hol;
         const diff = total - WEEKLY_LIMIT_HOURS;
         const status = diff > 0.001 ? '초과' : Math.abs(diff) <= 0.001 ? '충족' : '부족';
+        const mExtraTotal = monthlyExtraMap.get(m.id) || 0;
+        const mDiff = mExtraTotal - MONTHLY_EXTRA_LIMIT_HOURS;
+        const mStatus = mDiff > 0.001 ? '초과' : Math.abs(mDiff) <= 0.001 ? '충족' : '여유';
         sumRows.push([
           getMemberDeptPath(m),
           m.name,
@@ -2683,48 +2701,75 @@
           Number(total.toFixed(2)),
           Number(diff.toFixed(2)),
           status,
+          Number(mExtraTotal.toFixed(2)),
+          Number(mDiff.toFixed(2)),
+          mStatus,
           ann,
           half,
         ]);
       });
       XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sumRows), '팀원별_주52시간집계');
 
-      // 시트 3: 주간상세기록
-      const detailRows = [['날짜', '요일', '공휴일', '부서', '성명', '근무유형', '출근(24h)', '퇴근(24h)', '정상(h)', '연장(h)', '특근(h)', '합계(h)', '비고']];
-      const memberMap = new Map(state.members.map((m) => [m.id, m]));
+      // 시트 3: 주간 상세 기록
+      const detailRows = [['날짜', '요일', '부서', '성명', '근무유형', '출근(24h)', '퇴근(24h)', '정상(h)', '연장(h)', '특근(h)', '합계(h)', '비고']];
       getVisibleWeekRecords().forEach((rec) => {
-        const m = memberMap.get(rec.memberId);
-        const info = getDayInfo(rec.date);
+        const m = getMemberById(rec.memberId);
         const c = calculateWorkHours(rec.date, rec.startTime, rec.endTime, rec.leaveType);
-        const meta = LEAVE_META[normalizeLeaveType(rec.leaveType)];
         detailRows.push([
           rec.date,
-          info.dayName,
-          info.holidayName || '',
+          DAY_SHORT[parseDateStr(rec.date).getDay()],
           m ? getMemberDeptPath(m) : '',
           m ? m.name : rec.memberId,
-          meta.label,
+          LEAVE_META[c.leaveType].label,
           rec.startTime || '',
           rec.endTime || '',
-          c.valid ? Number(c.regularHours.toFixed(2)) : 0,
-          c.valid ? Number(c.overtimeHours.toFixed(2)) : 0,
-          c.valid ? Number(c.holidayHours.toFixed(2)) : 0,
-          c.valid ? Number(c.totalHours.toFixed(2)) : 0,
+          Number(c.regularHours.toFixed(2)),
+          Number(c.overtimeHours.toFixed(2)),
+          Number(c.holidayHours.toFixed(2)),
+          Number(c.totalHours.toFixed(2)),
           rec.note || '',
         ]);
       });
       XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(detailRows), '주간상세기록');
 
-      const fileName = `주간근로시간_${state.weekStartDate}_${getActiveFilterLabel().replace(/[\\/:*?"<>|]/g, '_')}.xlsx`;
-      XLSX.writeFile(wb, fileName);
-      showToast(`엑셀 파일(${fileName})을 다운로드했습니다.`, 'success');
+      XLSX.writeFile(wb, `주간근로시간_${dates[0]}_${dates[6]}.xlsx`);
+      showToast('엑셀(.xlsx) 파일 다운로드를 시작했습니다.', 'success');
     }
 
     // =========================================================================
-    // 15. 이벤트 바인딩
+    // 16. 이벤트 바인딩
     // =========================================================================
     function bindEvents() {
-      // 주간 이동
+      // 상단 버튼들
+      els.btnOpenBatch.addEventListener('click', () => openBatchModal());
+      els.btnOpenManage.addEventListener('click', openManageModal);
+      els.btnBannerOpenManage.addEventListener('click', openManageModal);
+      els.btnOpenHoliday.addEventListener('click', openHolidayModal);
+      els.btnExportExcel.addEventListener('click', exportToExcel);
+      els.btnSeedSample.addEventListener('click', seedSampleData);
+
+      // Firebase 상태 안내 모달
+      els.btnFirebaseStatus.addEventListener('click', () => {
+        updateFbGuideModalInfo();
+        els.fbGuideModal.classList.remove('hidden');
+      });
+      els.btnCloseFbGuide.addEventListener('click', () => els.fbGuideModal.classList.add('hidden'));
+      els.btnOkFbGuide.addEventListener('click', () => els.fbGuideModal.classList.add('hidden'));
+      els.btnRetryFbConnect.addEventListener('click', () => {
+        subscribeRealtimeDB();
+        showToast('Firebase에 다시 연결을 시도합니다.', 'info');
+      });
+      els.btnUploadLocalToFb.addEventListener('click', uploadLocalDataToFirebase);
+
+      // 확인 모달
+      els.btnConfirmCancel.addEventListener('click', closeConfirm);
+      els.btnConfirmOk.addEventListener('click', async () => {
+        const cb = state.confirmCallback;
+        closeConfirm();
+        if (cb) await cb();
+      });
+
+      // 주간 네비게이터
       els.btnPrevWeek.addEventListener('click', () => {
         state.weekStartDate = addDays(state.weekStartDate, -7);
         state.selectedDetailIds.clear();
@@ -2740,119 +2785,118 @@
         state.selectedDetailIds.clear();
         renderAll();
       });
-      els.jumpDateInput.addEventListener('change', (e) => {
-        if (!e.target.value) return;
-        state.weekStartDate = getSundayOfWeek(e.target.value);
+      els.jumpDateInput.addEventListener('change', () => {
+        if (!els.jumpDateInput.value) return;
+        state.weekStartDate = getSundayOfWeek(els.jumpDateInput.value);
         state.selectedDetailIds.clear();
         renderAll();
       });
 
-      // 부서 필터 탭
+      // 부서 필터 탭 클릭
       els.deptFilterTabs.addEventListener('click', (e) => {
-        const btn = e.target.closest('button[data-filter-dept]');
+        const btn = e.target.closest('[data-filter-dept]');
         if (!btn) return;
-        state.selectedDept = btn.dataset.filterDept;
+        state.selectedDeptFilter = btn.dataset.filterDept;
         state.highlightedMemberId = null;
         state.selectedDetailIds.clear();
         renderAll();
       });
 
-      // 상단 버튼 & 배너
-      els.btnOpenBatch.addEventListener('click', () => openBatchModal());
-      els.btnOpenManage.addEventListener('click', openManageModal);
-      els.btnBannerOpenManage.addEventListener('click', openManageModal);
-      els.btnOpenHoliday.addEventListener('click', openHolidayModal);
-      els.btnExportExcel.addEventListener('click', exportToExcel);
-      els.btnSeedSample.addEventListener('click', seedSampleDataToFirestore);
-
-      // 주간 근무표 클릭 (헤더 -> 일괄 입력 / 셀 -> 1인 수정)
+      // 주간 근무표: 날짜 헤더 클릭(일괄 입력) / 셀 클릭(1인 수정)
       els.weeklyGridHead.addEventListener('click', (e) => {
-        const th = e.target.closest('th[data-batch-date]');
-        if (th) openBatchModal(th.dataset.batchDate);
+        const th = e.target.closest('[data-header-date]');
+        if (!th) return;
+        openBatchModal(th.dataset.headerDate);
       });
       els.weeklyGridBody.addEventListener('click', (e) => {
-        const td = e.target.closest('td[data-cell-date]');
-        if (td) openSingleModal(td.dataset.cellDate, td.dataset.cellMember);
+        const td = e.target.closest('[data-cell-date][data-cell-member]');
+        if (!td) return;
+        openSingleModal(td.dataset.cellDate, td.dataset.cellMember);
       });
 
-      // 우측 52시간 카드 클릭 -> 강조 토글
+      // 우측 52시간 패널: 팀원 카드 클릭 시 강조 토글
       els.member52hList.addEventListener('click', (e) => {
         const card = e.target.closest('[data-card-member]');
         if (!card) return;
         const mId = card.dataset.cardMember;
         state.highlightedMemberId = state.highlightedMemberId === mId ? null : mId;
-        renderWeeklyGrid();
-        render52hPanel();
+        state.selectedDetailIds.clear();
+        renderAll();
       });
 
-      // 상세 기록 접기/펼치기
+      // 상세 내역 접기/펼치기 & 체크박스 & 개별 수정/삭제
       els.btnToggleDetail.addEventListener('click', () => {
-        state.detailExpanded = !state.detailExpanded;
-        els.detailTableWrapper.classList.toggle('hidden', !state.detailExpanded);
-        els.detailChevron.classList.toggle('-rotate-90', !state.detailExpanded);
+        state.detailCollapsed = !state.detailCollapsed;
+        renderDetailTable();
       });
-
-      // 상세 기록 체크박스 & 개별 수정/삭제
-      els.chkDetailAll.addEventListener('change', (e) => {
+      els.chkDetailAll.addEventListener('change', () => {
         const records = getVisibleWeekRecords();
-        if (e.target.checked) {
+        if (els.chkDetailAll.checked) {
           records.forEach((r) => state.selectedDetailIds.add(r.id));
         } else {
           state.selectedDetailIds.clear();
         }
         renderDetailTable();
       });
-
       els.detailTableBody.addEventListener('change', (e) => {
-        const chk = e.target.closest('input[data-detail-chk]');
+        const chk = e.target.closest('[data-detail-chk]');
         if (!chk) return;
         const id = chk.dataset.detailChk;
         if (chk.checked) state.selectedDetailIds.add(id);
         else state.selectedDetailIds.delete(id);
-        renderDetailTable();
+        updateDetailBulkBar();
+        const records = getVisibleWeekRecords();
+        els.chkDetailAll.checked = records.length > 0 && records.every((r) => state.selectedDetailIds.has(r.id));
       });
-
       els.detailTableBody.addEventListener('click', (e) => {
-        const editBtn = e.target.closest('button[data-detail-edit-date]');
+        const editBtn = e.target.closest('[data-edit-rec]');
         if (editBtn) {
-          openSingleModal(editBtn.dataset.detailEditDate, editBtn.dataset.detailEditMember);
+          const rec = state.recordsMap.get(editBtn.dataset.editRec);
+          if (rec) openSingleModal(rec.date, rec.memberId);
           return;
         }
-        const delBtn = e.target.closest('button[data-detail-del-id]');
+        const delBtn = e.target.closest('[data-del-rec]');
         if (delBtn) {
-          const docId = delBtn.dataset.detailDelId;
-          openConfirm('기록 삭제', '해당 출퇴근 기록을 삭제하시겠습니까?', async () => {
-            state.selectedDetailIds.delete(docId);
-            state.recordsMap.delete(docId);
+          const id = delBtn.dataset.delRec;
+          const rec = state.recordsMap.get(id);
+          if (!rec) return;
+          const m = getMemberById(rec.memberId);
+          openConfirm('기록 삭제', `${rec.date} ${m ? m.name : ''}님의 출퇴근 기록을 삭제할까요?`, async () => {
+            state.recordsMap.delete(id);
+            state.selectedDetailIds.delete(id);
             saveLocalBackup();
             renderAll();
-            const res = await commitWithTimeout(remove(ref(db, `workRecords/${docId}`)), 'deleteRecord');
-            if (res.ok) showToast('근무 기록이 삭제되었습니다.', 'info');
+            const res = await commitWithTimeout(remove(ref(db, `workRecords/${id}`)), 'deleteRec');
+            if (res.ok) showToast('출퇴근 기록을 삭제했습니다.', 'success');
           });
         }
       });
 
-      // 상세 기록 일괄 삭제 & 일괄 수정
+      // 상세 선택 삭제
       els.btnDetailBulkDelete.addEventListener('click', () => {
         const ids = Array.from(state.selectedDetailIds);
         if (ids.length === 0) return;
-        openConfirm('선택 기록 일괄 삭제', `선택한 ${ids.length}건의 출퇴근 기록을 모두 삭제하시겠습니까?`, async () => {
+        openConfirm('선택 기록 일괄 삭제', `선택한 ${ids.length}건의 출퇴근 기록을 모두 삭제할까요?`, async () => {
           const updates = {};
-          ids.forEach((docId) => {
-            state.recordsMap.delete(docId);
-            updates[`workRecords/${docId}`] = null;
+          ids.forEach((id) => {
+            state.recordsMap.delete(id);
+            updates[`workRecords/${id}`] = null;
           });
           state.selectedDetailIds.clear();
           saveLocalBackup();
           renderAll();
-          const res = await commitWithTimeout(update(ref(db), updates), 'detailBulkDelete');
-          if (res.ok) showToast(`선택한 ${ids.length}건의 기록을 삭제했습니다.`, 'info');
+          const res = await commitWithTimeout(update(ref(db), updates), 'bulkDeleteRec');
+          if (res.ok) showToast(`${ids.length}건의 기록을 삭제했습니다.`, 'success');
         });
       });
 
+      // 상세 선택 일괄 수정 모달
       els.btnDetailBulkEdit.addEventListener('click', openDetailBulkModal);
       els.btnCloseDetailBulk.addEventListener('click', closeDetailBulkModal);
       els.btnCancelDetailBulk.addEventListener('click', closeDetailBulkModal);
+      els.chkDetailBulkDate.addEventListener('change', () => {
+        els.detailBulkDate.disabled = !els.chkDetailBulkDate.checked;
+      });
       els.detailBulkLeave.addEventListener('change', () => {
         const lt = els.detailBulkLeave.value;
         els.detailBulkTimeWrap.classList.toggle('hidden', lt === 'annual');
@@ -2866,6 +2910,13 @@
         e.preventDefault();
         const ids = Array.from(state.selectedDetailIds);
         if (ids.length === 0) return;
+
+        const shouldUpdateDate = els.chkDetailBulkDate.checked;
+        const newDate = els.detailBulkDate.value;
+        if (shouldUpdateDate && !newDate) {
+          showToast('변경할 근무 날짜를 선택해 주세요.', 'error');
+          return;
+        }
 
         const leaveType = normalizeLeaveType(els.detailBulkLeave.value);
         let startTime = els.detailBulkStart.value.trim();
@@ -2890,34 +2941,53 @@
         // 저장 클릭 시 팝업 즉시 종료
         closeDetailBulkModal();
 
+        const sourceRecords = ids.map((docId) => ({ docId, rec: state.recordsMap.get(docId) })).filter((x) => x.rec);
         const updates = {};
+
+        // 날짜 변경 시 기존 키 먼저 제거
+        if (shouldUpdateDate) {
+          sourceRecords.forEach(({ docId, rec }) => {
+            const targetDocId = `${newDate}_${rec.memberId}`;
+            if (targetDocId !== docId) {
+              state.recordsMap.delete(docId);
+              updates[`workRecords/${docId}`] = null;
+            }
+          });
+        }
+
         let updatedCount = 0;
-        ids.forEach((docId) => {
-          const rec = state.recordsMap.get(docId);
-          if (!rec) return;
+        sourceRecords.forEach(({ rec }) => {
+          const targetDate = shouldUpdateDate ? newDate : rec.date;
+          const targetDocId = `${targetDate}_${rec.memberId}`;
           const updated = {
-            date: rec.date,
+            date: targetDate,
             memberId: rec.memberId,
             leaveType,
             startTime,
             endTime,
             note: shouldUpdateNote ? newNote : (rec.note || ''),
           };
-          state.recordsMap.set(docId, { id: docId, ...updated });
-          updates[`workRecords/${docId}`] = { ...updated, updatedAt: Date.now() };
+          state.recordsMap.set(targetDocId, { id: targetDocId, ...updated });
+          updates[`workRecords/${targetDocId}`] = { ...updated, updatedAt: Date.now() };
           updatedCount += 1;
         });
+
         state.selectedDetailIds.clear();
         saveLocalBackup();
+        if (shouldUpdateDate) {
+          const targetSunday = getSundayOfWeek(newDate);
+          if (targetSunday !== state.weekStartDate) {
+            state.weekStartDate = targetSunday;
+          }
+        }
         renderAll();
         const res = await commitWithTimeout(update(ref(db), updates), 'detailBulkEdit');
         if (res.ok) showToast(`${updatedCount}건의 출퇴근 기록을 일괄 수정했습니다.`, 'success');
       });
 
-      // 모달 1: 부서원 일괄 입력 이벤트
+      // ==================== 모달 1: 부서원 일괄 입력 이벤트 ====================
       els.btnCloseBatch.addEventListener('click', closeBatchModal);
       els.btnCancelBatch.addEventListener('click', closeBatchModal);
-      els.btnSaveBatch.addEventListener('click', saveBatchModal);
       els.batchDateInput.addEventListener('change', renderBatchTable);
       els.batchDeptSelect.addEventListener('change', renderBatchTable);
       els.btnBatchPrevDay.addEventListener('click', () => {
@@ -2928,135 +2998,172 @@
         els.batchDateInput.value = addDays(els.batchDateInput.value || getTodayStr(), 1);
         renderBatchTable();
       });
-
       els.batchCommonLeave.addEventListener('change', () => {
         const lt = els.batchCommonLeave.value;
-        const isAnnual = lt === 'annual';
-        els.batchCommonStart.disabled = isAnnual;
-        els.batchCommonEnd.disabled = isAnnual;
         if (lt === 'half_am') { els.batchCommonStart.value = '13:00'; els.batchCommonEnd.value = '17:00'; }
         if (lt === 'half_pm') { els.batchCommonStart.value = '08:00'; els.batchCommonEnd.value = '12:00'; }
-        if (lt === 'normal') { els.batchCommonStart.value = '08:00'; els.batchCommonEnd.value = '17:00'; }
       });
-
       els.batchModal.addEventListener('click', (e) => {
-        const presetBtn = e.target.closest('button[data-batch-preset-end]');
+        const presetBtn = e.target.closest('[data-batch-preset-end]');
         if (presetBtn) {
           els.batchCommonEnd.value = presetBtn.dataset.batchPresetEnd;
         }
       });
-
       els.btnApplyCommonBatch.addEventListener('click', () => {
         const lt = els.batchCommonLeave.value;
-        const st = els.batchCommonStart.value.trim();
-        const et = els.batchCommonEnd.value.trim();
+        const st = lt === 'annual' ? '' : els.batchCommonStart.value.trim();
+        const et = lt === 'annual' ? '' : els.batchCommonEnd.value.trim();
         const note = els.batchCommonNote.value.trim();
-
         els.batchTableBody.querySelectorAll('tr[data-batch-row]').forEach((tr) => {
-          if (!tr.querySelector('[data-batch-chk]').checked) return;
-          tr.querySelector('[data-batch-leave]').value = lt;
-          if (lt === 'annual') {
-            tr.querySelector('[data-batch-start]').value = '';
-            tr.querySelector('[data-batch-end]').value = '';
-          } else {
-            tr.querySelector('[data-batch-start]').value = st;
-            tr.querySelector('[data-batch-end]').value = et;
-          }
-          if (note) tr.querySelector('[data-batch-note]').value = note;
+          if (!tr.querySelector('.batch-row-chk')?.checked) return;
+          tr.querySelector('.batch-row-leave').value = lt;
+          tr.querySelector('.batch-row-start').value = st;
+          tr.querySelector('.batch-row-end').value = et;
+          if (note) tr.querySelector('.batch-row-note').value = note;
+          updateBatchRowPreview(tr);
         });
-        updateAllBatchRowCalcs();
         showToast('체크된 인원에게 공통 설정을 적용했습니다.', 'info');
       });
-
-      els.chkBatchAll.addEventListener('change', (e) => {
-        els.batchTableBody.querySelectorAll('input[data-batch-chk]').forEach((chk) => {
-          chk.checked = e.target.checked;
+      els.chkBatchAll.addEventListener('change', () => {
+        const checked = els.chkBatchAll.checked;
+        els.batchTableBody.querySelectorAll('.batch-row-chk').forEach((chk) => {
+          chk.checked = checked;
         });
-        updateAllBatchRowCalcs();
+        updateBatchSelectedInfo();
       });
-
       els.batchTableBody.addEventListener('change', (e) => {
         const tr = e.target.closest('tr[data-batch-row]');
         if (!tr) return;
-        if (e.target.matches('[data-batch-leave]')) {
-          const lt = e.target.value;
-          if (lt === 'half_am') {
-            tr.querySelector('[data-batch-start]').value = '13:00';
-            tr.querySelector('[data-batch-end]').value = '17:00';
-          } else if (lt === 'half_pm') {
-            tr.querySelector('[data-batch-start]').value = '08:00';
-            tr.querySelector('[data-batch-end]').value = '12:00';
-          } else if (lt === 'normal' && !tr.querySelector('[data-batch-start]').value) {
-            tr.querySelector('[data-batch-start]').value = '08:00';
-            tr.querySelector('[data-batch-end]').value = '17:00';
-          }
+        if (e.target.classList.contains('batch-row-chk')) {
+          updateBatchSelectedInfo();
+          return;
         }
-        updateAllBatchRowCalcs();
+        if (e.target.classList.contains('batch-row-leave')) {
+          const lt = e.target.value;
+          if (lt === 'half_am') { tr.querySelector('.batch-row-start').value = '13:00'; tr.querySelector('.batch-row-end').value = '17:00'; }
+          if (lt === 'half_pm') { tr.querySelector('.batch-row-start').value = '08:00'; tr.querySelector('.batch-row-end').value = '12:00'; }
+        }
+        updateBatchRowPreview(tr);
       });
-
       els.batchTableBody.addEventListener('input', (e) => {
         const tr = e.target.closest('tr[data-batch-row]');
-        if (tr) updateBatchRowCalc(tr);
+        if (tr) updateBatchRowPreview(tr);
       });
+      els.btnSaveBatch.addEventListener('click', async () => {
+        const dateStr = els.batchDateInput.value;
+        if (!dateStr) {
+          showToast('근무 날짜를 선택해 주세요.', 'error');
+          return;
+        }
 
-      els.batchTableBody.addEventListener('click', (e) => {
-        const delBtn = e.target.closest('button[data-batch-del-doc]');
-        if (!delBtn) return;
-        const docId = delBtn.dataset.batchDelDoc;
-        openConfirm('기존 기록 삭제', '이 팀원의 해당 날짜 기록을 삭제하시겠습니까?', async () => {
-          state.recordsMap.delete(docId);
-          saveLocalBackup();
-          renderAll();
-          renderBatchTable();
-          const res = await commitWithTimeout(remove(ref(db, `workRecords/${docId}`)), 'batchRowDelete');
-          if (res.ok) showToast('기존 기록을 삭제했습니다.', 'info');
+        const rows = Array.from(els.batchTableBody.querySelectorAll('tr[data-batch-row]'));
+        const toSave = [];
+        for (const tr of rows) {
+          if (!tr.querySelector('.batch-row-chk')?.checked) continue;
+          const memberId = tr.dataset.batchRow;
+          const leaveType = normalizeLeaveType(tr.querySelector('.batch-row-leave').value);
+          let startTime = tr.querySelector('.batch-row-start').value.trim();
+          let endTime = tr.querySelector('.batch-row-end').value.trim();
+          const note = tr.querySelector('.batch-row-note').value.trim();
+
+          if (leaveType === 'annual') {
+            startTime = '';
+            endTime = '';
+          } else if (startTime || endTime) {
+            const ns = normalizeTime24(startTime);
+            const ne = normalizeTime24(endTime);
+            if (!ns || !ne || parseTimeToMin(ne) <= parseTimeToMin(ns)) {
+              const m = getMemberById(memberId);
+              showToast(`${m ? m.name : '팀원'}의 출퇴근 시간(24h)을 올바르게 입력해 주세요.`, 'error');
+              return;
+            }
+            startTime = ns;
+            endTime = ne;
+          }
+
+          toSave.push({ date: dateStr, memberId, leaveType, startTime, endTime, note });
+        }
+
+        if (toSave.length === 0) {
+          showToast('저장할 팀원을 1명 이상 선택해 주세요.', 'warning');
+          return;
+        }
+
+        // 저장 클릭 시 팝업 즉시 종료
+        closeBatchModal();
+
+        const updates = {};
+        const now = Date.now();
+        toSave.forEach((rec) => {
+          const docId = `${rec.date}_${rec.memberId}`;
+          state.recordsMap.set(docId, { id: docId, ...rec });
+          updates[`workRecords/${docId}`] = { ...rec, updatedAt: now };
         });
+
+        const targetSunday = getSundayOfWeek(dateStr);
+        if (targetSunday !== state.weekStartDate) {
+          state.weekStartDate = targetSunday;
+        }
+        saveLocalBackup();
+        renderAll();
+
+        const res = await commitWithTimeout(update(ref(db), updates), 'batchSave');
+        if (res.ok) showToast(`${dateStr} ${toSave.length}명의 근무시간을 일괄 저장했습니다.`, 'success');
       });
 
-      // 모달 2: 1인 출퇴근 수정 이벤트
+      // ==================== 모달 2: 1인 출퇴근 수정 이벤트 ====================
       els.btnCloseSingle.addEventListener('click', closeSingleModal);
       els.btnCancelSingle.addEventListener('click', closeSingleModal);
-      els.singleDate.addEventListener('change', loadSingleRecordIntoForm);
-      els.singleMember.addEventListener('change', loadSingleRecordIntoForm);
+      els.singleDate.addEventListener('change', loadExistingIntoSingleModal);
+      els.singleMember.addEventListener('change', loadExistingIntoSingleModal);
       els.singleLeaveType.addEventListener('change', () => {
         const lt = els.singleLeaveType.value;
         if (lt === 'half_am') {
           els.singleStartText.value = '13:00';
           els.singleEndText.value = '17:00';
-          syncSingleSelectsFromText('start');
-          syncSingleSelectsFromText('end');
+          syncSingleSelectFromText('start');
+          syncSingleSelectFromText('end');
         } else if (lt === 'half_pm') {
           els.singleStartText.value = '08:00';
           els.singleEndText.value = '12:00';
-          syncSingleSelectsFromText('start');
-          syncSingleSelectsFromText('end');
+          syncSingleSelectFromText('start');
+          syncSingleSelectFromText('end');
         }
         updateSinglePreview();
       });
-
-      els.singleStartText.addEventListener('input', () => { syncSingleSelectsFromText('start'); updateSinglePreview(); });
-      els.singleEndText.addEventListener('input', () => { syncSingleSelectsFromText('end'); updateSinglePreview(); });
-      els.singleStartHour.addEventListener('change', () => syncSingleTextFromSelects('start'));
-      els.singleStartMin.addEventListener('change', () => syncSingleTextFromSelects('start'));
-      els.singleEndHour.addEventListener('change', () => syncSingleTextFromSelects('end'));
-      els.singleEndMin.addEventListener('change', () => syncSingleTextFromSelects('end'));
-
+      els.singleStartText.addEventListener('input', () => { syncSingleSelectFromText('start'); updateSinglePreview(); });
+      els.singleEndText.addEventListener('input', () => { syncSingleSelectFromText('end'); updateSinglePreview(); });
+      els.singleStartHour.addEventListener('change', () => { syncSingleTextFromSelect('start'); updateSinglePreview(); });
+      els.singleStartMin.addEventListener('change', () => { syncSingleTextFromSelect('start'); updateSinglePreview(); });
+      els.singleEndHour.addEventListener('change', () => { syncSingleTextFromSelect('end'); updateSinglePreview(); });
+      els.singleEndMin.addEventListener('change', () => { syncSingleTextFromSelect('end'); updateSinglePreview(); });
       els.singleModal.addEventListener('click', (e) => {
-        const sBtn = e.target.closest('button[data-single-start]');
+        const sBtn = e.target.closest('[data-single-start]');
         if (sBtn) {
           els.singleStartText.value = sBtn.dataset.singleStart;
-          syncSingleSelectsFromText('start');
+          syncSingleSelectFromText('start');
           updateSinglePreview();
           return;
         }
-        const eBtn = e.target.closest('button[data-single-end]');
+        const eBtn = e.target.closest('[data-single-end]');
         if (eBtn) {
           els.singleEndText.value = eBtn.dataset.singleEnd;
-          syncSingleSelectsFromText('end');
+          syncSingleSelectFromText('end');
           updateSinglePreview();
         }
       });
-
+      els.btnDeleteSingle.addEventListener('click', () => {
+        const docId = state.editingSingleDocId;
+        if (!docId) return;
+        closeSingleModal();
+        state.recordsMap.delete(docId);
+        state.selectedDetailIds.delete(docId);
+        saveLocalBackup();
+        renderAll();
+        commitWithTimeout(remove(ref(db, `workRecords/${docId}`)), 'deleteSingle').then((res) => {
+          if (res.ok) showToast('기록을 삭제했습니다.', 'success');
+        });
+      });
       els.singleForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const dateStr = els.singleDate.value;
@@ -3066,341 +3173,272 @@
         let endTime = els.singleEndText.value.trim();
         const note = els.singleNote.value.trim();
 
+        if (!dateStr || !memberId) {
+          showToast('날짜와 대상 팀원을 확인해 주세요.', 'error');
+          return;
+        }
         if (leaveType === 'annual') {
           startTime = '';
           endTime = '';
-        } else {
-          if (startTime || endTime) {
-            const ns = normalizeTime24(startTime);
-            const ne = normalizeTime24(endTime);
-            if (!ns || !ne) {
-              showToast('출근/퇴근 시간은 24시간제(예: 08:00, 19:30)로 입력해 주세요.', 'error');
-              return;
-            }
-            startTime = ns;
-            endTime = ne;
-          }
-          const calc = calculateWorkHours(dateStr, startTime, endTime, leaveType);
-          if (!calc.valid) {
-            showToast(calc.error, 'error');
+        } else if (startTime || endTime) {
+          const ns = normalizeTime24(startTime);
+          const ne = normalizeTime24(endTime);
+          if (!ns || !ne || parseTimeToMin(ne) <= parseTimeToMin(ns)) {
+            showToast('출근/퇴근 시간(24h)을 올바르게 입력해 주세요.', 'error');
             return;
           }
+          startTime = ns;
+          endTime = ne;
         }
 
         // 저장 클릭 시 팝업 즉시 종료
         closeSingleModal();
 
         const docId = `${dateStr}_${memberId}`;
-        const recObj = { date: dateStr, memberId, leaveType, startTime, endTime, note };
-        state.recordsMap.set(docId, { id: docId, ...recObj });
-        saveLocalBackup();
+        const rec = { date: dateStr, memberId, leaveType, startTime, endTime, note };
+        state.recordsMap.set(docId, { id: docId, ...rec });
+
+        // 입력 날짜의 주로 자동 이동
         const targetSunday = getSundayOfWeek(dateStr);
         if (targetSunday !== state.weekStartDate) {
           state.weekStartDate = targetSunday;
         }
+        saveLocalBackup();
         renderAll();
 
-        const res = await commitWithTimeout(
-          set(ref(db, `workRecords/${docId}`), { ...recObj, updatedAt: Date.now() }),
-          'saveSingle'
-        );
-        if (res.ok) showToast('출퇴근 기록이 저장되었습니다.', 'success');
+        const res = await commitWithTimeout(set(ref(db, `workRecords/${docId}`), { ...rec, updatedAt: Date.now() }), 'saveSingle');
+        if (res.ok) showToast('출퇴근 기록을 저장했습니다.', 'success');
       });
 
-      els.btnDeleteSingle.addEventListener('click', () => {
-        const docId = `${els.singleDate.value}_${els.singleMember.value}`;
-        openConfirm('기록 삭제', '이 날짜의 출퇴근 기록을 삭제하시겠습니까?', async () => {
-          closeSingleModal();
-          state.recordsMap.delete(docId);
-          saveLocalBackup();
-          renderAll();
-          const res = await commitWithTimeout(remove(ref(db, `workRecords/${docId}`)), 'deleteSingle');
-          if (res.ok) showToast('출퇴근 기록이 삭제되었습니다.', 'info');
-        });
-      });
-
-      // 모달 4: 조직도 관리 이벤트
+      // ==================== 모달 4: 조직도 · 팀원 관리 이벤트 ====================
       els.btnCloseManage.addEventListener('click', closeManageModal);
       els.btnDoneManage.addEventListener('click', closeManageModal);
 
       els.addDeptForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const parentId = els.newDeptParent.value || null;
-        const deptName = els.newDeptName.value.trim();
-        if (!deptName) return;
+        const name = els.newDeptName.value.trim();
+        const parentId = els.newDeptParent.value || '';
+        if (!name) return;
 
-        if (state.teams.some((t) => (t.parentId || null) === parentId && getDeptName(t) === deptName)) {
-          showToast('같은 위치에 이미 존재하는 부서(팀)명입니다.', 'error');
-          return;
-        }
-        const id = uid('dept');
-        const siblingCount = state.teams.filter((t) => (t.parentId || null) === parentId).length;
-        const newTeam = { id, name: deptName, department: deptName, parentId, order: siblingCount + 1 };
-
+        const id = genId('dept');
+        const newTeam = { id, name, department: name, parentId, createdAt: Date.now() };
         state.teams.push(newTeam);
-        saveLocalBackup();
         els.newDeptName.value = '';
-        els.emptyDbBanner.classList.add('hidden');
-        renderAll();
-        renderManageModal();
-
-        const res = await commitWithTimeout(
-          set(ref(db, `teams/${id}`), { ...newTeam, createdAt: Date.now() }),
-          'addTeam'
-        );
-        if (res.ok) {
-          const parentObj = parentId ? getTeamById(parentId) : null;
-          const label = parentObj ? `${getTeamPath(parentObj)} > ${deptName}` : deptName;
-          showToast(`'${label}' 부서가 조직도에 추가되었습니다.`, 'success');
-        }
-      });
-
-      els.orgChartContainer.addEventListener('submit', async (e) => {
-        const subForm = e.target.closest('form[data-org-add-subdept]');
-        if (subForm) {
-          e.preventDefault();
-          const parentId = subForm.dataset.orgAddSubdept;
-          const inputEl = subForm.querySelector('[data-subdept-input]');
-          const subName = (inputEl?.value || '').trim();
-          if (!subName) return;
-
-          if (state.teams.some((t) => t.parentId === parentId && getDeptName(t) === subName)) {
-            showToast('이미 존재하는 하위 팀명입니다.', 'error');
-            return;
-          }
-          const id = uid('dept');
-          const siblingCount = state.teams.filter((t) => t.parentId === parentId).length;
-          const newSub = { id, name: subName, department: subName, parentId, order: siblingCount + 1 };
-
-          state.teams.push(newSub);
-          saveLocalBackup();
-          inputEl.value = '';
-          subForm.classList.add('hidden');
-          renderAll();
-          renderManageModal();
-
-          const res = await commitWithTimeout(
-            set(ref(db, `teams/${id}`), { ...newSub, createdAt: Date.now() }),
-            'addSubDept'
-          );
-          if (res.ok) {
-            const parentObj = getTeamById(parentId);
-            showToast(`'${parentObj ? getDeptName(parentObj) + ' > ' : ''}${subName}' 하위 팀이 추가되었습니다.`, 'success');
-          }
-          return;
-        }
-
-        const form = e.target.closest('form[data-org-add-members]');
-        if (!form) return;
-        e.preventDefault();
-
-        const teamId = form.dataset.orgAddMembers;
-        const department = form.dataset.orgDeptName || getDeptName(getTeamById(teamId));
-        const inputEl = form.querySelector('[data-org-names-input]');
-        const raw = (inputEl?.value || '').trim();
-        if (!raw) {
-          showToast('추가할 팀원 성명을 입력해 주세요.', 'error');
-          return;
-        }
-
-        const names = raw.split(/[\n,\s]+/).map((n) => n.trim()).filter(Boolean);
-        if (names.length === 0) {
-          showToast('유효한 성명을 입력해 주세요.', 'error');
-          return;
-        }
-
-        const updates = {};
-        names.forEach((name, idx) => {
-          const id = `${uid('m')}_${idx}`;
-          const mObj = { id, name, teamId, department, active: true };
-          state.members.push(mObj);
-          updates[`members/${id}`] = mObj;
-        });
-        inputEl.value = '';
-        saveLocalBackup();
-        els.emptyDbBanner.classList.add('hidden');
-        renderAll();
-        renderManageModal();
-
-        const res = await commitWithTimeout(update(ref(db), updates), 'addMembersBatch');
-        if (res.ok) showToast(`'${department}'에 ${names.length}명의 팀원을 일괄 추가했습니다.`, 'success');
-      });
-
-      els.orgChartContainer.addEventListener('change', async (e) => {
-        const sel = e.target.closest('select[data-move-member]');
-        if (!sel) return;
-        const m = state.members.find((x) => x.id === sel.dataset.moveMember);
-        if (!m) return;
-        const targetTeam = getTeamById(sel.value);
-        if (!targetTeam) return;
-        const department = getDeptName(targetTeam);
-
-        m.teamId = targetTeam.id;
-        m.department = department;
         saveLocalBackup();
         renderAll();
-        renderManageModal();
 
-        const res = await commitWithTimeout(
-          set(ref(db, `members/${m.id}`), { id: m.id, name: m.name, teamId: targetTeam.id, department, active: true }),
-          'moveMember'
-        );
-        if (res.ok) showToast(`'${m.name}' 팀원이 '${getTeamPath(targetTeam)}'(으)로 이동되었습니다.`, 'info');
-      });
-
-      els.orgChartContainer.addEventListener('click', (e) => {
-        const toggleSub = e.target.closest('button[data-toggle-subform]');
-        if (toggleSub) {
-          const form = els.orgChartContainer.querySelector(`form[data-org-add-subdept="${toggleSub.dataset.toggleSubform}"]`);
-          if (form) {
-            form.classList.toggle('hidden');
-            if (!form.classList.contains('hidden')) form.querySelector('[data-subdept-input]')?.focus();
-          }
-          return;
-        }
-
-        const delTeamBtn = e.target.closest('button[data-del-team]');
-        if (delTeamBtn) {
-          const team = getTeamById(delTeamBtn.dataset.delTeam);
-          if (!team) return;
-          const deptLabel = getDeptName(team);
-          const childTeams = getChildTeams(team.id);
-          const extraMsg = childTeams.length > 0 ? `\n(하위 팀 ${childTeams.length}개는 상위 단계로 유지됩니다.)` : '';
-
-          openConfirm('부서 삭제', `'${deptLabel}' 부서를 삭제하시겠습니까?${extraMsg}`, async () => {
-            const updates = {};
-            updates[`teams/${team.id}`] = null;
-            state.teams = state.teams.filter((t) => t.id !== team.id);
-            childTeams.forEach((ct) => {
-              ct.parentId = team.parentId || null;
-              updates[`teams/${ct.id}`] = {
-                id: ct.id,
-                name: getDeptName(ct),
-                department: getDeptName(ct),
-                parentId: ct.parentId,
-                order: ct.order ?? 1,
-              };
-            });
-            saveLocalBackup();
-            renderAll();
-            renderManageModal();
-            const res = await commitWithTimeout(update(ref(db), updates), 'deleteTeam');
-            if (res.ok) showToast('부서가 삭제되었습니다.', 'info');
-          });
-          return;
-        }
-
-        const delMemberBtn = e.target.closest('button[data-del-member]');
-        if (delMemberBtn) {
-          const m = state.members.find((x) => x.id === delMemberBtn.dataset.delMember);
-          if (!m) return;
-          openConfirm('팀원 삭제', `'${m.name}' 팀원과 해당 팀원의 모든 근무 기록을 삭제하시겠습니까?`, async () => {
-            const updates = {};
-            updates[`members/${m.id}`] = null;
-            state.members = state.members.filter((x) => x.id !== m.id);
-            state.recordsMap.forEach((rec, docId) => {
-              if (rec.memberId === m.id) {
-                updates[`workRecords/${docId}`] = null;
-                state.recordsMap.delete(docId);
-              }
-            });
-            saveLocalBackup();
-            renderAll();
-            renderManageModal();
-            const res = await commitWithTimeout(update(ref(db), updates), 'deleteMember');
-            if (res.ok) showToast(`'${m.name}' 팀원이 삭제되었습니다.`, 'info');
-          });
-        }
+        const res = await commitWithTimeout(set(ref(db, `teams/${id}`), newTeam), 'addDept');
+        if (res.ok) showToast(`'${name}' 부서를 추가했습니다.`, 'success');
       });
 
       els.btnClearRecords.addEventListener('click', () => {
-        openConfirm('전체 근무기록 초기화', '부서와 팀원 목록은 유지하고, 모든 근무 기록만 삭제하시겠습니까?', async () => {
+        openConfirm('근무기록 전체 초기화', '모든 출퇴근 기록을 삭제합니다. (부서·팀원 조직도는 유지됩니다)\n계속할까요?', async () => {
           state.recordsMap.clear();
+          state.selectedDetailIds.clear();
           saveLocalBackup();
           renderAll();
-          closeManageModal();
           const res = await commitWithTimeout(remove(ref(db, 'workRecords')), 'clearRecords');
-          if (res.ok) showToast('모든 근무 기록이 초기화되었습니다.', 'info');
+          if (res.ok) showToast('모든 출퇴근 기록을 초기화했습니다.', 'success');
         });
       });
 
-      // 모달 5: 공휴일 관리
+      // 조직도 내부 위임 이벤트 (하위팀 추가 / 다중 팀원 추가 / 부서 삭제 / 팀원 삭제)
+      els.orgChartContainer.addEventListener('click', async (e) => {
+        // 1) + 하위팀 토글
+        const toggleSub = e.target.closest('[data-toggle-subdept]');
+        if (toggleSub) {
+          const box = document.getElementById(`subdeptForm_${toggleSub.dataset.toggleSubdept}`);
+          if (box) {
+            box.classList.toggle('hidden');
+            const inp = box.querySelector('input');
+            if (!box.classList.contains('hidden') && inp) inp.focus();
+          }
+          return;
+        }
+
+        // 2) 인라인 하위팀 추가 제출
+        const subBtn = e.target.closest('[data-subdept-submit]');
+        if (subBtn) {
+          const parentId = subBtn.dataset.subdeptSubmit;
+          const inp = els.orgChartContainer.querySelector(`[data-subdept-input="${parentId}"]`);
+          const name = inp ? inp.value.trim() : '';
+          if (!name) {
+            showToast('하위 팀명을 입력해 주세요.', 'warning');
+            return;
+          }
+          const id = genId('dept');
+          const newTeam = { id, name, department: name, parentId, createdAt: Date.now() };
+          state.teams.push(newTeam);
+          saveLocalBackup();
+          renderAll();
+          const res = await commitWithTimeout(set(ref(db, `teams/${id}`), newTeam), 'addSubDept');
+          if (res.ok) showToast(`하위팀 '${name}'을(를) 추가했습니다.`, 'success');
+          return;
+        }
+
+        // 3) 다중 팀원 일괄 추가 (쉼표·줄바꿈·공백 구분)
+        const addMemBtn = e.target.closest('[data-bulk-members-btn]');
+        if (addMemBtn) {
+          const teamId = addMemBtn.dataset.bulkMembersBtn;
+          const team = getTeamById(teamId);
+          const inp = els.orgChartContainer.querySelector(`[data-bulk-members-input="${teamId}"]`);
+          const raw = inp ? inp.value.trim() : '';
+          if (!raw) {
+            showToast('추가할 팀원 성명을 입력해 주세요.', 'warning');
+            return;
+          }
+          const names = raw.split(/[\s,/\n]+/).map((s) => s.trim()).filter(Boolean);
+          if (names.length === 0) return;
+
+          const updates = {};
+          const now = Date.now();
+          names.forEach((name, idx) => {
+            const id = genId(`mem${idx}`);
+            const mem = { id, name, teamId, department: getDeptName(team), createdAt: now + idx };
+            state.members.push(mem);
+            updates[`members/${id}`] = mem;
+          });
+          if (inp) inp.value = '';
+          saveLocalBackup();
+          renderAll();
+          const res = await commitWithTimeout(update(ref(db), updates), 'bulkAddMembers');
+          if (res.ok) showToast(`${getDeptName(team)}에 ${names.length}명을 추가했습니다.`, 'success');
+          return;
+        }
+
+        // 4) 팀원 삭제
+        const delMemBtn = e.target.closest('[data-del-member]');
+        if (delMemBtn) {
+          const mId = delMemBtn.dataset.delMember;
+          const m = getMemberById(mId);
+          if (!m) return;
+          openConfirm('팀원 삭제', `'${m.name}' 팀원을 삭제할까요?`, async () => {
+            state.members = state.members.filter((x) => x.id !== mId);
+            saveLocalBackup();
+            renderAll();
+            const res = await commitWithTimeout(remove(ref(db, `members/${mId}`)), 'delMember');
+            if (res.ok) showToast(`'${m.name}' 팀원을 삭제했습니다.`, 'success');
+          });
+          return;
+        }
+
+        // 5) 부서 삭제 (하위팀은 상위 부서로 안전 승격)
+        const delDeptBtn = e.target.closest('[data-del-dept]');
+        if (delDeptBtn) {
+          const dId = delDeptBtn.dataset.delDept;
+          const team = getTeamById(dId);
+          if (!team) return;
+          openConfirm('부서 삭제', `'${getDeptName(team)}' 부서를 삭제할까요?\n(하위 팀이 있는 경우 상위 단계로 유지됩니다.)`, async () => {
+            const parentId = team.parentId || '';
+            const updates = {};
+            updates[`teams/${dId}`] = null;
+
+            state.teams = state.teams
+              .filter((t) => t.id !== dId)
+              .map((t) => {
+                if (t.parentId === dId) {
+                  const promoted = { ...t, parentId };
+                  updates[`teams/${t.id}`] = promoted;
+                  return promoted;
+                }
+                return t;
+              });
+
+            saveLocalBackup();
+            renderAll();
+            const res = await commitWithTimeout(update(ref(db), updates), 'delDept');
+            if (res.ok) showToast(`'${getDeptName(team)}' 부서를 삭제했습니다.`, 'success');
+          });
+        }
+      });
+
+      // 조직도 내 팀원 부서 이동 & 엔터키 지원
+      els.orgChartContainer.addEventListener('change', async (e) => {
+        const sel = e.target.closest('[data-move-member]');
+        if (!sel) return;
+        const mId = sel.dataset.moveMember;
+        const newTeamId = sel.value;
+        const m = getMemberById(mId);
+        const newTeam = getTeamById(newTeamId);
+        if (!m || !newTeam) return;
+
+        m.teamId = newTeamId;
+        m.department = getDeptName(newTeam);
+        saveLocalBackup();
+        renderAll();
+        const res = await commitWithTimeout(
+          update(ref(db, `members/${mId}`), { teamId: newTeamId, department: getDeptName(newTeam) }),
+          'moveMember'
+        );
+        if (res.ok) showToast(`'${m.name}'님을 '${getDeptName(newTeam)}'(으)로 이동했습니다.`, 'success');
+      });
+
+      els.orgChartContainer.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter') return;
+        const bulkInp = e.target.closest('[data-bulk-members-input]');
+        if (bulkInp) {
+          e.preventDefault();
+          const btn = els.orgChartContainer.querySelector(`[data-bulk-members-btn="${bulkInp.dataset.bulkMembersInput}"]`);
+          if (btn) btn.click();
+          return;
+        }
+        const subInp = e.target.closest('[data-subdept-input]');
+        if (subInp) {
+          e.preventDefault();
+          const btn = els.orgChartContainer.querySelector(`[data-subdept-submit="${subInp.dataset.subdeptInput}"]`);
+          if (btn) btn.click();
+        }
+      });
+
+      // ==================== 모달 5: 공휴일 관리 이벤트 ====================
       els.btnCloseHoliday.addEventListener('click', closeHolidayModal);
       els.btnDoneHoliday.addEventListener('click', closeHolidayModal);
       els.holidayYearTabs.addEventListener('click', (e) => {
-        const btn = e.target.closest('button[data-holiday-year]');
+        const btn = e.target.closest('[data-hol-year]');
         if (!btn) return;
-        state.holidayViewYear = btn.dataset.holidayYear;
+        state.holidayYear = Number(btn.dataset.holYear);
         renderHolidayModal();
       });
       els.addHolidayForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const date = els.newHolidayDate.value;
+        const d = els.newHolidayDate.value;
         const name = els.newHolidayName.value.trim();
-        if (!date || !name) return;
-        state.customHolidays[date] = name;
-        state.holidayViewYear = date.slice(0, 4);
+        if (!d || !name) return;
+
+        state.customHolidays[d] = name;
+        els.newHolidayDate.value = '';
         els.newHolidayName.value = '';
+        state.holidayYear = Number(d.slice(0, 4));
         saveLocalBackup();
         renderAll();
-        renderHolidayModal();
-        const res = await commitWithTimeout(set(ref(db, `customHolidays/${date}`), { date, name }), 'addHoliday');
-        if (res.ok) showToast(`${date} (${name}) 휴일이 저장되었습니다.`, 'success');
+        const res = await commitWithTimeout(set(ref(db, `customHolidays/${d}`), { name }), 'addHoliday');
+        if (res.ok) showToast(`${d} (${name}) 휴일을 추가했습니다.`, 'success');
       });
-      els.holidayListContainer.addEventListener('click', (e) => {
-        const btn = e.target.closest('button[data-del-custom-holiday]');
+      els.holidayListContainer.addEventListener('click', async (e) => {
+        const btn = e.target.closest('[data-del-holiday]');
         if (!btn) return;
-        const date = btn.dataset.delCustomHoliday;
-        openConfirm('휴일 삭제', `${date} 사용자 지정 휴일을 삭제하시겠습니까?`, async () => {
-          delete state.customHolidays[date];
-          saveLocalBackup();
-          renderAll();
-          renderHolidayModal();
-          const res = await commitWithTimeout(remove(ref(db, `customHolidays/${date}`)), 'deleteHoliday');
-          if (res.ok) showToast('사용자 지정 휴일이 삭제되었습니다.', 'info');
-        });
-      });
-
-      // 모달 6: Firebase 안내
-      const closeFbGuide = () => els.fbGuideModal.classList.add('hidden');
-      els.btnFirebaseStatus.addEventListener('click', () => {
-        updateFbCollectionsGuide();
-        els.fbGuideModal.classList.remove('hidden');
-      });
-      els.btnCloseFbGuide.addEventListener('click', closeFbGuide);
-      els.btnOkFbGuide.addEventListener('click', closeFbGuide);
-      els.btnUploadLocalToFb.addEventListener('click', () => {
-        closeFbGuide();
-        uploadLocalDataToFirestore();
-      });
-      els.btnRetryFbConnect.addEventListener('click', () => {
-        closeFbGuide();
-        showToast('Firebase에 다시 연결을 시도합니다...', 'info');
-        subscribeFirestore();
-      });
-
-      // 모달 7: 확인 모달
-      els.btnConfirmCancel.addEventListener('click', closeConfirm);
-      els.btnConfirmOk.addEventListener('click', () => {
-        const cb = confirmCallback;
-        closeConfirm();
-        if (cb) cb();
+        const d = btn.dataset.delHoliday;
+        delete state.customHolidays[d];
+        saveLocalBackup();
+        renderAll();
+        const res = await commitWithTimeout(remove(ref(db, `customHolidays/${d}`)), 'delHoliday');
+        if (res.ok) showToast(`${d} 지정 휴일을 삭제했습니다.`, 'success');
       });
     }
 
     // =========================================================================
-    // 16. 초기화
+    // 17. 초기화 실행
     // =========================================================================
-    function init() {
+    function initApp() {
       state.weekStartDate = getSundayOfWeek(getTodayStr());
-      loadLocalBackup();
       initSingle24hSelects();
+      loadLocalBackup();
       bindEvents();
       renderAll();
-      subscribeFirestore();
+      subscribeRealtimeDB();
     }
 
-    init();
+    initApp();
   </script>
 </body>
 </html>
