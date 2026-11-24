@@ -1,0 +1,2753 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>팀별 주간 근로시간 관리 시스템 (Firebase 연동)</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- SheetJS (XLSX) CDN -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <!-- Pretendard / Noto Sans KR / Inter Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Pretendard', 'Inter', 'Noto Sans KR', 'sans-serif'],
+          },
+        },
+      },
+    };
+  </script>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
+
+  <!-- ===================================================================== -->
+  <!-- 상단 고정 헤더                                                          -->
+  <!-- ===================================================================== -->
+  <header class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-200 shadow-sm">
+    <div class="max-w-[1640px] mx-auto px-4 sm:px-6 py-3 space-y-3">
+
+      <!-- 1행: 타이틀 & Firebase 상태 + 주간 네비게이터 + 관리 버튼 -->
+      <div class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3">
+        <!-- 타이틀 & Firebase 연결 상태 배지 -->
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-sm shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <div class="min-w-0">
+            <div class="flex flex-wrap items-center gap-2">
+              <h1 class="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight truncate">
+                팀별 주간 근로시간 관리 시스템
+              </h1>
+              <!-- Firebase 실시간 연결 상태 표시 배지 -->
+              <button
+                type="button"
+                id="btnFirebaseStatus"
+                title="클릭하여 Firebase 연결 상태 및 보안 규칙 안내 보기"
+                class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold border bg-amber-50 text-amber-700 border-amber-200 transition-colors hover:opacity-90"
+              >
+                <span id="fbStatusDot" class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                <span id="fbStatusText">동기화 중...</span>
+              </button>
+            </div>
+            <p class="text-[11px] text-slate-500 truncate mt-0.5">
+              24h 표기 · 정상 08:00~17:00 (08:00 이전 출근 08:00 고정) · 중식 12:00~13:00 / 석식 18:00~18:30 제외 · 주말/공휴일 특근 · 주 52h 관리
+            </p>
+          </div>
+        </div>
+
+        <!-- 주간 네비게이터 -->
+        <div class="flex flex-wrap items-center gap-1.5 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
+          <button type="button" id="btnPrevWeek" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 transition-colors">
+            ◀ 이전 주
+          </button>
+          <span id="weekRangeLabel" class="px-2.5 py-1 text-xs sm:text-sm font-bold text-slate-900 whitespace-nowrap font-mono">
+            -
+          </span>
+          <button type="button" id="btnNextWeek" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 transition-colors">
+            다음 주 ▶
+          </button>
+          <button type="button" id="btnThisWeek" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 transition-colors">
+            이번 주
+          </button>
+          <input
+            type="date"
+            id="jumpDatePicker"
+            title="특정 날짜가 속한 주로 이동"
+            class="px-2 py-1 rounded-lg text-xs font-medium text-slate-700 bg-white border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+          />
+        </div>
+
+        <!-- 우측 액션 버튼 -->
+        <div class="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            id="btnOpenBatchModal"
+            class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-sm"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            부서/팀 일괄 입력
+          </button>
+
+          <button
+            type="button"
+            id="btnOpenManageModal"
+            class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            부서/팀원 관리
+          </button>
+
+          <button
+            type="button"
+            id="btnOpenHolidayModal"
+            class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold text-rose-700 bg-rose-50 border border-rose-200 hover:bg-rose-100 transition-colors"
+          >
+            공휴일 관리
+          </button>
+
+          <button
+            type="button"
+            id="btnExportExcel"
+            class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors"
+          >
+            엑셀 다운로드 (.xlsx)
+          </button>
+        </div>
+      </div>
+
+      <!-- 2행: 부서 / 팀 필터 탭 -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-slate-100">
+        <div class="flex items-center gap-2 overflow-x-auto pb-0.5">
+          <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider shrink-0">부서/팀 필터</span>
+          <div id="deptFilterTabs" class="flex items-center gap-1.5 shrink-0"></div>
+          <span id="teamTabDivider" class="hidden text-slate-300">|</span>
+          <div id="teamFilterTabs" class="flex items-center gap-1.5 shrink-0"></div>
+        </div>
+        <div class="text-[11px] text-slate-500 shrink-0">
+          ※ 날짜 헤더 클릭 시 <strong class="text-indigo-600">부서/팀 일괄 입력</strong> · 개별 셀 클릭 시 <strong class="text-slate-700">1인 빠른 수정</strong>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- 초기 빈 DB 안내 배너 (Firestore에 팀원이 없을 때만 표시) -->
+  <div id="emptyDbBanner" class="hidden bg-indigo-50 border-b border-indigo-200">
+    <div class="max-w-[1640px] mx-auto px-4 sm:px-6 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div class="flex items-center gap-2.5 text-indigo-900">
+        <span class="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-xs font-bold shrink-0">DB</span>
+        <div class="text-xs sm:text-sm">
+          <strong class="font-bold">Firestore 데이터베이스가 비어 있습니다.</strong>
+          <span class="text-indigo-700">테스트용 샘플 부서·팀원·주간 기록을 한 번에 불러오거나, '부서/팀원 관리'에서 실제 인원을 등록하세요.</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <button
+          type="button"
+          id="btnBannerSeedSample"
+          class="px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-xs"
+        >
+          샘플 부서·팀원 데이터 불러오기
+        </button>
+        <button
+          type="button"
+          id="btnBannerOpenManage"
+          class="px-3 py-2 rounded-xl text-xs font-semibold text-indigo-700 bg-white border border-indigo-300 hover:bg-indigo-100 transition-colors"
+        >
+          직접 등록하기
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- 메인 2단 대시보드                                                       -->
+  <!-- ===================================================================== -->
+  <main class="flex-1 max-w-[1640px] w-full mx-auto px-4 sm:px-6 py-5">
+    <div class="grid grid-cols-1 xl:grid-cols-12 gap-5 items-start">
+
+      <!-- 좌측 메인 영역 (8/12) -->
+      <section class="xl:col-span-8 space-y-5 min-w-0">
+
+        <!-- 1. 주간 근무표 그리드 (일 ~ 토) -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="px-5 py-3.5 border-b border-slate-200 bg-slate-50/70 flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-indigo-600"></span>
+              <h2 class="text-sm sm:text-base font-bold text-slate-900">주간 근무표 (일 ~ 토)</h2>
+              <span id="gridFilterBadge" class="px-2.5 py-0.5 rounded-md text-xs font-bold bg-indigo-100 text-indigo-700">전체</span>
+            </div>
+            <div class="flex flex-wrap items-center gap-3 text-[11px] text-slate-500">
+              <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-xs bg-[#b91c1c]"></span> 일요일·공휴일(특근)</span>
+              <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-xs bg-[#1e3a5f]"></span> 평일</span>
+              <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-xs bg-[#1d4ed8]"></span> 토요일(특근)</span>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full border-collapse text-center min-w-[1000px]">
+              <thead id="weeklyGridHead"></thead>
+              <tbody id="weeklyGridBody" class="divide-y divide-slate-200 text-xs"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 2. 주간 상세 출퇴근 기록 (접기/펼치기) -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <button
+            type="button"
+            id="btnToggleDetailTable"
+            class="w-full px-5 py-3.5 border-b border-slate-200 bg-slate-50/70 flex items-center justify-between hover:bg-slate-100/70 transition-colors"
+          >
+            <div class="flex items-center gap-2.5">
+              <h2 class="text-sm sm:text-base font-bold text-slate-900">주간 상세 출퇴근 기록 (24h)</h2>
+              <span id="detailCountBadge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-200 text-slate-700">0건</span>
+            </div>
+            <span id="detailToggleIcon" class="text-xs font-semibold text-slate-500 flex items-center gap-1">
+              <span>접기</span>
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </span>
+          </button>
+
+          <div id="detailTableContainer" class="overflow-x-auto">
+            <table class="w-full text-left border-collapse min-w-[840px]">
+              <thead>
+                <tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                  <th class="py-2.5 px-4">날짜 (요일/구분)</th>
+                  <th class="py-2.5 px-3">부서 · 팀</th>
+                  <th class="py-2.5 px-3">성명</th>
+                  <th class="py-2.5 px-3">출근 ~ 퇴근 (24h)</th>
+                  <th class="py-2.5 px-3">제외(중/석)</th>
+                  <th class="py-2.5 px-3 text-right">정상(h)</th>
+                  <th class="py-2.5 px-3 text-right text-amber-700">연장(h)</th>
+                  <th class="py-2.5 px-3 text-right text-rose-700">특근(h)</th>
+                  <th class="py-2.5 px-3">비고</th>
+                  <th class="py-2.5 px-4 text-center">관리</th>
+                </tr>
+              </thead>
+              <tbody id="detailTableBody" class="divide-y divide-slate-100 text-xs sm:text-sm"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- 우측 고정 패널 (4/12): 팀원별 주 52시간 현황 -->
+      <aside class="xl:col-span-4 xl:sticky xl:top-28 space-y-4">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="px-5 py-4 bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white">
+            <div class="flex items-center justify-between gap-2">
+              <h2 class="text-base font-bold tracking-tight">팀원별 주 52시간 현황</h2>
+              <span id="panelFilterBadge" class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-white/15 text-indigo-100">전체</span>
+            </div>
+            <p class="text-[11px] text-slate-300 mt-1">
+              법정 주 52시간(정상+연장+특근) 기준 부족/초과 실시간 집계 · 클릭 시 그리드 강조
+            </p>
+          </div>
+
+          <!-- 상단 KPI 3종 -->
+          <div class="grid grid-cols-3 divide-x divide-slate-200 border-b border-slate-200 bg-slate-50">
+            <div class="p-3 text-center">
+              <p class="text-[11px] font-semibold text-amber-700">주간 총 연장</p>
+              <p id="kpiTotalOvertime" class="text-base sm:text-lg font-extrabold text-amber-600 mt-0.5 font-mono">0h</p>
+            </div>
+            <div class="p-3 text-center">
+              <p class="text-[11px] font-semibold text-rose-700">주간 총 특근</p>
+              <p id="kpiTotalHoliday" class="text-base sm:text-lg font-extrabold text-rose-600 mt-0.5 font-mono">0h</p>
+            </div>
+            <div class="p-3 text-center bg-rose-50/40">
+              <p class="text-[11px] font-semibold text-slate-700">주 52h 초과 인원</p>
+              <p id="kpiExceededCount" class="text-base sm:text-lg font-extrabold text-rose-600 mt-0.5">0명</p>
+            </div>
+          </div>
+
+          <!-- 팀원별 52h 카드 목록 -->
+          <div id="member52hList" class="p-4 space-y-3 max-h-[calc(100vh-290px)] overflow-y-auto"></div>
+        </div>
+      </aside>
+
+    </div>
+  </main>
+
+  <!-- ===================================================================== -->
+  <!-- 모달 1: 부서/팀원 일괄 근무시간 입력 모달 (핵심 신규 기능)                -->
+  <!-- ===================================================================== -->
+  <div id="batchModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-6xl max-h-[94vh] flex flex-col overflow-hidden">
+      <!-- 모달 헤더 -->
+      <div class="px-5 py-4 border-b border-slate-200 bg-gradient-to-r from-indigo-700 to-slate-900 text-white flex items-center justify-between gap-3">
+        <div>
+          <h3 class="text-base sm:text-lg font-extrabold tracking-tight">부서/팀원 일괄 근무시간 입력 (24h)</h3>
+          <p class="text-xs text-indigo-100 mt-0.5">부서 또는 팀을 선택하여 소속 인원의 출퇴근 시간을 한 번에 입력하고 Firestore에 일괄 저장합니다.</p>
+        </div>
+        <button type="button" id="btnCloseBatchModal" class="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/15 transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- 상단 컨트롤 영역: 날짜 선택 + 부서/팀 선택 + 공통 시간 일괄 적용 바 -->
+      <div class="p-4 sm:p-5 bg-slate-50 border-b border-slate-200 space-y-3.5">
+        <!-- 1행: 날짜 & 부서 & 팀 선택 -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 items-end">
+          <!-- 날짜 선택 -->
+          <div class="lg:col-span-5">
+            <div class="flex items-center justify-between mb-1">
+              <label for="batchDate" class="text-xs font-bold text-slate-700">1. 근무 날짜 선택</label>
+              <span id="batchDayBadge" class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-700">-</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <button type="button" id="btnBatchPrevDay" class="px-2.5 py-2 rounded-xl text-xs font-bold text-slate-700 bg-white border border-slate-300 hover:bg-slate-100">◀ 전날</button>
+              <input
+                type="date"
+                id="batchDate"
+                class="flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+              <button type="button" id="btnBatchNextDay" class="px-2.5 py-2 rounded-xl text-xs font-bold text-slate-700 bg-white border border-slate-300 hover:bg-slate-100">다음날 ▶</button>
+            </div>
+          </div>
+
+          <!-- 부서 선택 -->
+          <div class="lg:col-span-3">
+            <label for="batchDeptSelect" class="block text-xs font-bold text-slate-700 mb-1">2. 부서 선택</label>
+            <select
+              id="batchDeptSelect"
+              class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            ></select>
+          </div>
+
+          <!-- 팀 선택 -->
+          <div class="lg:col-span-4">
+            <label for="batchTeamSelect" class="block text-xs font-bold text-slate-700 mb-1">3. 팀 선택</label>
+            <select
+              id="batchTeamSelect"
+              class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            ></select>
+          </div>
+        </div>
+
+        <!-- 2행: 공통 시간 일괄 적용 컨트롤 바 (24시간제) -->
+        <div class="p-3.5 rounded-xl bg-white border border-indigo-200 shadow-xs space-y-2.5">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-xs font-extrabold text-indigo-800">공통 시간 일괄 적용 (24h):</span>
+              <div class="flex items-center gap-1.5">
+                <span class="text-[11px] font-bold text-slate-500">출근</span>
+                <input
+                  type="text"
+                  id="batchCommonStart"
+                  value="08:00"
+                  maxlength="5"
+                  inputmode="numeric"
+                  placeholder="08:00"
+                  class="w-20 rounded-lg border border-slate-300 px-2 py-1.5 text-center font-mono text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+                <span class="text-slate-400 font-bold">~</span>
+                <span class="text-[11px] font-bold text-slate-500">퇴근</span>
+                <input
+                  type="text"
+                  id="batchCommonEnd"
+                  value="19:30"
+                  maxlength="5"
+                  inputmode="numeric"
+                  placeholder="19:30"
+                  class="w-20 rounded-lg border border-slate-300 px-2 py-1.5 text-center font-mono text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <button
+                type="button"
+                id="btnApplyCommonTime"
+                class="px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-xs"
+              >
+                선택 인원 시간 일괄 적용
+              </button>
+            </div>
+
+            <div class="flex items-center gap-1.5">
+              <button type="button" id="btnBatchCheckAll" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200">전체 선택</button>
+              <button type="button" id="btnBatchUncheckAll" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200">전체 해제</button>
+            </div>
+          </div>
+
+          <!-- 빠른 프리셋 칩 -->
+          <div class="flex flex-wrap items-center gap-1.5 text-[11px]">
+            <span class="text-slate-400 font-semibold mr-1">출근 프리셋:</span>
+            <button type="button" data-batch-preset-start="07:30" class="px-2 py-0.5 rounded-md font-mono font-semibold bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700">07:30</button>
+            <button type="button" data-batch-preset-start="08:00" class="px-2 py-0.5 rounded-md font-mono font-semibold bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700">08:00</button>
+            <span class="text-slate-300 mx-1">|</span>
+            <span class="text-slate-400 font-semibold mr-1">퇴근 프리셋:</span>
+            <button type="button" data-batch-preset-end="17:00" class="px-2 py-0.5 rounded-md font-mono font-semibold bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700">17:00</button>
+            <button type="button" data-batch-preset-end="18:30" class="px-2 py-0.5 rounded-md font-mono font-semibold bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700">18:30</button>
+            <button type="button" data-batch-preset-end="19:30" class="px-2 py-0.5 rounded-md font-mono font-semibold bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700">19:30</button>
+            <button type="button" data-batch-preset-end="20:30" class="px-2 py-0.5 rounded-md font-mono font-semibold bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700">20:30</button>
+            <button type="button" data-batch-preset-end="21:30" class="px-2 py-0.5 rounded-md font-mono font-semibold bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700">21:30</button>
+            <button type="button" data-batch-preset-end="22:00" class="px-2 py-0.5 rounded-md font-mono font-semibold bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700">22:00</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 부서원별 일괄 입력 테이블 -->
+      <div class="flex-1 overflow-auto">
+        <table class="w-full text-left border-collapse min-w-[900px]">
+          <thead class="sticky top-0 z-10 bg-slate-100 border-b border-slate-200 text-[11px] font-bold text-slate-600 uppercase">
+            <tr>
+              <th class="py-2.5 px-3 text-center w-12">선택</th>
+              <th class="py-2.5 px-3 w-44">성명 (부서·팀)</th>
+              <th class="py-2.5 px-3 w-36">출근 (24h)</th>
+              <th class="py-2.5 px-3 w-32">퇴근 (24h)</th>
+              <th class="py-2.5 px-3">비고</th>
+              <th class="py-2.5 px-3 w-52">자동계산 미리보기</th>
+              <th class="py-2.5 px-3 text-center w-20">기존기록</th>
+            </tr>
+          </thead>
+          <tbody id="batchTableBody" class="divide-y divide-slate-100 text-xs sm:text-sm bg-white"></tbody>
+        </table>
+      </div>
+
+      <!-- 모달 하단 저장 액션 바 -->
+      <div class="px-5 py-3.5 border-t border-slate-200 bg-slate-50 flex flex-wrap items-center justify-between gap-3">
+        <div id="batchSummaryInfo" class="text-xs font-semibold text-slate-600">
+          선택된 인원: <strong class="text-indigo-700">0명</strong>
+        </div>
+        <div class="flex items-center gap-2">
+          <button type="button" id="btnCancelBatchModal" class="px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 bg-white border border-slate-300 hover:bg-slate-100">
+            닫기
+          </button>
+          <button
+            type="button"
+            id="btnSaveBatch"
+            class="px-5 py-2 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-50"
+          >
+            선택 인원 일괄 저장
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- 모달 2: 1인 빠른 출퇴근 수정 모달 (그리드 셀 클릭 시)                    -->
+  <!-- ===================================================================== -->
+  <div id="singleModal" class="hidden fixed inset-0 z-50 bg-slate-900/55 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-lg max-h-[92vh] flex flex-col overflow-hidden">
+      <div class="px-5 py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+        <div>
+          <h3 id="singleModalTitle" class="text-base font-bold text-slate-900">1인 출퇴근 입력 · 수정 (24h)</h3>
+          <p id="singleModalSub" class="text-xs text-slate-500 mt-0.5">00:00 ~ 24:00 24시간 형식으로 입력합니다.</p>
+        </div>
+        <button type="button" id="btnCloseSingleModal" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/70">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <form id="singleForm" class="p-5 overflow-y-auto space-y-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label for="singleDate" class="text-xs font-bold text-slate-700">근무 날짜</label>
+              <span id="singleDayBadge" class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">-</span>
+            </div>
+            <input type="date" id="singleDate" required class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm font-mono font-semibold text-slate-800" />
+          </div>
+          <div>
+            <label for="singleMember" class="block text-xs font-bold text-slate-700 mb-1">팀원</label>
+            <select id="singleMember" required class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-800 bg-white"></select>
+          </div>
+        </div>
+
+        <div id="singleHolidayBanner" class="hidden rounded-xl px-3.5 py-2.5 bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-700 flex items-center justify-between">
+          <span id="singleHolidayText">특근 적용</span>
+          <span class="px-2 py-0.5 rounded-full bg-rose-600 text-white text-[10px]">특근 처리</span>
+        </div>
+
+        <!-- 출근 24h -->
+        <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+          <div class="flex items-center justify-between">
+            <label for="singleStartInput" class="text-xs font-bold text-slate-800">출근 시간 (24h)</label>
+            <span id="singleEarlyBadge" class="hidden text-[11px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">08:00 이전 → 08:00 적용</span>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <input type="text" id="singleStartInput" maxlength="5" inputmode="numeric" placeholder="08:00" required class="w-24 rounded-xl border border-slate-300 bg-white px-3 py-2 text-center font-mono text-base font-bold text-slate-900" />
+            <select id="singleStartHour" class="rounded-lg border border-slate-300 bg-white px-2 py-2 text-xs font-mono font-semibold"></select>
+            <span class="font-bold text-slate-400">:</span>
+            <select id="singleStartMin" class="rounded-lg border border-slate-300 bg-white px-2 py-2 text-xs font-mono font-semibold"></select>
+          </div>
+          <div class="flex flex-wrap gap-1.5">
+            <button type="button" data-single-start="07:30" class="px-2 py-1 rounded-lg text-[11px] font-mono font-semibold bg-white border border-slate-200 hover:border-indigo-400">07:30</button>
+            <button type="button" data-single-start="08:00" class="px-2 py-1 rounded-lg text-[11px] font-mono font-semibold bg-white border border-slate-200 hover:border-indigo-400">08:00</button>
+            <button type="button" data-single-start="08:30" class="px-2 py-1 rounded-lg text-[11px] font-mono font-semibold bg-white border border-slate-200 hover:border-indigo-400">08:30</button>
+            <button type="button" data-single-start="09:00" class="px-2 py-1 rounded-lg text-[11px] font-mono font-semibold bg-white border border-slate-200 hover:border-indigo-400">09:00</button>
+          </div>
+        </div>
+
+        <!-- 퇴근 24h -->
+        <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+          <div class="flex items-center justify-between">
+            <label for="singleEndInput" class="text-xs font-bold text-slate-800">퇴근 시간 (24h)</label>
+            <span class="text-[11px] text-slate-400">00:00 ~ 24:00</span>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <input type="text" id="singleEndInput" maxlength="5" inputmode="numeric" placeholder="17:00" required class="w-24 rounded-xl border border-slate-300 bg-white px-3 py-2 text-center font-mono text-base font-bold text-slate-900" />
+            <select id="singleEndHour" class="rounded-lg border border-slate-300 bg-white px-2 py-2 text-xs font-mono font-semibold"></select>
+            <span class="font-bold text-slate-400">:</span>
+            <select id="singleEndMin" class="rounded-lg border border-slate-300 bg-white px-2 py-2 text-xs font-mono font-semibold"></select>
+          </div>
+          <div class="flex flex-wrap gap-1.5">
+            <button type="button" data-single-end="17:00" class="px-2 py-1 rounded-lg text-[11px] font-mono font-semibold bg-white border border-slate-200 hover:border-indigo-400">17:00</button>
+            <button type="button" data-single-end="18:30" class="px-2 py-1 rounded-lg text-[11px] font-mono font-semibold bg-white border border-slate-200 hover:border-indigo-400">18:30</button>
+            <button type="button" data-single-end="19:30" class="px-2 py-1 rounded-lg text-[11px] font-mono font-semibold bg-white border border-slate-200 hover:border-indigo-400">19:30</button>
+            <button type="button" data-single-end="20:30" class="px-2 py-1 rounded-lg text-[11px] font-mono font-semibold bg-white border border-slate-200 hover:border-indigo-400">20:30</button>
+            <button type="button" data-single-end="21:30" class="px-2 py-1 rounded-lg text-[11px] font-mono font-semibold bg-white border border-slate-200 hover:border-indigo-400">21:30</button>
+            <button type="button" data-single-end="22:00" class="px-2 py-1 rounded-lg text-[11px] font-mono font-semibold bg-white border border-slate-200 hover:border-indigo-400">22:00</button>
+          </div>
+        </div>
+
+        <div>
+          <label for="singleNote" class="block text-xs font-bold text-slate-700 mb-1">비고 (선택)</label>
+          <input type="text" id="singleNote" maxlength="60" placeholder="예: 라인 점검, 납기 대응" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+        </div>
+
+        <!-- 미리보기 -->
+        <div class="rounded-xl bg-slate-900 text-white p-3.5 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-bold text-slate-300 uppercase">실시간 계산 미리보기</span>
+            <span id="singleError" class="hidden text-xs font-bold text-rose-400"></span>
+          </div>
+          <div class="grid grid-cols-4 gap-2 text-center">
+            <div class="rounded-lg bg-white/10 p-2">
+              <p class="text-[10px] text-slate-300">적용 구간</p>
+              <p id="sPrevRange" class="text-xs font-mono font-bold mt-0.5">-</p>
+              <p id="sPrevDeduct" class="text-[10px] text-slate-400">-</p>
+            </div>
+            <div class="rounded-lg bg-white/10 p-2">
+              <p class="text-[10px] text-slate-300">정상(h)</p>
+              <p id="sPrevReg" class="text-sm font-extrabold mt-0.5">0</p>
+            </div>
+            <div class="rounded-lg bg-amber-500/20 border border-amber-400/30 p-2">
+              <p class="text-[10px] text-amber-200">연장(h)</p>
+              <p id="sPrevOt" class="text-sm font-extrabold text-amber-300 mt-0.5">0</p>
+            </div>
+            <div class="rounded-lg bg-rose-500/20 border border-rose-400/30 p-2">
+              <p class="text-[10px] text-rose-200">특근(h)</p>
+              <p id="sPrevHol" class="text-sm font-extrabold text-rose-300 mt-0.5">0</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+          <button type="button" id="btnDeleteSingle" class="hidden px-3.5 py-2 rounded-xl text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200">
+            이 기록 삭제
+          </button>
+          <div class="flex items-center gap-2 ml-auto">
+            <button type="button" id="btnCancelSingle" class="px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200">취소</button>
+            <button type="submit" id="btnSaveSingle" class="px-5 py-2 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700">저장</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- 모달 3: 부서 / 팀 / 팀원 관리 모달 (Firestore 연동)                     -->
+  <!-- ===================================================================== -->
+  <div id="manageModal" class="hidden fixed inset-0 z-50 bg-slate-900/55 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+        <div>
+          <h3 class="text-lg font-bold text-slate-900">부서 / 팀원 관리 (Firestore 실시간 동기화)</h3>
+          <p class="text-xs text-slate-500">부서와 팀을 구성하고 소속 팀원을 추가·수정·삭제할 수 있습니다.</p>
+        </div>
+        <button type="button" id="btnCloseManageModal" class="p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/70">✕</button>
+      </div>
+
+      <div class="p-6 overflow-y-auto space-y-6">
+        <!-- 1. 부서 및 팀 관리 -->
+        <div class="space-y-3">
+          <h4 class="text-sm font-bold text-slate-800">1. 부서 · 팀 목록</h4>
+          <form id="addTeamForm" class="grid grid-cols-1 sm:grid-cols-12 gap-2">
+            <input type="text" id="newDeptName" placeholder="부서명 (예: 생산부)" maxlength="20" required class="sm:col-span-4 rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+            <input type="text" id="newTeamName" placeholder="팀명 (예: 생산1팀)" maxlength="20" required class="sm:col-span-5 rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+            <button type="submit" class="sm:col-span-3 px-4 py-2 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700">
+              부서/팀 추가
+            </button>
+          </form>
+          <div id="manageTeamList" class="flex flex-wrap gap-2"></div>
+        </div>
+
+        <hr class="border-slate-200" />
+
+        <!-- 2. 팀원 관리 -->
+        <div class="space-y-3">
+          <h4 class="text-sm font-bold text-slate-800">2. 팀원 목록</h4>
+          <form id="addMemberForm" class="grid grid-cols-1 sm:grid-cols-12 gap-2">
+            <select id="newMemberTeamSelect" required class="sm:col-span-5 rounded-xl border border-slate-300 px-3 py-2 text-sm bg-white"></select>
+            <input type="text" id="newMemberName" placeholder="성명" maxlength="20" required class="sm:col-span-3 rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+            <input type="text" id="newMemberPos" placeholder="직급 (선택)" maxlength="15" class="sm:col-span-2 rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+            <button type="submit" class="sm:col-span-2 px-3 py-2 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700">추가</button>
+          </form>
+          <div id="manageMemberList" class="divide-y divide-slate-100 border border-slate-200 rounded-xl max-h-64 overflow-y-auto"></div>
+        </div>
+      </div>
+
+      <div class="px-6 py-3.5 border-t border-slate-200 bg-slate-50 flex flex-wrap items-center justify-between gap-2">
+        <div class="flex items-center gap-2">
+          <button type="button" id="btnSeedSample" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200">
+            샘플 데이터 넣기
+          </button>
+          <button type="button" id="btnClearRecords" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200">
+            전체 기록 초기화
+          </button>
+        </div>
+        <button type="button" id="btnDoneManageModal" class="px-4 py-2 rounded-xl text-sm font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-100">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- 모달 4: 대한민국 공휴일 & 사용자 휴일 관리 모달                         -->
+  <!-- ===================================================================== -->
+  <div id="holidayModal" class="hidden fixed inset-0 z-50 bg-slate-900/55 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-rose-50/70">
+        <div>
+          <h3 class="text-lg font-bold text-slate-900">대한민국 공휴일 및 회사 휴일 관리</h3>
+          <p class="text-xs text-slate-600">법정공휴일(2025~2027)은 기본 내장되며, 회사 지정 휴일은 Firestore에 동기화됩니다.</p>
+        </div>
+        <button type="button" id="btnCloseHolidayModal" class="p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-rose-100">✕</button>
+      </div>
+
+      <div class="p-6 overflow-y-auto space-y-5">
+        <form id="addHolidayForm" class="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5">
+          <p class="text-xs font-bold text-slate-700">회사 지정 휴일 추가 (근로자의 날 05-01, 창립기념일, 임시공휴일 등)</p>
+          <div class="flex flex-col sm:flex-row gap-2">
+            <input type="date" id="newHolidayDate" required class="sm:w-44 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-mono" />
+            <input type="text" id="newHolidayName" placeholder="휴일명 입력 (예: 근로자의 날)" maxlength="30" required class="flex-1 rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm" />
+            <button type="submit" class="px-4 py-2 rounded-xl text-sm font-bold text-white bg-rose-600 hover:bg-rose-700">휴일 추가</button>
+          </div>
+        </form>
+
+        <div class="space-y-3">
+          <div id="holidayYearTabs" class="flex items-center gap-1.5 flex-wrap"></div>
+          <div id="holidayListContainer" class="divide-y divide-slate-100 border border-slate-200 rounded-xl max-h-72 overflow-y-auto"></div>
+        </div>
+      </div>
+
+      <div class="px-6 py-3.5 border-t border-slate-200 bg-slate-50 flex justify-end">
+        <button type="button" id="btnDoneHolidayModal" class="px-4 py-2 rounded-xl text-sm font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-100">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- 모달 5: Firebase 연결 상태 및 보안 규칙 안내 모달                       -->
+  <!-- ===================================================================== -->
+  <div id="fbGuideModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-lg overflow-hidden">
+      <div class="px-5 py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+        <h3 class="text-base font-bold text-slate-900">Firebase Firestore 연결 안내</h3>
+        <button type="button" id="btnCloseFbGuide" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700">✕</button>
+      </div>
+      <div class="p-5 space-y-3 text-xs sm:text-sm text-slate-700">
+        <div class="p-3 rounded-xl bg-slate-100 font-mono text-xs space-y-1">
+          <div><strong>Project ID:</strong> work-hours-management</div>
+          <div><strong>현재 상태:</strong> <span id="fbGuideStatusText" class="font-bold">-</span></div>
+          <div id="fbGuideErrorDetail" class="hidden text-rose-600 break-all"></div>
+        </div>
+        <p class="leading-relaxed">
+          만약 <strong>permission-denied(권한 오류)</strong>가 발생한다면, Firebase Console → <strong>Firestore Database → 규칙(Rules)</strong>에서 아래와 같이 읽기/쓰기 권한이 허용되어 있는지 확인해 주세요.
+        </p>
+        <pre class="p-3 rounded-xl bg-slate-900 text-emerald-300 text-xs overflow-x-auto font-mono">rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}</pre>
+      </div>
+      <div class="px-5 py-3 border-t border-slate-200 bg-slate-50 flex justify-end">
+        <button type="button" id="btnOkFbGuide" class="px-4 py-2 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700">확인</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 커스텀 확인 모달 (alert/confirm 대체) -->
+  <div id="confirmModal" class="hidden fixed inset-0 z-50 bg-slate-900/55 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-sm p-6 space-y-4">
+      <div class="space-y-1.5">
+        <h3 id="confirmTitle" class="text-base font-bold text-slate-900">확인</h3>
+        <p id="confirmMessage" class="text-sm text-slate-600 leading-relaxed"></p>
+      </div>
+      <div class="flex items-center justify-end gap-2 pt-2">
+        <button type="button" id="btnConfirmCancel" class="px-4 py-2 rounded-xl text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200">취소</button>
+        <button type="button" id="btnConfirmOk" class="px-4 py-2 rounded-xl text-sm font-bold text-white bg-rose-600 hover:bg-rose-700">확인</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 토스트 알림 컨테이너 -->
+  <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- ===================================================================== -->
+  <!-- 메인 애플리케이션 스크립트 (Firebase v10.14.1 Modular SDK)              -->
+  <!-- ===================================================================== -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+    import {
+      getFirestore,
+      collection,
+      doc,
+      setDoc,
+      deleteDoc,
+      onSnapshot,
+      writeBatch,
+      serverTimestamp,
+    } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+    // =========================================================================
+    // 1. Firebase 설정 및 초기화 (업로드된 정확한 Config)
+    // =========================================================================
+    const firebaseConfig = {
+      apiKey: "AIzaSyBkQ1xL8meosSWDcg9ypXzZ7rwRaQcAirk",
+      authDomain: "work-hours-management.firebaseapp.com",
+      projectId: "work-hours-management",
+      storageBucket: "work-hours-management.firebasestorage.app",
+      messagingSenderId: "265390691817",
+      appId: "1:265390691817:web:0037b4b950f411f7a62778"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // =========================================================================
+    // 2. 상수 및 대한민국 공휴일 (2025~2027)
+    // =========================================================================
+    const WORK_START_MIN = 8 * 60;       // 08:00 (출근 하한 고정)
+    const WORK_END_MIN = 17 * 60;        // 17:00 (정상 근무 종료)
+    const LUNCH_START_MIN = 12 * 60;     // 12:00
+    const LUNCH_END_MIN = 13 * 60;       // 13:00
+    const DINNER_START_MIN = 18 * 60;    // 18:00
+    const DINNER_END_MIN = 18 * 60 + 30; // 18:30
+    const WEEKLY_LIMIT_MIN = 52 * 60;    // 주 52시간
+
+    const DAY_NAMES = ['일', '월', '화', '수', '목', '금', '토'];
+    const DAY_FULL_NAMES = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
+
+    const DEFAULT_KR_HOLIDAYS = {
+      // 2025년
+      '2025-01-01': '신정',
+      '2025-01-27': '임시공휴일(설 연휴)',
+      '2025-01-28': '설날 연휴',
+      '2025-01-29': '설날',
+      '2025-01-30': '설날 연휴',
+      '2025-03-01': '삼일절',
+      '2025-03-03': '대체공휴일(삼일절)',
+      '2025-05-05': '어린이날·부처님오신날',
+      '2025-05-06': '대체공휴일(어린이날)',
+      '2025-06-06': '현충일',
+      '2025-08-15': '광복절',
+      '2025-10-03': '개천절',
+      '2025-10-05': '추석 연휴',
+      '2025-10-06': '추석',
+      '2025-10-07': '추석 연휴',
+      '2025-10-08': '대체공휴일(추석)',
+      '2025-10-09': '한글날',
+      '2025-12-25': '기독탄신일',
+      // 2026년
+      '2026-01-01': '신정',
+      '2026-02-16': '설날 연휴',
+      '2026-02-17': '설날',
+      '2026-02-18': '설날 연휴',
+      '2026-03-01': '삼일절',
+      '2026-03-02': '대체공휴일(삼일절)',
+      '2026-05-05': '어린이날',
+      '2026-05-24': '부처님오신날',
+      '2026-05-25': '대체공휴일(부처님오신날)',
+      '2026-06-03': '제9회 지방선거일',
+      '2026-06-06': '현충일',
+      '2026-08-15': '광복절',
+      '2026-08-17': '대체공휴일(광복절)',
+      '2026-09-24': '추석 연휴',
+      '2026-09-25': '추석',
+      '2026-09-26': '추석 연휴',
+      '2026-10-03': '개천절',
+      '2026-10-05': '대체공휴일(개천절)',
+      '2026-10-09': '한글날',
+      '2026-12-25': '기독탄신일',
+      // 2027년
+      '2027-01-01': '신정',
+      '2027-02-06': '설날 연휴',
+      '2027-02-07': '설날',
+      '2027-02-08': '설날 연휴',
+      '2027-02-09': '대체공휴일(설날)',
+      '2027-03-01': '삼일절',
+      '2027-05-05': '어린이날',
+      '2027-05-13': '부처님오신날',
+      '2027-06-06': '현충일',
+      '2027-08-15': '광복절',
+      '2027-08-16': '대체공휴일(광복절)',
+      '2027-09-14': '추석 연휴',
+      '2027-09-15': '추석',
+      '2027-09-16': '추석 연휴',
+      '2027-10-03': '개천절',
+      '2027-10-04': '대체공휴일(개천절)',
+      '2027-10-09': '한글날',
+      '2027-10-11': '대체공휴일(한글날)',
+      '2027-12-25': '기독탄신일',
+    };
+
+    // =========================================================================
+    // 3. 애플리케이션 상태
+    // =========================================================================
+    const state = {
+      teams: [],               // [{ id, department, teamName, order }]
+      members: [],             // [{ id, name, department, team, position, active }]
+      recordsMap: new Map(),   // key: `${date}_${memberId}` -> { id, date, memberId, startTime, endTime, note }
+      customHolidays: {},      // { 'YYYY-MM-DD': '휴일명' }
+      weekStartDate: '',       // 선택된 주의 일요일 ('YYYY-MM-DD')
+      selectedDept: 'ALL',
+      selectedTeam: 'ALL',
+      highlightedMemberId: null,
+      detailExpanded: true,
+      holidayViewYear: '2026',
+      fbStatus: 'syncing',     // 'syncing' | 'connected' | 'error'
+      fbErrorMsg: '',
+      initialLoaded: { teams: false, members: false, records: false, holidays: false },
+    };
+
+    let confirmCallback = null;
+
+    // =========================================================================
+    // 4. 날짜 / 24시간 유틸리티 & 계산 엔진
+    // =========================================================================
+    function formatDateStr(dt) {
+      const y = dt.getFullYear();
+      const m = String(dt.getMonth() + 1).padStart(2, '0');
+      const d = String(dt.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    function parseDateStr(str) {
+      const [y, m, d] = str.split('-').map(Number);
+      return new Date(y, m - 1, d);
+    }
+
+    function getTodayStr() {
+      return formatDateStr(new Date());
+    }
+
+    function getSundayOfWeek(dateStr) {
+      const dt = parseDateStr(dateStr);
+      dt.setDate(dt.getDate() - dt.getDay());
+      return formatDateStr(dt);
+    }
+
+    function addDays(dateStr, days) {
+      const dt = parseDateStr(dateStr);
+      dt.setDate(dt.getDate() + days);
+      return formatDateStr(dt);
+    }
+
+    function getWeekDates(sundayStr) {
+      const arr = [];
+      for (let i = 0; i < 7; i++) arr.push(addDays(sundayStr, i));
+      return arr;
+    }
+
+    function getWeekRangeText(sundayStr) {
+      const satStr = addDays(sundayStr, 6);
+      return `${sundayStr.replace(/-/g, '.')} (일) ~ ${satStr.replace(/-/g, '.')} (토)`;
+    }
+
+    function uid(prefix) {
+      return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    }
+
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function isValidTime24(str) {
+      if (!str || typeof str !== 'string') return false;
+      const m = str.match(/^(\d{2}):(\d{2})$/);
+      if (!m) return false;
+      const hh = Number(m[1]);
+      const mm = Number(m[2]);
+      if (hh === 24 && mm === 0) return true;
+      return hh >= 0 && hh <= 23 && mm >= 0 && mm <= 59;
+    }
+
+    function timeToMinutes(str) {
+      if (!isValidTime24(str)) return -1;
+      const [h, m] = str.split(':').map(Number);
+      return h * 60 + m;
+    }
+
+    function minutesToTime(totalMin) {
+      const c = Math.max(0, Math.min(24 * 60, totalMin));
+      return `${String(Math.floor(c / 60)).padStart(2, '0')}:${String(c % 60).padStart(2, '0')}`;
+    }
+
+    function autoFormatTimeInput(el) {
+      const digits = el.value.replace(/[^\d]/g, '').slice(0, 4);
+      el.value = digits.length >= 3 ? `${digits.slice(0, 2)}:${digits.slice(2)}` : digits;
+    }
+
+    function getOverlap(aS, aE, bS, bE) {
+      return Math.max(0, Math.min(aE, bE) - Math.max(aS, bS));
+    }
+
+    function minToHours(min) {
+      if (!min) return 0;
+      return Number((min / 60).toFixed(2));
+    }
+
+    function fmtHours(min) {
+      return String(minToHours(min));
+    }
+
+    /** 법정 공휴일 + Firestore 사용자 지정 휴일 통합 조회 */
+    function getHolidayName(dateStr) {
+      return state.customHolidays[dateStr] || DEFAULT_KR_HOLIDAYS[dateStr] || null;
+    }
+
+    function getDateMeta(dateStr) {
+      const dt = parseDateStr(dateStr);
+      const dayIndex = dt.getDay();
+      const isSunday = dayIndex === 0;
+      const isSaturday = dayIndex === 6;
+      const isWeekend = isSunday || isSaturday;
+      const holidayName = getHolidayName(dateStr);
+      const isPublicHoliday = Boolean(holidayName);
+      const isSpecialDay = isWeekend || isPublicHoliday;
+      return {
+        dateStr,
+        dayNum: dt.getDate(),
+        dayIndex,
+        dayName: DAY_NAMES[dayIndex],
+        dayFullName: DAY_FULL_NAMES[dayIndex],
+        isSunday,
+        isSaturday,
+        isWeekend,
+        holidayName,
+        isPublicHoliday,
+        isSpecialDay,
+      };
+    }
+
+    /** 핵심 근로시간 계산 엔진 (24h, 08:00 하한 고정, 중/석식 제외, 주말·공휴일 특근) */
+    function calculateWorkHours(dateStr, startTime, endTime) {
+      const meta = getDateMeta(dateStr);
+      if (!isValidTime24(startTime) || !isValidTime24(endTime)) {
+        return { valid: false, error: '24시간 형식(HH:MM, 00:00~24:00)으로 입력하세요.', meta, isEarlyClamped: false, effectiveStartTime: '08:00', lunchDeductMin: 0, dinnerDeductMin: 0, regularMin: 0, overtimeMin: 0, holidayMin: 0, totalMin: 0 };
+      }
+
+      const rawStart = timeToMinutes(startTime);
+      const rawEnd = timeToMinutes(endTime);
+      const isEarlyClamped = rawStart < WORK_START_MIN;
+      const effStart = Math.max(rawStart, WORK_START_MIN);
+
+      if (rawEnd <= rawStart) {
+        return { valid: false, error: '퇴근 시간은 출근 시간보다 늦어야 합니다.', meta, isEarlyClamped, effectiveStartTime: minutesToTime(effStart), lunchDeductMin: 0, dinnerDeductMin: 0, regularMin: 0, overtimeMin: 0, holidayMin: 0, totalMin: 0 };
+      }
+      if (rawEnd <= WORK_START_MIN) {
+        return { valid: false, error: '08:00 이전 출근은 08:00 고정 계산되므로 퇴근은 08:00 이후여야 합니다.', meta, isEarlyClamped, effectiveStartTime: '08:00', lunchDeductMin: 0, dinnerDeductMin: 0, regularMin: 0, overtimeMin: 0, holidayMin: 0, totalMin: 0 };
+      }
+
+      const lunchDeductMin = getOverlap(effStart, rawEnd, LUNCH_START_MIN, LUNCH_END_MIN);
+      const dinnerDeductMin = getOverlap(effStart, rawEnd, DINNER_START_MIN, DINNER_END_MIN);
+
+      let regularMin = 0;
+      let overtimeMin = 0;
+      let holidayMin = 0;
+
+      if (meta.isSpecialDay) {
+        const net = Math.max(0, rawEnd - effStart - lunchDeductMin - dinnerDeductMin);
+        holidayMin = net;
+      } else {
+        const regRaw = getOverlap(effStart, rawEnd, WORK_START_MIN, WORK_END_MIN);
+        regularMin = Math.max(0, regRaw - lunchDeductMin);
+        const otRaw = getOverlap(effStart, rawEnd, WORK_END_MIN, 24 * 60);
+        overtimeMin = Math.max(0, otRaw - dinnerDeductMin);
+      }
+
+      return {
+        valid: true,
+        error: '',
+        meta,
+        isEarlyClamped,
+        effectiveStartTime: minutesToTime(effStart),
+        lunchDeductMin,
+        dinnerDeductMin,
+        regularMin,
+        overtimeMin,
+        holidayMin,
+        totalMin: regularMin + overtimeMin + holidayMin,
+      };
+    }
+
+    // =========================================================================
+    // 5. DOM 요소 참조
+    // =========================================================================
+    const els = {
+      btnFirebaseStatus: document.getElementById('btnFirebaseStatus'),
+      fbStatusDot: document.getElementById('fbStatusDot'),
+      fbStatusText: document.getElementById('fbStatusText'),
+      emptyDbBanner: document.getElementById('emptyDbBanner'),
+      btnBannerSeedSample: document.getElementById('btnBannerSeedSample'),
+      btnBannerOpenManage: document.getElementById('btnBannerOpenManage'),
+
+      btnPrevWeek: document.getElementById('btnPrevWeek'),
+      btnNextWeek: document.getElementById('btnNextWeek'),
+      btnThisWeek: document.getElementById('btnThisWeek'),
+      weekRangeLabel: document.getElementById('weekRangeLabel'),
+      jumpDatePicker: document.getElementById('jumpDatePicker'),
+
+      deptFilterTabs: document.getElementById('deptFilterTabs'),
+      teamTabDivider: document.getElementById('teamTabDivider'),
+      teamFilterTabs: document.getElementById('teamFilterTabs'),
+      gridFilterBadge: document.getElementById('gridFilterBadge'),
+      panelFilterBadge: document.getElementById('panelFilterBadge'),
+
+      weeklyGridHead: document.getElementById('weeklyGridHead'),
+      weeklyGridBody: document.getElementById('weeklyGridBody'),
+
+      btnToggleDetailTable: document.getElementById('btnToggleDetailTable'),
+      detailToggleIcon: document.getElementById('detailToggleIcon'),
+      detailCountBadge: document.getElementById('detailCountBadge'),
+      detailTableContainer: document.getElementById('detailTableContainer'),
+      detailTableBody: document.getElementById('detailTableBody'),
+
+      kpiTotalOvertime: document.getElementById('kpiTotalOvertime'),
+      kpiTotalHoliday: document.getElementById('kpiTotalHoliday'),
+      kpiExceededCount: document.getElementById('kpiExceededCount'),
+      member52hList: document.getElementById('member52hList'),
+
+      // 모달 1: 부서/팀 일괄 입력
+      btnOpenBatchModal: document.getElementById('btnOpenBatchModal'),
+      batchModal: document.getElementById('batchModal'),
+      btnCloseBatchModal: document.getElementById('btnCloseBatchModal'),
+      btnCancelBatchModal: document.getElementById('btnCancelBatchModal'),
+      batchDate: document.getElementById('batchDate'),
+      batchDayBadge: document.getElementById('batchDayBadge'),
+      btnBatchPrevDay: document.getElementById('btnBatchPrevDay'),
+      btnBatchNextDay: document.getElementById('btnBatchNextDay'),
+      batchDeptSelect: document.getElementById('batchDeptSelect'),
+      batchTeamSelect: document.getElementById('batchTeamSelect'),
+      batchCommonStart: document.getElementById('batchCommonStart'),
+      batchCommonEnd: document.getElementById('batchCommonEnd'),
+      btnApplyCommonTime: document.getElementById('btnApplyCommonTime'),
+      btnBatchCheckAll: document.getElementById('btnBatchCheckAll'),
+      btnBatchUncheckAll: document.getElementById('btnBatchUncheckAll'),
+      batchTableBody: document.getElementById('batchTableBody'),
+      batchSummaryInfo: document.getElementById('batchSummaryInfo'),
+      btnSaveBatch: document.getElementById('btnSaveBatch'),
+
+      // 모달 2: 1인 빠른 수정
+      singleModal: document.getElementById('singleModal'),
+      singleModalTitle: document.getElementById('singleModalTitle'),
+      btnCloseSingleModal: document.getElementById('btnCloseSingleModal'),
+      singleForm: document.getElementById('singleForm'),
+      singleDate: document.getElementById('singleDate'),
+      singleDayBadge: document.getElementById('singleDayBadge'),
+      singleMember: document.getElementById('singleMember'),
+      singleHolidayBanner: document.getElementById('singleHolidayBanner'),
+      singleHolidayText: document.getElementById('singleHolidayText'),
+      singleEarlyBadge: document.getElementById('singleEarlyBadge'),
+      singleStartInput: document.getElementById('singleStartInput'),
+      singleStartHour: document.getElementById('singleStartHour'),
+      singleStartMin: document.getElementById('singleStartMin'),
+      singleEndInput: document.getElementById('singleEndInput'),
+      singleEndHour: document.getElementById('singleEndHour'),
+      singleEndMin: document.getElementById('singleEndMin'),
+      singleNote: document.getElementById('singleNote'),
+      singleError: document.getElementById('singleError'),
+      sPrevRange: document.getElementById('sPrevRange'),
+      sPrevDeduct: document.getElementById('sPrevDeduct'),
+      sPrevReg: document.getElementById('sPrevReg'),
+      sPrevOt: document.getElementById('sPrevOt'),
+      sPrevHol: document.getElementById('sPrevHol'),
+      btnDeleteSingle: document.getElementById('btnDeleteSingle'),
+      btnCancelSingle: document.getElementById('btnCancelSingle'),
+
+      // 모달 3: 부서/팀원 관리
+      btnOpenManageModal: document.getElementById('btnOpenManageModal'),
+      manageModal: document.getElementById('manageModal'),
+      btnCloseManageModal: document.getElementById('btnCloseManageModal'),
+      btnDoneManageModal: document.getElementById('btnDoneManageModal'),
+      addTeamForm: document.getElementById('addTeamForm'),
+      newDeptName: document.getElementById('newDeptName'),
+      newTeamName: document.getElementById('newTeamName'),
+      manageTeamList: document.getElementById('manageTeamList'),
+      addMemberForm: document.getElementById('addMemberForm'),
+      newMemberTeamSelect: document.getElementById('newMemberTeamSelect'),
+      newMemberName: document.getElementById('newMemberName'),
+      newMemberPos: document.getElementById('newMemberPos'),
+      manageMemberList: document.getElementById('manageMemberList'),
+      btnSeedSample: document.getElementById('btnSeedSample'),
+      btnClearRecords: document.getElementById('btnClearRecords'),
+
+      // 모달 4: 공휴일 관리
+      btnOpenHolidayModal: document.getElementById('btnOpenHolidayModal'),
+      holidayModal: document.getElementById('holidayModal'),
+      btnCloseHolidayModal: document.getElementById('btnCloseHolidayModal'),
+      btnDoneHolidayModal: document.getElementById('btnDoneHolidayModal'),
+      addHolidayForm: document.getElementById('addHolidayForm'),
+      newHolidayDate: document.getElementById('newHolidayDate'),
+      newHolidayName: document.getElementById('newHolidayName'),
+      holidayYearTabs: document.getElementById('holidayYearTabs'),
+      holidayListContainer: document.getElementById('holidayListContainer'),
+
+      // 모달 5: Firebase 안내 & 확인 모달 & 토스트
+      fbGuideModal: document.getElementById('fbGuideModal'),
+      btnCloseFbGuide: document.getElementById('btnCloseFbGuide'),
+      btnOkFbGuide: document.getElementById('btnOkFbGuide'),
+      fbGuideStatusText: document.getElementById('fbGuideStatusText'),
+      fbGuideErrorDetail: document.getElementById('fbGuideErrorDetail'),
+      btnExportExcel: document.getElementById('btnExportExcel'),
+      confirmModal: document.getElementById('confirmModal'),
+      confirmTitle: document.getElementById('confirmTitle'),
+      confirmMessage: document.getElementById('confirmMessage'),
+      btnConfirmCancel: document.getElementById('btnConfirmCancel'),
+      btnConfirmOk: document.getElementById('btnConfirmOk'),
+      toastContainer: document.getElementById('toastContainer'),
+    };
+
+    // =========================================================================
+    // 6. 토스트, 확인 모달, Firebase 상태 표시
+    // =========================================================================
+    function showToast(msg, type = 'success') {
+      const styles = {
+        success: 'bg-slate-900 text-white border-slate-700',
+        error: 'bg-rose-600 text-white border-rose-500',
+        info: 'bg-indigo-600 text-white border-indigo-500',
+      };
+      const el = document.createElement('div');
+      el.className = `pointer-events-auto px-4 py-3 rounded-xl border shadow-lg text-xs sm:text-sm font-semibold transition-all duration-300 translate-y-2 opacity-0 ${styles[type] || styles.success}`;
+      el.textContent = msg;
+      els.toastContainer.appendChild(el);
+      requestAnimationFrame(() => el.classList.remove('translate-y-2', 'opacity-0'));
+      setTimeout(() => {
+        el.classList.add('translate-y-2', 'opacity-0');
+        setTimeout(() => el.remove(), 300);
+      }, 3000);
+    }
+
+    function openConfirm(title, message, onConfirm) {
+      els.confirmTitle.textContent = title;
+      els.confirmMessage.textContent = message;
+      confirmCallback = onConfirm;
+      els.confirmModal.classList.remove('hidden');
+    }
+
+    function closeConfirm() {
+      els.confirmModal.classList.add('hidden');
+      confirmCallback = null;
+    }
+
+    function setFbStatus(status, errorMsg = '') {
+      state.fbStatus = status;
+      state.fbErrorMsg = errorMsg;
+
+      if (status === 'connected') {
+        els.btnFirebaseStatus.className = 'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold border bg-emerald-50 text-emerald-700 border-emerald-200 transition-colors hover:bg-emerald-100';
+        els.fbStatusDot.className = 'w-2 h-2 rounded-full bg-emerald-500';
+        els.fbStatusText.textContent = 'Firebase 연결됨';
+        els.fbGuideStatusText.textContent = '정상 연결됨 (실시간 동기화 활성)';
+        els.fbGuideStatusText.className = 'font-bold text-emerald-700';
+        els.fbGuideErrorDetail.classList.add('hidden');
+      } else if (status === 'error') {
+        els.btnFirebaseStatus.className = 'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold border bg-rose-50 text-rose-700 border-rose-200 transition-colors hover:bg-rose-100';
+        els.fbStatusDot.className = 'w-2 h-2 rounded-full bg-rose-500';
+        els.fbStatusText.textContent = '연결 오류 (확인)';
+        els.fbGuideStatusText.textContent = '연결 또는 권한 오류';
+        els.fbGuideStatusText.className = 'font-bold text-rose-600';
+        els.fbGuideErrorDetail.textContent = errorMsg || 'Firestore 보안 규칙 또는 네트워크를 확인해 주세요.';
+        els.fbGuideErrorDetail.classList.remove('hidden');
+      } else {
+        els.btnFirebaseStatus.className = 'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold border bg-amber-50 text-amber-700 border-amber-200';
+        els.fbStatusDot.className = 'w-2 h-2 rounded-full bg-amber-500 animate-pulse';
+        els.fbStatusText.textContent = '동기화 중...';
+        els.fbGuideStatusText.textContent = '동기화 중...';
+      }
+    }
+
+    function handleFirestoreError(err, context = '') {
+      console.error(`[Firestore 오류 - ${context}]`, err);
+      const isPerm = err?.code === 'permission-denied' || String(err?.message || '').includes('permission');
+      const msg = isPerm
+        ? 'Firestore 보안 규칙 권한 오류(permission-denied)가 발생했습니다.'
+        : (err?.message || '데이터베이스 통신 오류');
+      setFbStatus('error', msg);
+      showToast(msg, 'error');
+      if (isPerm) els.fbGuideModal.classList.remove('hidden');
+    }
+
+    // =========================================================================
+    // 7. 조회 / 필터 헬퍼
+    // =========================================================================
+    function getUniqueDepartments() {
+      const set = new Set();
+      state.teams.forEach((t) => t.department && set.add(t.department));
+      state.members.forEach((m) => m.department && set.add(m.department));
+      return Array.from(set);
+    }
+
+    function getTeamsByDepartment(dept) {
+      const filtered = dept === 'ALL'
+        ? state.teams
+        : state.teams.filter((t) => t.department === dept);
+      return filtered.slice().sort((a, b) => (a.order ?? 999) - (b.order ?? 999) || a.teamName.localeCompare(b.teamName, 'ko'));
+    }
+
+    function getVisibleMembers() {
+      const teamOrderMap = new Map(state.teams.map((t, i) => [`${t.department}::${t.teamName}`, t.order ?? i]));
+      return state.members
+        .filter((m) => m.active !== false)
+        .filter((m) => state.selectedDept === 'ALL' || m.department === state.selectedDept)
+        .filter((m) => state.selectedTeam === 'ALL' || m.team === state.selectedTeam)
+        .sort((a, b) => {
+          const oa = teamOrderMap.get(`${a.department}::${a.team}`) ?? 999;
+          const ob = teamOrderMap.get(`${b.department}::${b.team}`) ?? 999;
+          if (oa !== ob) return oa - ob;
+          return a.name.localeCompare(b.name, 'ko');
+        });
+    }
+
+    function getRecord(dateStr, memberId) {
+      return state.recordsMap.get(`${dateStr}_${memberId}`) || null;
+    }
+
+    function getVisibleWeekRecords() {
+      const weekSet = new Set(getWeekDates(state.weekStartDate));
+      const memberIds = new Set(getVisibleMembers().map((m) => m.id));
+      const list = [];
+      state.recordsMap.forEach((rec) => {
+        if (weekSet.has(rec.date) && memberIds.has(rec.memberId)) {
+          list.push(rec);
+        }
+      });
+      return list.sort((a, b) => {
+        if (a.date !== b.date) return a.date.localeCompare(b.date);
+        const ma = state.members.find((x) => x.id === a.memberId);
+        const mb = state.members.find((x) => x.id === b.memberId);
+        return (ma?.name || '').localeCompare(mb?.name || '', 'ko');
+      });
+    }
+
+    function getActiveFilterLabel() {
+      if (state.selectedDept === 'ALL' && state.selectedTeam === 'ALL') return '전체 부서·팀';
+      if (state.selectedTeam !== 'ALL') return `${state.selectedDept !== 'ALL' ? state.selectedDept + ' · ' : ''}${state.selectedTeam}`;
+      return `${state.selectedDept} (전체 팀)`;
+    }
+
+    // =========================================================================
+    // 8. Firestore 실시간 구독 (onSnapshot) & 샘플 데이터 Batch 쓰기
+    // =========================================================================
+    function subscribeFirestore() {
+      setFbStatus('syncing');
+
+      const checkAllLoaded = () => {
+        const { teams, members, records, holidays } = state.initialLoaded;
+        if (teams && members && records && holidays) {
+          if (state.fbStatus !== 'error') setFbStatus('connected');
+          // 팀원이 비어있으면 샘플 불러오기 배너 표시
+          els.emptyDbBanner.classList.toggle('hidden', state.members.length > 0);
+        }
+      };
+
+      // 1) teams 컬렉션
+      onSnapshot(
+        collection(db, 'teams'),
+        (snap) => {
+          state.teams = snap.docs
+            .map((d) => ({ id: d.id, ...d.data() }))
+            .sort((a, b) => (a.order ?? 999) - (b.order ?? 999) || (a.teamName || '').localeCompare(b.teamName || '', 'ko'));
+          state.initialLoaded.teams = true;
+          checkAllLoaded();
+          renderAll();
+          if (!els.manageModal.classList.contains('hidden')) renderManageModal();
+        },
+        (err) => handleFirestoreError(err, 'teams')
+      );
+
+      // 2) members 컬렉션
+      onSnapshot(
+        collection(db, 'members'),
+        (snap) => {
+          state.members = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+          state.initialLoaded.members = true;
+          checkAllLoaded();
+          renderAll();
+          if (!els.manageModal.classList.contains('hidden')) renderManageModal();
+        },
+        (err) => handleFirestoreError(err, 'members')
+      );
+
+      // 3) workRecords 컬렉션
+      onSnapshot(
+        collection(db, 'workRecords'),
+        (snap) => {
+          const map = new Map();
+          snap.docs.forEach((d) => {
+            const data = d.data();
+            map.set(d.id, { id: d.id, ...data });
+          });
+          state.recordsMap = map;
+          state.initialLoaded.records = true;
+          checkAllLoaded();
+          renderAll();
+        },
+        (err) => handleFirestoreError(err, 'workRecords')
+      );
+
+      // 4) customHolidays 컬렉션
+      onSnapshot(
+        collection(db, 'customHolidays'),
+        (snap) => {
+          const obj = {};
+          snap.docs.forEach((d) => {
+            const data = d.data();
+            if (data.date && data.name) obj[data.date] = data.name;
+          });
+          state.customHolidays = obj;
+          state.initialLoaded.holidays = true;
+          checkAllLoaded();
+          renderAll();
+          if (!els.holidayModal.classList.contains('hidden')) renderHolidayModal();
+        },
+        (err) => handleFirestoreError(err, 'customHolidays')
+      );
+    }
+
+    /** Firestore에 샘플 부서/팀/팀원/주간 기록 일괄 등록 (writeBatch) */
+    async function seedSampleDataToFirestore() {
+      try {
+        setFbStatus('syncing');
+        const batch = writeBatch(db);
+        const d = getWeekDates(state.weekStartDate); // 일~토
+
+        const sampleTeams = [
+          { id: 'team_prod1', department: '생산부', teamName: '생산1팀', order: 1 },
+          { id: 'team_prod2', department: '생산부', teamName: '생산2팀', order: 2 },
+          { id: 'team_qc', department: '품질부', teamName: '품질팀', order: 3 },
+          { id: 'team_dev', department: '신규사업부', teamName: '개발팀', order: 4 },
+        ];
+
+        sampleTeams.forEach((t) => {
+          batch.set(doc(db, 'teams', t.id), t);
+        });
+
+        const sampleMembers = [
+          { id: 'm_1', name: '김왕근', department: '생산부', team: '생산1팀', position: '반장', active: true },
+          { id: 'm_2', name: '김홍열', department: '생산부', team: '생산1팀', position: '주임', active: true },
+          { id: 'm_3', name: '유화석', department: '생산부', team: '생산1팀', position: '사원', active: true },
+          { id: 'm_4', name: '김희중', department: '생산부', team: '생산2팀', position: '반장', active: true },
+          { id: 'm_5', name: '백승현', department: '생산부', team: '생산2팀', position: '주임', active: true },
+          { id: 'm_6', name: '김창선', department: '생산부', team: '생산2팀', position: '사원', active: true },
+          { id: 'm_7', name: '신재수', department: '품질부', team: '품질팀', position: '과장', active: true },
+          { id: 'm_8', name: '이정훈', department: '신규사업부', team: '개발팀', position: '대리', active: true },
+        ];
+
+        sampleMembers.forEach((m) => {
+          batch.set(doc(db, 'members', m.id), m);
+        });
+
+        const sampleRecords = [
+          // 김왕근 (주 56h - 52h 초과)
+          { date: d[1], memberId: 'm_1', startTime: '07:40', endTime: '20:30', note: '라인 증설 대응' },
+          { date: d[2], memberId: 'm_1', startTime: '08:00', endTime: '20:30', note: '' },
+          { date: d[3], memberId: 'm_1', startTime: '08:00', endTime: '20:00', note: '' },
+          { date: d[4], memberId: 'm_1', startTime: '08:00', endTime: '17:00', note: '' },
+          { date: d[5], memberId: 'm_1', startTime: '07:50', endTime: '21:00', note: '긴급 출하' },
+          { date: d[6], memberId: 'm_1', startTime: '08:00', endTime: '12:00', note: '토요 특근' },
+          // 김홍열 (주 52h 충족)
+          { date: d[1], memberId: 'm_2', startTime: '08:00', endTime: '20:00', note: '' },
+          { date: d[2], memberId: 'm_2', startTime: '07:35', endTime: '20:00', note: '' },
+          { date: d[3], memberId: 'm_2', startTime: '08:00', endTime: '20:30', note: '' },
+          { date: d[4], memberId: 'm_2', startTime: '08:00', endTime: '17:00', note: '' },
+          { date: d[5], memberId: 'm_2', startTime: '08:00', endTime: '17:00', note: '' },
+          { date: d[6], memberId: 'm_2', startTime: '08:00', endTime: '12:00', note: '주말 점검' },
+          // 유화석 (주 47h 여유)
+          { date: d[1], memberId: 'm_3', startTime: '08:00', endTime: '19:30', note: '' },
+          { date: d[2], memberId: 'm_3', startTime: '08:00', endTime: '18:00', note: '' },
+          { date: d[3], memberId: 'm_3', startTime: '08:00', endTime: '19:30', note: '' },
+          { date: d[4], memberId: 'm_3', startTime: '08:00', endTime: '17:00', note: '' },
+          { date: d[5], memberId: 'm_3', startTime: '08:00', endTime: '19:30', note: '' },
+          // 김희중 (생산2팀, 49h)
+          { date: d[1], memberId: 'm_4', startTime: '08:00', endTime: '19:30', note: '' },
+          { date: d[2], memberId: 'm_4', startTime: '08:00', endTime: '19:30', note: '' },
+          { date: d[3], memberId: 'm_4', startTime: '08:00', endTime: '18:00', note: '' },
+          { date: d[4], memberId: 'm_4', startTime: '08:00', endTime: '17:00', note: '' },
+          { date: d[5], memberId: 'm_4', startTime: '08:00', endTime: '17:00', note: '' },
+          { date: d[6], memberId: 'm_4', startTime: '08:00', endTime: '12:00', note: '설비 보전' },
+          // 백승현 (생산2팀, 45.5h)
+          { date: d[1], memberId: 'm_5', startTime: '08:00', endTime: '19:00', note: '' },
+          { date: d[2], memberId: 'm_5', startTime: '08:00', endTime: '19:00', note: '' },
+          { date: d[3], memberId: 'm_5', startTime: '08:00', endTime: '18:00', note: '' },
+          { date: d[4], memberId: 'm_5', startTime: '08:00', endTime: '17:00', note: '' },
+          { date: d[5], memberId: 'm_5', startTime: '08:00', endTime: '19:00', note: '' },
+          // 김창선 (생산2팀, 59h 초과)
+          { date: d[1], memberId: 'm_6', startTime: '07:20', endTime: '22:00', note: '신규 금형 셋업' },
+          { date: d[2], memberId: 'm_6', startTime: '08:00', endTime: '21:30', note: '' },
+          { date: d[3], memberId: 'm_6', startTime: '08:00', endTime: '20:30', note: '' },
+          { date: d[4], memberId: 'm_6', startTime: '08:00', endTime: '18:00', note: '' },
+          { date: d[5], memberId: 'm_6', startTime: '08:00', endTime: '20:00', note: '' },
+          { date: d[6], memberId: 'm_6', startTime: '07:45', endTime: '12:00', note: '주말 시운전' },
+          // 신재수 (품질팀, 40h)
+          { date: d[1], memberId: 'm_7', startTime: '08:00', endTime: '17:00', note: '정기 검수' },
+          { date: d[2], memberId: 'm_7', startTime: '08:00', endTime: '17:00', note: '' },
+          { date: d[3], memberId: 'm_7', startTime: '08:00', endTime: '17:00', note: '' },
+          { date: d[4], memberId: 'm_7', startTime: '08:00', endTime: '17:00', note: '' },
+          { date: d[5], memberId: 'm_7', startTime: '08:00', endTime: '17:00', note: '' },
+          // 이정훈 (개발팀, 44h)
+          { date: d[1], memberId: 'm_8', startTime: '08:00', endTime: '19:30', note: '시제품 테스트' },
+          { date: d[2], memberId: 'm_8', startTime: '08:00', endTime: '19:30', note: '' },
+          { date: d[3], memberId: 'm_8', startTime: '08:00', endTime: '17:00', note: '' },
+          { date: d[4], memberId: 'm_8', startTime: '08:00', endTime: '17:00', note: '' },
+          { date: d[5], memberId: 'm_8', startTime: '08:00', endTime: '17:00', note: '' },
+        ];
+
+        sampleRecords.forEach((r) => {
+          const docId = `${r.date}_${r.memberId}`;
+          batch.set(doc(db, 'workRecords', docId), {
+            ...r,
+            updatedAt: serverTimestamp(),
+          });
+        });
+
+        await batch.commit();
+        setFbStatus('connected');
+        showToast('샘플 부서·팀원·주간 기록을 Firestore에 저장했습니다.', 'success');
+      } catch (err) {
+        handleFirestoreError(err, 'seedSample');
+      }
+    }
+
+    // =========================================================================
+    // 9. UI 렌더링 함수
+    // =========================================================================
+    function renderHeaderAndFilters() {
+      els.weekRangeLabel.textContent = getWeekRangeText(state.weekStartDate);
+      els.jumpDatePicker.value = state.weekStartDate;
+
+      const label = getActiveFilterLabel();
+      els.gridFilterBadge.textContent = label;
+      els.panelFilterBadge.textContent = label;
+
+      // 부서 탭
+      const depts = getUniqueDepartments();
+      const deptItems = [{ id: 'ALL', label: `전체 (${state.members.length})` }];
+      depts.forEach((dep) => {
+        const cnt = state.members.filter((m) => m.department === dep).length;
+        deptItems.push({ id: dep, label: `${dep} (${cnt})` });
+      });
+
+      els.deptFilterTabs.innerHTML = deptItems
+        .map((item) => {
+          const active = state.selectedDept === item.id;
+          const cls = active
+            ? 'bg-indigo-600 text-white shadow-xs'
+            : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900';
+          return `<button type="button" data-filter-dept="${escapeHtml(item.id)}" class="px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-colors ${cls}">${escapeHtml(item.label)}</button>`;
+        })
+        .join('');
+
+      // 팀 탭 (부서 선택 시 해당 부서 팀, 전체 선택 시 모든 팀)
+      const teams = getTeamsByDepartment(state.selectedDept);
+      if (teams.length > 0) {
+        els.teamTabDivider.classList.remove('hidden');
+        const teamBtns = [
+          `<button type="button" data-filter-team="ALL" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${state.selectedTeam === 'ALL' ? 'bg-slate-800 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'}">전체 팀</button>`,
+        ];
+        teams.forEach((t) => {
+          const active = state.selectedTeam === t.teamName;
+          const cls = active
+            ? 'bg-slate-800 text-white'
+            : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100';
+          teamBtns.push(`<button type="button" data-filter-team="${escapeHtml(t.teamName)}" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${cls}">${escapeHtml(t.teamName)}</button>`);
+        });
+        els.teamFilterTabs.innerHTML = teamBtns.join('');
+      } else {
+        els.teamTabDivider.classList.add('hidden');
+        els.teamFilterTabs.innerHTML = '';
+      }
+    }
+
+    function renderWeeklyGrid() {
+      const weekDates = getWeekDates(state.weekStartDate);
+      const metas = weekDates.map(getDateMeta);
+      const members = getVisibleMembers();
+
+      // 1행: 요일 헤더 (클릭 시 해당 날짜 부서/팀 일괄 입력 모달 오픈)
+      const row1 = `
+        <tr>
+          <th rowspan="3" class="sticky left-0 z-10 bg-slate-800 text-white border border-slate-600 px-3 py-2 text-xs font-bold min-w-[130px] shadow-[2px_0_4px_-2px_rgba(0,0,0,0.2)]">
+            부서·팀 / 성명
+          </th>
+          ${metas
+            .map((m) => {
+              let bg = 'bg-[#1e3a5f] hover:bg-[#162d4a] text-white';
+              if (m.isSunday || m.isPublicHoliday) bg = 'bg-[#b91c1c] hover:bg-[#991b1b] text-white';
+              else if (m.isSaturday) bg = 'bg-[#1d4ed8] hover:bg-[#1e40af] text-white';
+              return `
+                <th
+                  colspan="2"
+                  data-batch-date="${m.dateStr}"
+                  title="${m.dateStr} (${m.dayFullName}) 클릭하여 부서/팀 일괄 입력"
+                  class="${bg} border border-slate-600/40 py-2 px-1 text-xs font-bold cursor-pointer transition-colors"
+                >
+                  ${m.dayFullName}
+                </th>
+              `;
+            })
+            .join('')}
+        </tr>
+      `;
+
+      // 2행: 날짜 + 공휴일 배지 (클릭 가능)
+      const row2 = `
+        <tr>
+          ${metas
+            .map((m) => {
+              let bg = 'bg-slate-100 hover:bg-indigo-50 text-slate-800';
+              if (m.isSunday || m.isPublicHoliday) bg = 'bg-rose-50 hover:bg-rose-100 text-rose-800';
+              else if (m.isSaturday) bg = 'bg-blue-50 hover:bg-blue-100 text-blue-800';
+              const hPill = m.holidayName
+                ? `<div class="mt-0.5 inline-block px-1.5 py-0.5 rounded bg-rose-600 text-white text-[10px] font-bold leading-none truncate max-w-[115px]">${escapeHtml(m.holidayName)}</div>`
+                : '';
+              return `
+                <th
+                  colspan="2"
+                  data-batch-date="${m.dateStr}"
+                  title="클릭하여 ${m.dateStr} 부서/팀 일괄 입력"
+                  class="${bg} border border-slate-300 py-1.5 px-1 text-xs font-extrabold cursor-pointer transition-colors"
+                >
+                  <div>${m.dayNum}일 <span class="text-[10px] font-normal opacity-60">+일괄</span></div>
+                  ${hPill}
+                </th>
+              `;
+            })
+            .join('')}
+        </tr>
+      `;
+
+      // 3행: 연장(h) / 특근(h)
+      const row3 = `
+        <tr class="bg-slate-50 text-[11px] font-bold text-slate-700">
+          ${metas
+            .map(
+              () => `
+                <th class="border border-slate-300 py-1.5 px-1 w-[64px] text-amber-800 bg-amber-50/40">연장(h)</th>
+                <th class="border border-slate-300 py-1.5 px-1 w-[64px] text-rose-800 bg-rose-50/40">특근(h)</th>
+              `
+            )
+            .join('')}
+        </tr>
+      `;
+
+      els.weeklyGridHead.innerHTML = row1 + row2 + row3;
+
+      if (members.length === 0) {
+        els.weeklyGridBody.innerHTML = `
+          <tr>
+            <td colspan="15" class="py-12 text-center text-sm text-slate-400">
+              표시할 팀원이 없습니다. 상단 '부서/팀원 관리'에서 인원을 등록하거나 샘플 데이터를 불러오세요.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      els.weeklyGridBody.innerHTML = members
+        .map((member) => {
+          const isHl = state.highlightedMemberId === member.id;
+          const rowCls = isHl ? 'bg-indigo-50/90 ring-2 ring-inset ring-indigo-500' : '';
+          const stickyBg = isHl ? 'bg-indigo-100' : 'bg-white';
+
+          const cells = metas
+            .map((meta) => {
+              const rec = getRecord(meta.dateStr, member.id);
+              const calc = rec ? calculateWorkHours(rec.date, rec.startTime, rec.endTime) : null;
+
+              const otText = calc && calc.valid && calc.overtimeMin > 0 ? fmtHours(calc.overtimeMin) : '';
+              const holText = calc && calc.valid && calc.holidayMin > 0 ? fmtHours(calc.holidayMin) : '';
+              const timeShort = rec ? `${rec.startTime}~${rec.endTime}` : '';
+
+              const tooltip = rec && calc && calc.valid
+                ? `${member.name} (${meta.dateStr} ${meta.dayName})\n24h: ${rec.startTime}${calc.isEarlyClamped ? '→08:00' : ''} ~ ${rec.endTime}\n정상 ${fmtHours(calc.regularMin)}h / 연장 ${fmtHours(calc.overtimeMin)}h / 특근 ${fmtHours(calc.holidayMin)}h`
+                : `${member.name} (${meta.dateStr}) - 클릭하여 빠른 입력`;
+
+              const cellBg = isHl ? 'bg-indigo-50/70 hover:bg-indigo-100' : 'bg-[#fef9e7] hover:bg-amber-100/80';
+
+              const otCell = otText
+                ? `<div class="font-extrabold text-slate-900 text-xs">${otText}</div><div class="text-[9px] font-mono text-slate-500 mt-0.5">${escapeHtml(timeShort)}</div>`
+                : rec && !meta.isSpecialDay
+                ? `<div class="text-[10px] font-semibold text-slate-400">정상</div><div class="text-[9px] font-mono text-slate-400 mt-0.5">${escapeHtml(timeShort)}</div>`
+                : `<span class="text-slate-300 text-[10px]">-</span>`;
+
+              const holCell = holText
+                ? `<div class="font-extrabold text-rose-700 text-xs">${holText}</div><div class="text-[9px] font-mono text-rose-500 mt-0.5">${escapeHtml(timeShort)}</div>`
+                : `<span class="text-slate-300 text-[10px]">-</span>`;
+
+              return `
+                <td data-cell-member="${escapeHtml(member.id)}" data-cell-date="${meta.dateStr}" title="${escapeHtml(tooltip)}" class="${cellBg} border border-slate-300 py-1.5 px-1 cursor-pointer transition-colors align-middle">${otCell}</td>
+                <td data-cell-member="${escapeHtml(member.id)}" data-cell-date="${meta.dateStr}" title="${escapeHtml(tooltip)}" class="${cellBg} border border-slate-300 py-1.5 px-1 cursor-pointer transition-colors align-middle">${holCell}</td>
+              `;
+            })
+            .join('');
+
+          return `
+            <tr data-grid-row="${escapeHtml(member.id)}" class="${rowCls}">
+              <td class="sticky left-0 z-10 ${stickyBg} border border-slate-300 px-2.5 py-2 text-left whitespace-nowrap shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]">
+                <div class="font-bold text-slate-900 text-xs">
+                  ${escapeHtml(member.name)}
+                  ${member.position ? `<span class="text-[10px] font-normal text-slate-400">${escapeHtml(member.position)}</span>` : ''}
+                </div>
+                <div class="text-[10px] font-medium text-slate-500">${escapeHtml(member.department)} · ${escapeHtml(member.team)}</div>
+              </td>
+              ${cells}
+            </tr>
+          `;
+        })
+        .join('');
+    }
+
+    function renderDetailTable() {
+      const records = getVisibleWeekRecords();
+      els.detailCountBadge.textContent = `${records.length}건`;
+
+      if (records.length === 0) {
+        els.detailTableBody.innerHTML = `
+          <tr>
+            <td colspan="10" class="py-10 text-center text-sm text-slate-400">
+              해당 주간에 등록된 출퇴근 기록이 없습니다. 상단 '+ 부서/팀 일괄 입력' 또는 날짜 헤더를 클릭해 입력해 보세요.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      els.detailTableBody.innerHTML = records
+        .map((rec) => {
+          const member = state.members.find((m) => m.id === rec.memberId);
+          const calc = calculateWorkHours(rec.date, rec.startTime, rec.endTime);
+          const m = calc.meta;
+
+          let badge = `<span class="ml-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-600">${m.dayName}</span>`;
+          if (m.isPublicHoliday) badge = `<span class="ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700">${m.dayName}·${escapeHtml(m.holidayName)}</span>`;
+          else if (m.isWeekend) badge = `<span class="ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700">${m.dayName}·주말특근</span>`;
+
+          const startHtml = calc.isEarlyClamped
+            ? `<span class="text-slate-400 line-through">${rec.startTime}</span> <span class="text-indigo-600 font-bold">08:00</span>`
+            : `<span class="font-semibold text-slate-800">${rec.startTime}</span>`;
+
+          return `
+            <tr class="hover:bg-slate-50 transition-colors">
+              <td class="py-2.5 px-4 whitespace-nowrap font-mono text-xs font-semibold text-slate-800">${rec.date}${badge}</td>
+              <td class="py-2.5 px-3 whitespace-nowrap text-xs text-slate-600">${escapeHtml(member ? `${member.department} · ${member.team}` : '-')}</td>
+              <td class="py-2.5 px-3 whitespace-nowrap font-bold text-slate-900">${escapeHtml(member ? member.name : '-')}</td>
+              <td class="py-2.5 px-3 whitespace-nowrap font-mono text-xs">${startHtml} ~ <span class="font-semibold text-slate-800">${rec.endTime}</span></td>
+              <td class="py-2.5 px-3 whitespace-nowrap text-xs text-slate-500">중${calc.lunchDeductMin}/석${calc.dinnerDeductMin}분</td>
+              <td class="py-2.5 px-3 whitespace-nowrap text-right font-mono font-semibold text-slate-700">${fmtHours(calc.regularMin)}</td>
+              <td class="py-2.5 px-3 whitespace-nowrap text-right font-mono font-bold text-amber-700">${calc.overtimeMin > 0 ? fmtHours(calc.overtimeMin) : '-'}</td>
+              <td class="py-2.5 px-3 whitespace-nowrap text-right font-mono font-bold text-rose-700">${calc.holidayMin > 0 ? fmtHours(calc.holidayMin) : '-'}</td>
+              <td class="py-2.5 px-3 max-w-[160px] truncate text-xs text-slate-500" title="${escapeHtml(rec.note || '')}">${escapeHtml(rec.note || '-')}</td>
+              <td class="py-2.5 px-4 whitespace-nowrap text-center">
+                <button type="button" data-detail-edit-date="${rec.date}" data-detail-edit-member="${escapeHtml(rec.memberId)}" class="px-2 py-1 rounded-md text-xs font-semibold text-indigo-600 hover:bg-indigo-50">수정</button>
+                <button type="button" data-detail-del-id="${escapeHtml(rec.id)}" class="px-2 py-1 rounded-md text-xs font-semibold text-rose-600 hover:bg-rose-50">삭제</button>
+              </td>
+            </tr>
+          `;
+        })
+        .join('');
+    }
+
+    function renderMember52hPanel() {
+      const members = getVisibleMembers();
+      const weekDates = getWeekDates(state.weekStartDate);
+
+      let totalOtMin = 0;
+      let totalHolMin = 0;
+      let exceededCnt = 0;
+
+      const summaries = members.map((member) => {
+        let regMin = 0;
+        let otMin = 0;
+        let holMin = 0;
+
+        weekDates.forEach((dStr) => {
+          const rec = getRecord(dStr, member.id);
+          if (!rec) return;
+          const calc = calculateWorkHours(rec.date, rec.startTime, rec.endTime);
+          if (!calc.valid) return;
+          regMin += calc.regularMin;
+          otMin += calc.overtimeMin;
+          holMin += calc.holidayMin;
+        });
+
+        const totalMin = regMin + otMin + holMin;
+        const diffMin = totalMin - WEEKLY_LIMIT_MIN;
+        totalOtMin += otMin;
+        totalHolMin += holMin;
+        if (diffMin > 0) exceededCnt += 1;
+
+        return { member, regMin, otMin, holMin, totalMin, diffMin };
+      });
+
+      els.kpiTotalOvertime.textContent = `${fmtHours(totalOtMin)}h`;
+      els.kpiTotalHoliday.textContent = `${fmtHours(totalHolMin)}h`;
+      els.kpiExceededCount.textContent = `${exceededCnt}명`;
+
+      if (summaries.length === 0) {
+        els.member52hList.innerHTML = '<div class="py-10 text-center text-xs text-slate-400">표시할 팀원이 없습니다.</div>';
+        return;
+      }
+
+      const buildCard = (item) => {
+        const isHl = state.highlightedMemberId === item.member.id;
+        const totalH = minToHours(item.totalMin);
+        const diffH = minToHours(Math.abs(item.diffMin));
+        const pct = Math.min(100, Math.round((item.totalMin / WEEKLY_LIMIT_MIN) * 100));
+
+        let badge = '';
+        let barColor = 'bg-emerald-500';
+        let borderCls = isHl
+          ? 'border-indigo-500 ring-2 ring-indigo-500/25 bg-indigo-50/40'
+          : 'border-slate-200 hover:border-indigo-300 bg-white';
+
+        if (item.diffMin > 0) {
+          badge = `<span class="px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-rose-600 text-white shadow-xs">초과 +${diffH}h</span>`;
+          barColor = 'bg-rose-600';
+          if (!isHl) borderCls = 'border-rose-300 bg-rose-50/25 hover:border-rose-400';
+        } else if (item.diffMin === 0) {
+          badge = `<span class="px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-amber-100 text-amber-800 border border-amber-300">52h 충족 (0h)</span>`;
+          barColor = 'bg-amber-500';
+        } else {
+          badge = `<span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-sky-50 text-sky-700 border border-sky-200">여유(부족) -${diffH}h</span>`;
+          barColor = totalH >= 48 ? 'bg-amber-500' : 'bg-emerald-500';
+        }
+
+        return `
+          <button type="button" data-highlight-member="${escapeHtml(item.member.id)}" class="w-full text-left rounded-xl border p-3.5 transition-all ${borderCls}">
+            <div class="flex items-center justify-between gap-2 mb-2">
+              <div class="flex items-center gap-1.5 min-w-0">
+                <span class="font-extrabold text-slate-900 text-sm truncate">${escapeHtml(item.member.name)}</span>
+                <span class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 text-[10px] font-semibold shrink-0">${escapeHtml(item.member.department)}·${escapeHtml(item.member.team)}</span>
+              </div>
+              ${badge}
+            </div>
+            <div class="grid grid-cols-3 gap-1.5 text-center mb-2.5">
+              <div class="rounded-lg bg-slate-50 border border-slate-200/80 py-1.5 px-1">
+                <p class="text-[10px] text-slate-500 font-medium">정상</p>
+                <p class="text-xs font-bold text-slate-800 font-mono">${fmtHours(item.regMin)}h</p>
+              </div>
+              <div class="rounded-lg bg-amber-50/70 border border-amber-200/80 py-1.5 px-1">
+                <p class="text-[10px] text-amber-700 font-semibold">연장</p>
+                <p class="text-xs font-extrabold text-amber-700 font-mono">${fmtHours(item.otMin)}h</p>
+              </div>
+              <div class="rounded-lg bg-rose-50/70 border border-rose-200/80 py-1.5 px-1">
+                <p class="text-[10px] text-rose-700 font-semibold">특근</p>
+                <p class="text-xs font-extrabold text-rose-700 font-mono">${fmtHours(item.holMin)}h</p>
+              </div>
+            </div>
+            <div class="space-y-1">
+              <div class="flex items-center justify-between text-[11px]">
+                <span class="text-slate-500 font-medium">주간 총 근로시간</span>
+                <span class="font-mono font-extrabold ${item.diffMin > 0 ? 'text-rose-600' : 'text-slate-900'}">${totalH}h <span class="font-normal text-slate-400">/ 52h</span></span>
+              </div>
+              <div class="w-full h-2 rounded-full bg-slate-200 overflow-hidden">
+                <div class="h-full rounded-full transition-all duration-300 ${barColor}" style="width: ${pct}%"></div>
+              </div>
+            </div>
+          </button>
+        `;
+      };
+
+      els.member52hList.innerHTML = summaries.map(buildCard).join('');
+    }
+
+    function renderAll() {
+      renderHeaderAndFilters();
+      renderWeeklyGrid();
+      renderDetailTable();
+      renderMember52hPanel();
+    }
+
+    // =========================================================================
+    // 10. 모달 1: 부서/팀원 일괄 입력 모달 로직
+    // =========================================================================
+    function populateBatchDeptTeamSelects(defaultDept = 'ALL', defaultTeam = 'ALL') {
+      const depts = getUniqueDepartments();
+      els.batchDeptSelect.innerHTML = `<option value="ALL">전체 부서</option>` +
+        depts.map((d) => `<option value="${escapeHtml(d)}" ${d === defaultDept ? 'selected' : ''}>${escapeHtml(d)}</option>`).join('');
+      updateBatchTeamOptions(defaultTeam);
+    }
+
+    function updateBatchTeamOptions(selectedTeam = 'ALL') {
+      const dept = els.batchDeptSelect.value;
+      const teams = getTeamsByDepartment(dept);
+      els.batchTeamSelect.innerHTML = `<option value="ALL">전체 팀</option>` +
+        teams.map((t) => `<option value="${escapeHtml(t.teamName)}" ${t.teamName === selectedTeam ? 'selected' : ''}>${dept === 'ALL' ? `[${escapeHtml(t.department)}] ` : ''}${escapeHtml(t.teamName)}</option>`).join('');
+    }
+
+    function updateBatchDayBadge() {
+      const dateStr = els.batchDate.value;
+      if (!dateStr) return;
+      const m = getDateMeta(dateStr);
+      if (m.isPublicHoliday) {
+        els.batchDayBadge.textContent = `${m.dayFullName} · 공휴일(${m.holidayName}) 특근`;
+        els.batchDayBadge.className = 'text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-rose-600 text-white';
+      } else if (m.isWeekend) {
+        els.batchDayBadge.textContent = `${m.dayFullName} · 주말 특근`;
+        els.batchDayBadge.className = 'text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-blue-600 text-white';
+      } else {
+        els.batchDayBadge.textContent = `${m.dayFullName} · 평일`;
+        els.batchDayBadge.className = 'text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-700';
+      }
+    }
+
+    function buildBatchPreviewHtml(dateStr, startTime, endTime) {
+      const calc = calculateWorkHours(dateStr, startTime, endTime);
+      if (!calc.valid) {
+        return `<span class="text-[11px] font-bold text-rose-600">${escapeHtml(calc.error)}</span>`;
+      }
+      const clampTag = calc.isEarlyClamped
+        ? `<span class="px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700 text-[10px] font-bold mr-1">→08:00 적용</span>`
+        : '';
+      if (calc.meta.isSpecialDay) {
+        return `${clampTag}<span class="font-mono text-xs font-extrabold text-rose-700">특근 ${fmtHours(calc.holidayMin)}h</span> <span class="text-[10px] text-slate-400">(중${calc.lunchDeductMin}/석${calc.dinnerDeductMin})</span>`;
+      }
+      return `${clampTag}<span class="font-mono text-xs font-semibold text-slate-700">정상 ${fmtHours(calc.regularMin)}h</span> · <span class="font-mono text-xs font-extrabold text-amber-700">연장 ${fmtHours(calc.overtimeMin)}h</span>`;
+    }
+
+    function updateBatchSelectionCount() {
+      const checked = els.batchTableBody.querySelectorAll('input[data-batch-check]:checked').length;
+      const total = els.batchTableBody.querySelectorAll('input[data-batch-check]').length;
+      els.batchSummaryInfo.innerHTML = `대상 인원 ${total}명 중 <strong class="text-indigo-700">${checked}명 선택됨</strong> (선택된 인원만 일괄 저장됩니다)`;
+    }
+
+    function renderBatchTable() {
+      updateBatchDayBadge();
+      const dateStr = els.batchDate.value;
+      const dept = els.batchDeptSelect.value;
+      const team = els.batchTeamSelect.value;
+
+      const matchedMembers = state.members
+        .filter((m) => m.active !== false)
+        .filter((m) => dept === 'ALL' || m.department === dept)
+        .filter((m) => team === 'ALL' || m.team === team)
+        .sort((a, b) => a.department.localeCompare(b.department, 'ko') || a.team.localeCompare(b.team, 'ko') || a.name.localeCompare(b.name, 'ko'));
+
+      if (matchedMembers.length === 0) {
+        els.batchTableBody.innerHTML = `
+          <tr>
+            <td colspan="7" class="py-12 text-center text-sm text-slate-400">
+              선택한 부서·팀에 소속된 인원이 없습니다.
+            </td>
+          </tr>
+        `;
+        updateBatchSelectionCount();
+        return;
+      }
+
+      const defaultStart = isValidTime24(els.batchCommonStart.value) ? els.batchCommonStart.value : '08:00';
+      const defaultEnd = isValidTime24(els.batchCommonEnd.value) ? els.batchCommonEnd.value : '17:00';
+
+      els.batchTableBody.innerHTML = matchedMembers
+        .map((m) => {
+          const existing = getRecord(dateStr, m.id);
+          const sVal = existing ? existing.startTime : defaultStart;
+          const eVal = existing ? existing.endTime : defaultEnd;
+          const nVal = existing ? (existing.note || '') : '';
+          const previewHtml = buildBatchPreviewHtml(dateStr, sVal, eVal);
+
+          return `
+            <tr data-batch-row="${escapeHtml(m.id)}" class="${existing ? 'bg-emerald-50/35' : 'hover:bg-slate-50'}">
+              <td class="py-2.5 px-3 text-center">
+                <input type="checkbox" data-batch-check="${escapeHtml(m.id)}" checked class="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" />
+              </td>
+              <td class="py-2.5 px-3 whitespace-nowrap">
+                <div class="flex items-center gap-1.5">
+                  <span class="font-bold text-slate-900 text-sm">${escapeHtml(m.name)}</span>
+                  ${existing ? '<span class="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 text-[10px] font-bold">저장됨</span>' : ''}
+                </div>
+                <div class="text-[11px] text-slate-500">${escapeHtml(m.department)} · ${escapeHtml(m.team)}</div>
+              </td>
+              <td class="py-2.5 px-3">
+                <input
+                  type="text"
+                  data-batch-start="${escapeHtml(m.id)}"
+                  value="${escapeHtml(sVal)}"
+                  maxlength="5"
+                  inputmode="numeric"
+                  placeholder="08:00"
+                  class="w-24 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-center font-mono text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </td>
+              <td class="py-2.5 px-3">
+                <input
+                  type="text"
+                  data-batch-end="${escapeHtml(m.id)}"
+                  value="${escapeHtml(eVal)}"
+                  maxlength="5"
+                  inputmode="numeric"
+                  placeholder="17:00"
+                  class="w-24 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-center font-mono text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </td>
+              <td class="py-2.5 px-3">
+                <input
+                  type="text"
+                  data-batch-note="${escapeHtml(m.id)}"
+                  value="${escapeHtml(nVal)}"
+                  maxlength="60"
+                  placeholder="비고 입력"
+                  class="w-full min-w-[120px] rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </td>
+              <td data-batch-preview="${escapeHtml(m.id)}" class="py-2.5 px-3 whitespace-nowrap">
+                ${previewHtml}
+              </td>
+              <td class="py-2.5 px-3 text-center">
+                ${
+                  existing
+                    ? `<button type="button" data-batch-delete="${escapeHtml(existing.id)}" class="px-2 py-1 rounded-lg text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200">삭제</button>`
+                    : `<span class="text-slate-300 text-xs">-</span>`
+                }
+              </td>
+            </tr>
+          `;
+        })
+        .join('');
+
+      updateBatchSelectionCount();
+    }
+
+    function openBatchModal(dateStr = null) {
+      els.batchDate.value = dateStr || getTodayStr();
+      populateBatchDeptTeamSelects(state.selectedDept, state.selectedTeam);
+      renderBatchTable();
+      els.batchModal.classList.remove('hidden');
+    }
+
+    function closeBatchModal() {
+      els.batchModal.classList.add('hidden');
+    }
+
+    async function saveBatchRecords() {
+      const dateStr = els.batchDate.value;
+      if (!dateStr) {
+        showToast('근무 날짜를 선택해 주세요.', 'error');
+        return;
+      }
+
+      const checkedBoxes = Array.from(els.batchTableBody.querySelectorAll('input[data-batch-check]:checked'));
+      if (checkedBoxes.length === 0) {
+        showToast('저장할 인원을 1명 이상 선택해 주세요.', 'error');
+        return;
+      }
+
+      const itemsToSave = [];
+      for (const cb of checkedBoxes) {
+        const memberId = cb.dataset.batchCheck;
+        const startInput = els.batchTableBody.querySelector(`input[data-batch-start="${CSS.escape(memberId)}"]`);
+        const endInput = els.batchTableBody.querySelector(`input[data-batch-end="${CSS.escape(memberId)}"]`);
+        const noteInput = els.batchTableBody.querySelector(`input[data-batch-note="${CSS.escape(memberId)}"]`);
+
+        const startTime = startInput.value.trim();
+        const endTime = endInput.value.trim();
+        const note = noteInput.value.trim();
+        const calc = calculateWorkHours(dateStr, startTime, endTime);
+
+        if (!calc.valid) {
+          const m = state.members.find((x) => x.id === memberId);
+          showToast(`[${m?.name || memberId}] ${calc.error}`, 'error');
+          startInput.focus();
+          return;
+        }
+        itemsToSave.push({ memberId, startTime, endTime, note });
+      }
+
+      try {
+        els.btnSaveBatch.disabled = true;
+        els.btnSaveBatch.textContent = '저장 중...';
+        const batch = writeBatch(db);
+        itemsToSave.forEach((item) => {
+          const docId = `${dateStr}_${item.memberId}`;
+          batch.set(doc(db, 'workRecords', docId), {
+            date: dateStr,
+            memberId: item.memberId,
+            startTime: item.startTime,
+            endTime: item.endTime,
+            note: item.note,
+            updatedAt: serverTimestamp(),
+          });
+        });
+        await batch.commit();
+
+        const targetSunday = getSundayOfWeek(dateStr);
+        if (targetSunday !== state.weekStartDate) {
+          state.weekStartDate = targetSunday;
+          renderAll();
+        }
+
+        showToast(`${dateStr} 기준 ${itemsToSave.length}명의 근무 기록을 일괄 저장했습니다.`, 'success');
+        closeBatchModal();
+      } catch (err) {
+        handleFirestoreError(err, 'saveBatch');
+      } finally {
+        els.btnSaveBatch.disabled = false;
+        els.btnSaveBatch.textContent = '선택 인원 일괄 저장';
+      }
+    }
+
+    // =========================================================================
+    // 11. 모달 2: 1인 빠른 수정 모달 로직
+    // =========================================================================
+    function initSingle24hSelects() {
+      const fillH = (sel, max) => {
+        sel.innerHTML = '';
+        for (let i = 0; i <= max; i++) {
+          const v = String(i).padStart(2, '0');
+          sel.innerHTML += `<option value="${v}">${v}시</option>`;
+        }
+      };
+      const fillM = (sel) => {
+        sel.innerHTML = '';
+        [0, 10, 15, 20, 30, 40, 45, 50].forEach((m) => {
+          const v = String(m).padStart(2, '0');
+          sel.innerHTML += `<option value="${v}">${v}분</option>`;
+        });
+      };
+      fillH(els.singleStartHour, 23);
+      fillM(els.singleStartMin);
+      fillH(els.singleEndHour, 24);
+      fillM(els.singleEndMin);
+    }
+
+    function syncSingleSelects(inputEl, hSel, mSel) {
+      const val = inputEl.value.trim();
+      if (!isValidTime24(val)) return;
+      const [hh, mm] = val.split(':');
+      hSel.value = hh;
+      if (!Array.from(mSel.options).some((o) => o.value === mm)) {
+        mSel.innerHTML += `<option value="${mm}">${mm}분</option>`;
+      }
+      mSel.value = mm;
+    }
+
+    function updateSinglePreview() {
+      const dateStr = els.singleDate.value;
+      const sVal = els.singleStartInput.value.trim();
+      const eVal = els.singleEndInput.value.trim();
+      if (!dateStr) return;
+
+      const calc = calculateWorkHours(dateStr, sVal, eVal);
+      const m = calc.meta;
+
+      if (m.isPublicHoliday) {
+        els.singleDayBadge.textContent = `${m.dayName} · ${m.holidayName}`;
+        els.singleDayBadge.className = 'text-[11px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700';
+        els.singleHolidayBanner.classList.remove('hidden');
+        els.singleHolidayText.textContent = `대한민국 공휴일 (${m.holidayName}) → 전 시간 특근`;
+      } else if (m.isWeekend) {
+        els.singleDayBadge.textContent = `${m.dayName} · 주말 특근`;
+        els.singleDayBadge.className = 'text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700';
+        els.singleHolidayBanner.classList.remove('hidden');
+        els.singleHolidayText.textContent = `${m.dayFullName} 주말 → 전 시간 특근`;
+      } else {
+        els.singleDayBadge.textContent = `${m.dayName} · 평일`;
+        els.singleDayBadge.className = 'text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600';
+        els.singleHolidayBanner.classList.add('hidden');
+      }
+
+      els.singleEarlyBadge.classList.toggle('hidden', !(calc.isEarlyClamped && isValidTime24(sVal)));
+
+      if (!calc.valid) {
+        els.singleError.textContent = calc.error;
+        els.singleError.classList.remove('hidden');
+        els.sPrevRange.textContent = '-';
+        els.sPrevDeduct.textContent = '-';
+        els.sPrevReg.textContent = '0';
+        els.sPrevOt.textContent = '0';
+        els.sPrevHol.textContent = '0';
+        return;
+      }
+
+      els.singleError.classList.add('hidden');
+      els.sPrevRange.textContent = `${calc.effectiveStartTime}~${eVal}`;
+      els.sPrevDeduct.textContent = `중${calc.lunchDeductMin}/석${calc.dinnerDeductMin}분`;
+      els.sPrevReg.textContent = fmtHours(calc.regularMin);
+      els.sPrevOt.textContent = fmtHours(calc.overtimeMin);
+      els.sPrevHol.textContent = fmtHours(calc.holidayMin);
+    }
+
+    function openSingleModal(dateStr, memberId) {
+      els.singleMember.innerHTML = state.members
+        .map((m) => `<option value="${escapeHtml(m.id)}" ${m.id === memberId ? 'selected' : ''}>[${escapeHtml(m.department)}·${escapeHtml(m.team)}] ${escapeHtml(m.name)}</option>`)
+        .join('');
+      els.singleDate.value = dateStr;
+
+      const existing = getRecord(dateStr, memberId);
+      if (existing) {
+        els.singleModalTitle.textContent = '1인 출퇴근 수정 (24h)';
+        els.singleStartInput.value = existing.startTime;
+        els.singleEndInput.value = existing.endTime;
+        els.singleNote.value = existing.note || '';
+        els.btnDeleteSingle.classList.remove('hidden');
+      } else {
+        els.singleModalTitle.textContent = '1인 출퇴근 입력 (24h)';
+        els.singleStartInput.value = '08:00';
+        els.singleEndInput.value = '17:00';
+        els.singleNote.value = '';
+        els.btnDeleteSingle.classList.add('hidden');
+      }
+
+      syncSingleSelects(els.singleStartInput, els.singleStartHour, els.singleStartMin);
+      syncSingleSelects(els.singleEndInput, els.singleEndHour, els.singleEndMin);
+      updateSinglePreview();
+      els.singleModal.classList.remove('hidden');
+    }
+
+    function closeSingleModal() {
+      els.singleModal.classList.add('hidden');
+    }
+
+    // =========================================================================
+    // 12. 모달 3 & 4: 부서/팀원 관리 & 공휴일 관리 렌더링
+    // =========================================================================
+    function renderManageModal() {
+      els.newMemberTeamSelect.innerHTML = state.teams.length
+        ? state.teams
+            .map((t) => `<option value="${escapeHtml(t.department)}:::${escapeHtml(t.teamName)}">${escapeHtml(t.department)} · ${escapeHtml(t.teamName)}</option>`)
+            .join('')
+        : '<option value="">먼저 부서/팀을 추가하세요</option>';
+
+      els.manageTeamList.innerHTML = state.teams.length
+        ? state.teams
+            .map((t) => {
+              const cnt = state.members.filter((m) => m.department === t.department && m.team === t.teamName).length;
+              return `
+                <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-xs font-bold text-slate-700">
+                  <span>${escapeHtml(t.department)} · ${escapeHtml(t.teamName)} <span class="text-slate-400 font-normal">(${cnt}명)</span></span>
+                  <button type="button" data-del-team-id="${escapeHtml(t.id)}" class="text-slate-400 hover:text-rose-600" title="삭제">✕</button>
+                </div>
+              `;
+            })
+            .join('')
+        : '<p class="text-xs text-slate-400">등록된 부서/팀이 없습니다.</p>';
+
+      if (state.members.length === 0) {
+        els.manageMemberList.innerHTML = '<div class="p-4 text-center text-xs text-slate-400">등록된 팀원이 없습니다.</div>';
+      } else {
+        const teamOpts = (curDept, curTeam) =>
+          state.teams
+            .map((t) => {
+              const val = `${t.department}:::${t.teamName}`;
+              const sel = t.department === curDept && t.teamName === curTeam ? 'selected' : '';
+              return `<option value="${escapeHtml(val)}" ${sel}>${escapeHtml(t.department)} · ${escapeHtml(t.teamName)}</option>`;
+            })
+            .join('');
+
+        els.manageMemberList.innerHTML = state.members
+          .slice()
+          .sort((a, b) => a.department.localeCompare(b.department, 'ko') || a.team.localeCompare(b.team, 'ko') || a.name.localeCompare(b.name, 'ko'))
+          .map(
+            (m) => `
+            <div class="px-4 py-2.5 flex items-center justify-between gap-2 hover:bg-slate-50">
+              <div class="flex items-center gap-2.5 min-w-0">
+                <select data-move-member="${escapeHtml(m.id)}" class="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700">
+                  ${teamOpts(m.department, m.team)}
+                </select>
+                <span class="text-sm font-bold text-slate-900 truncate">${escapeHtml(m.name)}</span>
+                ${m.position ? `<span class="text-xs text-slate-400">${escapeHtml(m.position)}</span>` : ''}
+              </div>
+              <button type="button" data-del-member="${escapeHtml(m.id)}" class="text-xs font-semibold text-rose-600 hover:bg-rose-50 px-2 py-1 rounded-lg">삭제</button>
+            </div>
+          `
+          )
+          .join('');
+      }
+    }
+
+    function renderHolidayModal() {
+      const merged = { ...DEFAULT_KR_HOLIDAYS, ...state.customHolidays };
+      const yearSet = new Set(['2025', '2026', '2027']);
+      Object.keys(merged).forEach((d) => d.length >= 4 && yearSet.add(d.slice(0, 4)));
+      const years = Array.from(yearSet).sort();
+      if (!yearSet.has(state.holidayViewYear)) state.holidayViewYear = years[0];
+
+      els.holidayYearTabs.innerHTML = years
+        .map((y) => `<button type="button" data-holiday-year="${y}" class="px-3 py-1 rounded-lg text-xs font-bold ${y === state.holidayViewYear ? 'bg-rose-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">${y}년</button>`)
+        .join('');
+
+      const entries = Object.entries(merged)
+        .filter(([date]) => date.startsWith(state.holidayViewYear))
+        .sort((a, b) => a[0].localeCompare(b[0]));
+
+      els.holidayListContainer.innerHTML = entries.length
+        ? entries
+            .map(([date, name]) => {
+              const meta = getDateMeta(date);
+              const isCustom = Boolean(state.customHolidays[date]);
+              const tag = meta.isWeekend
+                ? `<span class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 text-[10px] font-semibold">${meta.dayName}요일</span>`
+                : `<span class="px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 text-[10px] font-bold">${meta.dayName}요일 (평일 특근)</span>`;
+              const srcTag = isCustom
+                ? `<span class="px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700 text-[10px] font-bold">사용자 추가</span>`
+                : `<span class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 text-[10px]">법정공휴일</span>`;
+              return `
+                <div class="px-4 py-2.5 flex items-center justify-between gap-2 hover:bg-slate-50">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="font-mono text-xs font-bold text-slate-800">${date}</span>
+                    ${tag}
+                    <span class="text-sm font-semibold text-slate-900">${escapeHtml(name)}</span>
+                    ${srcTag}
+                  </div>
+                  ${
+                    isCustom
+                      ? `<button type="button" data-del-custom-holiday="${date}" class="text-xs font-semibold text-rose-600 hover:bg-rose-50 px-2 py-1 rounded-lg">삭제</button>`
+                      : `<span class="text-[11px] text-slate-300">기본</span>`
+                  }
+                </div>
+              `;
+            })
+            .join('')
+        : '<div class="p-6 text-center text-xs text-slate-400">등록된 공휴일이 없습니다.</div>';
+    }
+
+    // =========================================================================
+    // 13. 엑셀 다운로드 (.xlsx - 3개 시트)
+    // =========================================================================
+    function exportToExcel() {
+      try {
+        if (typeof XLSX === 'undefined') {
+          showToast('엑셀 라이브러리(SheetJS) 로드에 실패했습니다.', 'error');
+          return;
+        }
+        const weekDates = getWeekDates(state.weekStartDate);
+        const metas = weekDates.map(getDateMeta);
+        const members = getVisibleMembers();
+        const weekRecords = getVisibleWeekRecords();
+
+        const sheet1 = members.map((m) => {
+          const row = { 부서: m.department, 팀: m.team, 성명: m.name };
+          metas.forEach((meta) => {
+            const rec = getRecord(meta.dateStr, m.id);
+            const c = rec ? calculateWorkHours(rec.date, rec.startTime, rec.endTime) : null;
+            const prefix = `${meta.dayNum}일(${meta.dayName}${meta.holidayName ? '·' + meta.holidayName : ''})`;
+            row[`${prefix} 연장(h)`] = c && c.valid && c.overtimeMin > 0 ? minToHours(c.overtimeMin) : '';
+            row[`${prefix} 특근(h)`] = c && c.valid && c.holidayMin > 0 ? minToHours(c.holidayMin) : '';
+          });
+          return row;
+        });
+
+        const sheet2 = members.map((m) => {
+          let reg = 0, ot = 0, hol = 0;
+          weekDates.forEach((dStr) => {
+            const rec = getRecord(dStr, m.id);
+            if (!rec) return;
+            const c = calculateWorkHours(rec.date, rec.startTime, rec.endTime);
+            if (!c.valid) return;
+            reg += c.regularMin; ot += c.overtimeMin; hol += c.holidayMin;
+          });
+          const total = reg + ot + hol;
+          const diff = total - WEEKLY_LIMIT_MIN;
+          const diffH = minToHours(diff);
+          return {
+            부서: m.department,
+            팀: m.team,
+            성명: m.name,
+            '정상(h)': minToHours(reg),
+            '연장(h)': minToHours(ot),
+            '특근(h)': minToHours(hol),
+            '주간합계(h)': minToHours(total),
+            '주52h대비(h)': diffH > 0 ? `+${diffH}` : `${diffH}`,
+            상태: diff > 0 ? '52h 초과' : diff === 0 ? '52h 충족' : '여유(부족)',
+          };
+        });
+
+        const sheet3 = weekRecords.map((rec) => {
+          const m = state.members.find((x) => x.id === rec.memberId);
+          const c = calculateWorkHours(rec.date, rec.startTime, rec.endTime);
+          return {
+            날짜: rec.date,
+            요일: c.meta.dayName,
+            구분: c.meta.isPublicHoliday ? `공휴일(${c.meta.holidayName})` : c.meta.isWeekend ? '주말특근' : '평일',
+            부서: m?.department || '-',
+            팀: m?.team || '-',
+            성명: m?.name || '-',
+            '출근(24h)': rec.startTime,
+            '적용출근(24h)': c.effectiveStartTime,
+            '퇴근(24h)': rec.endTime,
+            '중식제외(분)': c.lunchDeductMin,
+            '석식제외(분)': c.dinnerDeductMin,
+            '정상(h)': minToHours(c.regularMin),
+            '연장(h)': minToHours(c.overtimeMin),
+            '특근(h)': minToHours(c.holidayMin),
+            비고: rec.note || '',
+          };
+        });
+
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(sheet1.length ? sheet1 : [{ 안내: '데이터 없음' }]), '주간근무표');
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(sheet2.length ? sheet2 : [{ 안내: '데이터 없음' }]), '팀원별_주52시간집계');
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(sheet3.length ? sheet3 : [{ 안내: '데이터 없음' }]), '주간상세기록(24h)');
+
+        const fname = `주간근로시간_${state.weekStartDate}_${getActiveFilterLabel().replace(/[·\s()]/g, '_')}.xlsx`;
+        XLSX.writeFile(wb, fname);
+        showToast(`엑셀 파일(${fname})을 다운로드했습니다.`, 'success');
+      } catch (err) {
+        console.error(err);
+        showToast('엑셀 다운로드 중 오류가 발생했습니다.', 'error');
+      }
+    }
+
+    // =========================================================================
+    // 14. 이벤트 바인딩
+    // =========================================================================
+    function bindEvents() {
+      // 주간 이동
+      els.btnPrevWeek.addEventListener('click', () => { state.weekStartDate = addDays(state.weekStartDate, -7); renderAll(); });
+      els.btnNextWeek.addEventListener('click', () => { state.weekStartDate = addDays(state.weekStartDate, 7); renderAll(); });
+      els.btnThisWeek.addEventListener('click', () => { state.weekStartDate = getSundayOfWeek(getTodayStr()); renderAll(); });
+      els.jumpDatePicker.addEventListener('change', (e) => {
+        if (!e.target.value) return;
+        state.weekStartDate = getSundayOfWeek(e.target.value);
+        renderAll();
+      });
+
+      // 부서/팀 필터 탭
+      els.deptFilterTabs.addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-filter-dept]');
+        if (!btn) return;
+        state.selectedDept = btn.dataset.filterDept;
+        state.selectedTeam = 'ALL';
+        state.highlightedMemberId = null;
+        renderAll();
+      });
+      els.teamFilterTabs.addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-filter-team]');
+        if (!btn) return;
+        state.selectedTeam = btn.dataset.filterTeam;
+        state.highlightedMemberId = null;
+        renderAll();
+      });
+
+      // 빈 DB 배너 버튼
+      els.btnBannerSeedSample.addEventListener('click', () => {
+        openConfirm('샘플 데이터 불러오기', '샘플 부서(생산부·품질부·신규사업부), 팀원 8명 및 이번 주 근무 기록을 Firestore에 등록하시겠습니까?', seedSampleDataToFirestore);
+      });
+      els.btnBannerOpenManage.addEventListener('click', () => {
+        renderManageModal();
+        els.manageModal.classList.remove('hidden');
+      });
+
+      // 그리드 날짜 헤더 클릭 -> 일괄 입력 모달
+      els.weeklyGridHead.addEventListener('click', (e) => {
+        const th = e.target.closest('th[data-batch-date]');
+        if (th) openBatchModal(th.dataset.batchDate);
+      });
+
+      // 그리드 개별 셀 클릭 -> 1인 빠른 수정 모달
+      els.weeklyGridBody.addEventListener('click', (e) => {
+        const td = e.target.closest('td[data-cell-member]');
+        if (td) openSingleModal(td.dataset.cellDate, td.dataset.cellMember);
+      });
+
+      // 하단 상세 테이블 토글 & 수정/삭제
+      els.btnToggleDetailTable.addEventListener('click', () => {
+        state.detailExpanded = !state.detailExpanded;
+        els.detailTableContainer.classList.toggle('hidden', !state.detailExpanded);
+        els.detailToggleIcon.querySelector('span').textContent = state.detailExpanded ? '접기' : '펼치기';
+        els.detailToggleIcon.querySelector('svg').classList.toggle('rotate-180', !state.detailExpanded);
+      });
+
+      els.detailTableBody.addEventListener('click', (e) => {
+        const editBtn = e.target.closest('button[data-detail-edit-date]');
+        if (editBtn) {
+          openSingleModal(editBtn.dataset.detailEditDate, editBtn.dataset.detailEditMember);
+          return;
+        }
+        const delBtn = e.target.closest('button[data-detail-del-id]');
+        if (delBtn) {
+          const docId = delBtn.dataset.detailDelId;
+          openConfirm('기록 삭제', '해당 출퇴근 기록을 Firestore에서 삭제하시겠습니까?', async () => {
+            try {
+              await deleteDoc(doc(db, 'workRecords', docId));
+              showToast('근무 기록이 삭제되었습니다.', 'info');
+            } catch (err) { handleFirestoreError(err, 'deleteRecord'); }
+          });
+        }
+      });
+
+      // 우측 52h 패널 클릭 -> 그리드 하이라이트
+      els.member52hList.addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-highlight-member]');
+        if (!btn) return;
+        const mId = btn.dataset.highlightMember;
+        state.highlightedMemberId = state.highlightedMemberId === mId ? null : mId;
+        renderWeeklyGrid();
+        renderMember52hPanel();
+        if (state.highlightedMemberId) {
+          const row = els.weeklyGridBody.querySelector(`tr[data-grid-row="${CSS.escape(mId)}"]`);
+          if (row) row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      });
+
+      // --- 모달 1: 부서/팀 일괄 입력 이벤트 ---
+      els.btnOpenBatchModal.addEventListener('click', () => openBatchModal());
+      els.btnCloseBatchModal.addEventListener('click', closeBatchModal);
+      els.btnCancelBatchModal.addEventListener('click', closeBatchModal);
+      els.batchModal.addEventListener('click', (e) => { if (e.target === els.batchModal) closeBatchModal(); });
+
+      els.batchDate.addEventListener('change', renderBatchTable);
+      els.btnBatchPrevDay.addEventListener('click', () => { els.batchDate.value = addDays(els.batchDate.value || getTodayStr(), -1); renderBatchTable(); });
+      els.btnBatchNextDay.addEventListener('click', () => { els.batchDate.value = addDays(els.batchDate.value || getTodayStr(), 1); renderBatchTable(); });
+
+      els.batchDeptSelect.addEventListener('change', () => { updateBatchTeamOptions('ALL'); renderBatchTable(); });
+      els.batchTeamSelect.addEventListener('change', renderBatchTable);
+
+      els.batchCommonStart.addEventListener('input', () => autoFormatTimeInput(els.batchCommonStart));
+      els.batchCommonEnd.addEventListener('input', () => autoFormatTimeInput(els.batchCommonEnd));
+
+      els.batchModal.addEventListener('click', (e) => {
+        const ps = e.target.closest('button[data-batch-preset-start]');
+        if (ps) { els.batchCommonStart.value = ps.dataset.batchPresetStart; return; }
+        const pe = e.target.closest('button[data-batch-preset-end]');
+        if (pe) { els.batchCommonEnd.value = pe.dataset.batchPresetEnd; return; }
+      });
+
+      els.btnApplyCommonTime.addEventListener('click', () => {
+        const sVal = els.batchCommonStart.value.trim();
+        const eVal = els.batchCommonEnd.value.trim();
+        if (!isValidTime24(sVal) || !isValidTime24(eVal)) {
+          showToast('공통 시간을 24시간 형식(HH:MM)으로 입력해 주세요.', 'error');
+          return;
+        }
+        const dateStr = els.batchDate.value;
+        const checked = els.batchTableBody.querySelectorAll('input[data-batch-check]:checked');
+        checked.forEach((cb) => {
+          const mId = cb.dataset.batchCheck;
+          const sEl = els.batchTableBody.querySelector(`input[data-batch-start="${CSS.escape(mId)}"]`);
+          const eEl = els.batchTableBody.querySelector(`input[data-batch-end="${CSS.escape(mId)}"]`);
+          const pEl = els.batchTableBody.querySelector(`td[data-batch-preview="${CSS.escape(mId)}"]`);
+          if (sEl) sEl.value = sVal;
+          if (eEl) eEl.value = eVal;
+          if (pEl) pEl.innerHTML = buildBatchPreviewHtml(dateStr, sVal, eVal);
+        });
+        showToast(`선택된 ${checked.length}명에게 ${sVal} ~ ${eVal} 시간을 적용했습니다.`, 'info');
+      });
+
+      els.btnBatchCheckAll.addEventListener('click', () => {
+        els.batchTableBody.querySelectorAll('input[data-batch-check]').forEach((cb) => (cb.checked = true));
+        updateBatchSelectionCount();
+      });
+      els.btnBatchUncheckAll.addEventListener('click', () => {
+        els.batchTableBody.querySelectorAll('input[data-batch-check]').forEach((cb) => (cb.checked = false));
+        updateBatchSelectionCount();
+      });
+
+      els.batchTableBody.addEventListener('input', (e) => {
+        const target = e.target;
+        if (target.matches('input[data-batch-start], input[data-batch-end]')) {
+          autoFormatTimeInput(target);
+          const mId = target.dataset.batchStart || target.dataset.batchEnd;
+          const sEl = els.batchTableBody.querySelector(`input[data-batch-start="${CSS.escape(mId)}"]`);
+          const eEl = els.batchTableBody.querySelector(`input[data-batch-end="${CSS.escape(mId)}"]`);
+          const pEl = els.batchTableBody.querySelector(`td[data-batch-preview="${CSS.escape(mId)}"]`);
+          if (pEl) pEl.innerHTML = buildBatchPreviewHtml(els.batchDate.value, sEl.value.trim(), eEl.value.trim());
+        }
+      });
+
+      els.batchTableBody.addEventListener('change', (e) => {
+        if (e.target.matches('input[data-batch-check]')) updateBatchSelectionCount();
+      });
+
+      els.batchTableBody.addEventListener('click', (e) => {
+        const delBtn = e.target.closest('button[data-batch-delete]');
+        if (!delBtn) return;
+        const docId = delBtn.dataset.batchDelete;
+        openConfirm('기존 기록 삭제', '이 팀원의 해당 날짜 기록을 삭제하시겠습니까?', async () => {
+          try {
+            await deleteDoc(doc(db, 'workRecords', docId));
+            showToast('기존 기록을 삭제했습니다.', 'info');
+            renderBatchTable();
+          } catch (err) { handleFirestoreError(err, 'batchRowDelete'); }
+        });
+      });
+
+      els.btnSaveBatch.addEventListener('click', saveBatchRecords);
+
+      // --- 모달 2: 1인 빠른 수정 모달 이벤트 ---
+      els.btnCloseSingleModal.addEventListener('click', closeSingleModal);
+      els.btnCancelSingle.addEventListener('click', closeSingleModal);
+      els.singleModal.addEventListener('click', (e) => { if (e.target === els.singleModal) closeSingleModal(); });
+      els.singleDate.addEventListener('change', updateSinglePreview);
+
+      els.singleStartInput.addEventListener('input', () => {
+        autoFormatTimeInput(els.singleStartInput);
+        syncSingleSelects(els.singleStartInput, els.singleStartHour, els.singleStartMin);
+        updateSinglePreview();
+      });
+      els.singleEndInput.addEventListener('input', () => {
+        autoFormatTimeInput(els.singleEndInput);
+        syncSingleSelects(els.singleEndInput, els.singleEndHour, els.singleEndMin);
+        updateSinglePreview();
+      });
+
+      const onSStartSel = () => { els.singleStartInput.value = `${els.singleStartHour.value}:${els.singleStartMin.value}`; updateSinglePreview(); };
+      const onSEndSel = () => {
+        if (els.singleEndHour.value === '24') els.singleEndMin.value = '00';
+        els.singleEndInput.value = `${els.singleEndHour.value}:${els.singleEndMin.value}`;
+        updateSinglePreview();
+      };
+      els.singleStartHour.addEventListener('change', onSStartSel);
+      els.singleStartMin.addEventListener('change', onSStartSel);
+      els.singleEndHour.addEventListener('change', onSEndSel);
+      els.singleEndMin.addEventListener('change', onSEndSel);
+
+      els.singleForm.addEventListener('click', (e) => {
+        const sb = e.target.closest('button[data-single-start]');
+        if (sb) { els.singleStartInput.value = sb.dataset.singleStart; syncSingleSelects(els.singleStartInput, els.singleStartHour, els.singleStartMin); updateSinglePreview(); return; }
+        const eb = e.target.closest('button[data-single-end]');
+        if (eb) { els.singleEndInput.value = eb.dataset.singleEnd; syncSingleSelects(els.singleEndInput, els.singleEndHour, els.singleEndMin); updateSinglePreview(); }
+      });
+
+      els.singleForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const dateStr = els.singleDate.value;
+        const memberId = els.singleMember.value;
+        const startTime = els.singleStartInput.value.trim();
+        const endTime = els.singleEndInput.value.trim();
+        const note = els.singleNote.value.trim();
+
+        const calc = calculateWorkHours(dateStr, startTime, endTime);
+        if (!calc.valid) { showToast(calc.error, 'error'); return; }
+
+        try {
+          const docId = `${dateStr}_${memberId}`;
+          await setDoc(doc(db, 'workRecords', docId), {
+            date: dateStr,
+            memberId,
+            startTime,
+            endTime,
+            note,
+            updatedAt: serverTimestamp(),
+          });
+          showToast('출퇴근 기록이 저장되었습니다.', 'success');
+          closeSingleModal();
+        } catch (err) { handleFirestoreError(err, 'saveSingle'); }
+      });
+
+      els.btnDeleteSingle.addEventListener('click', () => {
+        const docId = `${els.singleDate.value}_${els.singleMember.value}`;
+        openConfirm('기록 삭제', '이 날짜의 출퇴근 기록을 삭제하시겠습니까?', async () => {
+          try {
+            await deleteDoc(doc(db, 'workRecords', docId));
+            showToast('출퇴근 기록이 삭제되었습니다.', 'info');
+            closeSingleModal();
+          } catch (err) { handleFirestoreError(err, 'deleteSingle'); }
+        });
+      });
+
+      // --- 모달 3: 부서/팀원 관리 모달 ---
+      const closeManage = () => els.manageModal.classList.add('hidden');
+      els.btnOpenManageModal.addEventListener('click', () => { renderManageModal(); els.manageModal.classList.remove('hidden'); });
+      els.btnCloseManageModal.addEventListener('click', closeManage);
+      els.btnDoneManageModal.addEventListener('click', closeManage);
+      els.manageModal.addEventListener('click', (e) => { if (e.target === els.manageModal) closeManage(); });
+
+      els.addTeamForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const department = els.newDeptName.value.trim();
+        const teamName = els.newTeamName.value.trim();
+        if (!department || !teamName) return;
+        if (state.teams.some((t) => t.department === department && t.teamName === teamName)) {
+          showToast('이미 존재하는 부서·팀입니다.', 'error');
+          return;
+        }
+        try {
+          const id = uid('team');
+          await setDoc(doc(db, 'teams', id), { id, department, teamName, order: state.teams.length + 1 });
+          els.newTeamName.value = '';
+          showToast(`'${department} · ${teamName}'이(가) 추가되었습니다.`, 'success');
+        } catch (err) { handleFirestoreError(err, 'addTeam'); }
+      });
+
+      els.manageTeamList.addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-del-team-id]');
+        if (!btn) return;
+        const team = state.teams.find((t) => t.id === btn.dataset.delTeamId);
+        if (!team) return;
+        openConfirm('부서/팀 삭제', `'${team.department} · ${team.teamName}' 팀을 삭제하시겠습니까? (소속 팀원은 유지되거나 재지정할 수 있습니다)`, async () => {
+          try {
+            await deleteDoc(doc(db, 'teams', team.id));
+            showToast('팀이 삭제되었습니다.', 'info');
+          } catch (err) { handleFirestoreError(err, 'deleteTeam'); }
+        });
+      });
+
+      els.addMemberForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const val = els.newMemberTeamSelect.value;
+        const name = els.newMemberName.value.trim();
+        const position = els.newMemberPos.value.trim();
+        if (!val || !name) { showToast('부서/팀과 성명을 입력해 주세요.', 'error'); return; }
+        const [department, team] = val.split(':::');
+        try {
+          const id = uid('m');
+          await setDoc(doc(db, 'members', id), { id, name, department, team, position, active: true });
+          els.newMemberName.value = '';
+          els.newMemberPos.value = '';
+          showToast(`'${name}' 팀원이 추가되었습니다.`, 'success');
+        } catch (err) { handleFirestoreError(err, 'addMember'); }
+      });
+
+      els.manageMemberList.addEventListener('change', async (e) => {
+        const sel = e.target.closest('select[data-move-member]');
+        if (!sel) return;
+        const m = state.members.find((x) => x.id === sel.dataset.moveMember);
+        if (!m) return;
+        const [department, team] = sel.value.split(':::');
+        try {
+          await setDoc(doc(db, 'members', m.id), { ...m, department, team });
+          showToast(`'${m.name}' 팀원의 소속이 변경되었습니다.`, 'info');
+        } catch (err) { handleFirestoreError(err, 'moveMember'); }
+      });
+
+      els.manageMemberList.addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-del-member]');
+        if (!btn) return;
+        const m = state.members.find((x) => x.id === btn.dataset.delMember);
+        if (!m) return;
+        openConfirm('팀원 삭제', `'${m.name}' 팀원과 해당 팀원의 모든 근무 기록을 삭제하시겠습니까?`, async () => {
+          try {
+            const batch = writeBatch(db);
+            batch.delete(doc(db, 'members', m.id));
+            state.recordsMap.forEach((rec, docId) => {
+              if (rec.memberId === m.id) batch.delete(doc(db, 'workRecords', docId));
+            });
+            await batch.commit();
+            showToast(`'${m.name}' 팀원이 삭제되었습니다.`, 'info');
+          } catch (err) { handleFirestoreError(err, 'deleteMember'); }
+        });
+      });
+
+      els.btnSeedSample.addEventListener('click', () => {
+        openConfirm('샘플 데이터 넣기', '샘플 부서·팀원 및 이번 주 근무 기록을 Firestore에 추가하시겠습니까?', async () => {
+          await seedSampleDataToFirestore();
+          closeManage();
+        });
+      });
+
+      els.btnClearRecords.addEventListener('click', () => {
+        openConfirm('전체 근무기록 초기화', '부서와 팀원 목록은 유지하고, Firestore의 모든 근무 기록만 삭제하시겠습니까?', async () => {
+          try {
+            const batch = writeBatch(db);
+            state.recordsMap.forEach((_, docId) => batch.delete(doc(db, 'workRecords', docId)));
+            await batch.commit();
+            showToast('모든 근무 기록이 초기화되었습니다.', 'info');
+            closeManage();
+          } catch (err) { handleFirestoreError(err, 'clearRecords'); }
+        });
+      });
+
+      // --- 모달 4: 공휴일 관리 모달 ---
+      const closeHol = () => els.holidayModal.classList.add('hidden');
+      els.btnOpenHolidayModal.addEventListener('click', () => {
+        state.holidayViewYear = state.weekStartDate.slice(0, 4);
+        renderHolidayModal();
+        els.holidayModal.classList.remove('hidden');
+      });
+      els.btnCloseHolidayModal.addEventListener('click', closeHol);
+      els.btnDoneHolidayModal.addEventListener('click', closeHol);
+      els.holidayModal.addEventListener('click', (e) => { if (e.target === els.holidayModal) closeHol(); });
+
+      els.holidayYearTabs.addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-holiday-year]');
+        if (!btn) return;
+        state.holidayViewYear = btn.dataset.holidayYear;
+        renderHolidayModal();
+      });
+
+      els.addHolidayForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const date = els.newHolidayDate.value;
+        const name = els.newHolidayName.value.trim();
+        if (!date || !name) return;
+        try {
+          await setDoc(doc(db, 'customHolidays', date), { date, name });
+          state.holidayViewYear = date.slice(0, 4);
+          els.newHolidayName.value = '';
+          showToast(`${date} (${name}) 휴일이 Firestore에 저장되었습니다.`, 'success');
+        } catch (err) { handleFirestoreError(err, 'addHoliday'); }
+      });
+
+      els.holidayListContainer.addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-del-custom-holiday]');
+        if (!btn) return;
+        const date = btn.dataset.delCustomHoliday;
+        openConfirm('휴일 삭제', `${date} 사용자 지정 휴일을 삭제하시겠습니까?`, async () => {
+          try {
+            await deleteDoc(doc(db, 'customHolidays', date));
+            showToast('사용자 지정 휴일이 삭제되었습니다.', 'info');
+          } catch (err) { handleFirestoreError(err, 'deleteHoliday'); }
+        });
+      });
+
+      // Firebase 연결 안내 모달
+      const closeFbGuide = () => els.fbGuideModal.classList.add('hidden');
+      els.btnFirebaseStatus.addEventListener('click', () => els.fbGuideModal.classList.remove('hidden'));
+      els.btnCloseFbGuide.addEventListener('click', closeFbGuide);
+      els.btnOkFbGuide.addEventListener('click', closeFbGuide);
+      els.fbGuideModal.addEventListener('click', (e) => { if (e.target === els.fbGuideModal) closeFbGuide(); });
+
+      // 엑셀 & 확인 모달
+      els.btnExportExcel.addEventListener('click', exportToExcel);
+      els.btnConfirmCancel.addEventListener('click', closeConfirm);
+      els.confirmModal.addEventListener('click', (e) => { if (e.target === els.confirmModal) closeConfirm(); });
+      els.btnConfirmOk.addEventListener('click', () => {
+        const fn = confirmCallback;
+        closeConfirm();
+        if (typeof fn === 'function') fn();
+      });
+    }
+
+    // =========================================================================
+    // 15. 초기화
+    // =========================================================================
+    function init() {
+      state.weekStartDate = getSundayOfWeek(getTodayStr());
+      initSingle24hSelects();
+      bindEvents();
+      renderAll();
+      subscribeFirestore();
+    }
+
+    init();
+  </script>
+</body>
+</html>
