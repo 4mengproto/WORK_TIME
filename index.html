@@ -95,7 +95,7 @@
             <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
             </svg>
-            부서/팀 일괄 입력
+            부서원 일괄 입력
           </button>
 
           <button
@@ -127,16 +127,14 @@
         </div>
       </div>
 
-      <!-- 2행: 부서 / 팀 필터 탭 -->
+      <!-- 2행: 부서 필터 탭 -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-slate-100">
         <div class="flex items-center gap-2 overflow-x-auto pb-0.5">
-          <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider shrink-0">부서/팀 필터</span>
+          <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider shrink-0">부서 필터</span>
           <div id="deptFilterTabs" class="flex items-center gap-1.5 shrink-0"></div>
-          <span id="teamTabDivider" class="hidden text-slate-300">|</span>
-          <div id="teamFilterTabs" class="flex items-center gap-1.5 shrink-0"></div>
         </div>
         <div class="text-[11px] text-slate-500 shrink-0">
-          ※ 날짜 헤더 클릭 시 <strong class="text-indigo-600">부서/팀 일괄 입력</strong> · 개별 셀 클릭 시 <strong class="text-slate-700">1인 빠른 수정</strong>
+          ※ 날짜 헤더 클릭 시 <strong class="text-indigo-600">부서원 일괄 입력</strong> · 개별 셀 클릭 시 <strong class="text-slate-700">1인 빠른 수정</strong>
         </div>
       </div>
     </div>
@@ -223,11 +221,40 @@
           </button>
 
           <div id="detailTableContainer" class="overflow-x-auto">
-            <table class="w-full text-left border-collapse min-w-[840px]">
+            <!-- 선택 항목 일괄 작업 바 -->
+            <div id="detailBulkBar" class="px-4 py-2.5 bg-indigo-50/70 border-b border-indigo-100 flex flex-wrap items-center justify-between gap-2">
+              <div class="flex items-center gap-2 text-xs font-bold text-slate-700">
+                <span id="detailSelectedCount" class="px-2 py-0.5 rounded-full bg-indigo-600 text-white text-[11px]">0건 선택</span>
+                <span class="text-slate-500 font-medium">체크박스로 항목을 선택해 일괄 수정하거나 삭제할 수 있습니다.</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  id="btnDetailBulkEdit"
+                  disabled
+                  class="px-3 py-1.5 rounded-lg text-xs font-bold text-indigo-700 bg-white border border-indigo-200 hover:bg-indigo-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  선택 일괄 수정
+                </button>
+                <button
+                  type="button"
+                  id="btnDetailBulkDelete"
+                  disabled
+                  class="px-3 py-1.5 rounded-lg text-xs font-bold text-rose-700 bg-white border border-rose-200 hover:bg-rose-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  선택 삭제
+                </button>
+              </div>
+            </div>
+
+            <table class="w-full text-left border-collapse min-w-[880px]">
               <thead>
                 <tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                  <th class="py-2.5 px-3 w-10 text-center">
+                    <input type="checkbox" id="detailSelectAll" title="전체 선택/해제" class="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" />
+                  </th>
                   <th class="py-2.5 px-4">날짜 (요일/구분)</th>
-                  <th class="py-2.5 px-3">부서 · 팀</th>
+                  <th class="py-2.5 px-3">부서</th>
                   <th class="py-2.5 px-3">성명</th>
                   <th class="py-2.5 px-3">출근 ~ 퇴근 (24h)</th>
                   <th class="py-2.5 px-3">제외(중/석)</th>
@@ -282,15 +309,15 @@
   </main>
 
   <!-- ===================================================================== -->
-  <!-- 모달 1: 부서/팀원 일괄 근무시간 입력 모달 (핵심 신규 기능)                -->
+  <!-- 모달 1: 부서원 일괄 근무시간 입력 모달                                  -->
   <!-- ===================================================================== -->
   <div id="batchModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4">
     <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-6xl max-h-[94vh] flex flex-col overflow-hidden">
       <!-- 모달 헤더 -->
       <div class="px-5 py-4 border-b border-slate-200 bg-gradient-to-r from-indigo-700 to-slate-900 text-white flex items-center justify-between gap-3">
         <div>
-          <h3 class="text-base sm:text-lg font-extrabold tracking-tight">부서/팀원 일괄 근무시간 입력 (24h)</h3>
-          <p class="text-xs text-indigo-100 mt-0.5">부서 또는 팀을 선택하여 소속 인원의 출퇴근 시간을 한 번에 입력하고 Firestore에 일괄 저장합니다.</p>
+          <h3 class="text-base sm:text-lg font-extrabold tracking-tight">부서원 일괄 근무시간 입력 (24h)</h3>
+          <p class="text-xs text-indigo-100 mt-0.5">부서를 선택하여 소속 부서원의 출퇴근 시간을 한 번에 입력하고 Firestore에 일괄 저장합니다.</p>
         </div>
         <button type="button" id="btnCloseBatchModal" class="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/15 transition-colors">
           <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -299,12 +326,12 @@
         </button>
       </div>
 
-      <!-- 상단 컨트롤 영역: 날짜 선택 + 부서/팀 선택 + 공통 시간 일괄 적용 바 -->
+      <!-- 상단 컨트롤 영역: 날짜 선택 + 부서 선택 + 공통 시간 일괄 적용 바 -->
       <div class="p-4 sm:p-5 bg-slate-50 border-b border-slate-200 space-y-3.5">
-        <!-- 1행: 날짜 & 부서 & 팀 선택 -->
+        <!-- 1행: 날짜 & 부서 선택 -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 items-end">
           <!-- 날짜 선택 -->
-          <div class="lg:col-span-5">
+          <div class="lg:col-span-6">
             <div class="flex items-center justify-between mb-1">
               <label for="batchDate" class="text-xs font-bold text-slate-700">1. 근무 날짜 선택</label>
               <span id="batchDayBadge" class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-700">-</span>
@@ -321,19 +348,10 @@
           </div>
 
           <!-- 부서 선택 -->
-          <div class="lg:col-span-3">
+          <div class="lg:col-span-6">
             <label for="batchDeptSelect" class="block text-xs font-bold text-slate-700 mb-1">2. 부서 선택</label>
             <select
               id="batchDeptSelect"
-              class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            ></select>
-          </div>
-
-          <!-- 팀 선택 -->
-          <div class="lg:col-span-4">
-            <label for="batchTeamSelect" class="block text-xs font-bold text-slate-700 mb-1">3. 팀 선택</label>
-            <select
-              id="batchTeamSelect"
               class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             ></select>
           </div>
@@ -405,7 +423,7 @@
           <thead class="sticky top-0 z-10 bg-slate-100 border-b border-slate-200 text-[11px] font-bold text-slate-600 uppercase">
             <tr>
               <th class="py-2.5 px-3 text-center w-12">선택</th>
-              <th class="py-2.5 px-3 w-44">성명 (부서·팀)</th>
+              <th class="py-2.5 px-3 w-44">성명 (부서)</th>
               <th class="py-2.5 px-3 w-36">출근 (24h)</th>
               <th class="py-2.5 px-3 w-32">퇴근 (24h)</th>
               <th class="py-2.5 px-3">비고</th>
@@ -439,123 +457,107 @@
   </div>
 
   <!-- ===================================================================== -->
-  <!-- 모달 2: 1인 빠른 출퇴근 수정 모달 (그리드 셀 클릭 시)                    -->
+  <!-- 모달 2: 1인 빠른 출퇴근 입력 / 수정 모달 (24h)                         -->
   <!-- ===================================================================== -->
   <div id="singleModal" class="hidden fixed inset-0 z-50 bg-slate-900/55 backdrop-blur-xs flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-lg max-h-[92vh] flex flex-col overflow-hidden">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-lg overflow-hidden">
       <div class="px-5 py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
-        <div>
-          <h3 id="singleModalTitle" class="text-base font-bold text-slate-900">1인 출퇴근 입력 · 수정 (24h)</h3>
-          <p id="singleModalSub" class="text-xs text-slate-500 mt-0.5">00:00 ~ 24:00 24시간 형식으로 입력합니다.</p>
-        </div>
-        <button type="button" id="btnCloseSingleModal" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/70">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+        <h3 id="singleModalTitle" class="text-base font-bold text-slate-900">1인 출퇴근 입력 (24h)</h3>
+        <button type="button" id="btnCloseSingleModal" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/70">✕</button>
       </div>
 
-      <form id="singleForm" class="p-5 overflow-y-auto space-y-4">
+      <form id="singleForm" class="p-5 space-y-4">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <div class="flex items-center justify-between mb-1">
               <label for="singleDate" class="text-xs font-bold text-slate-700">근무 날짜</label>
               <span id="singleDayBadge" class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">-</span>
             </div>
-            <input type="date" id="singleDate" required class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm font-mono font-semibold text-slate-800" />
+            <input type="date" id="singleDate" required class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-mono font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
           </div>
           <div>
-            <label for="singleMember" class="block text-xs font-bold text-slate-700 mb-1">팀원</label>
-            <select id="singleMember" required class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-800 bg-white"></select>
+            <label for="singleMember" class="block text-xs font-bold text-slate-700 mb-1">대상 팀원</label>
+            <select id="singleMember" required class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"></select>
           </div>
         </div>
 
-        <div id="singleHolidayBanner" class="hidden rounded-xl px-3.5 py-2.5 bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-700 flex items-center justify-between">
-          <span id="singleHolidayText">특근 적용</span>
-          <span class="px-2 py-0.5 rounded-full bg-rose-600 text-white text-[10px]">특근 처리</span>
+        <div id="singleHolidayBanner" class="hidden px-3 py-2 rounded-xl bg-rose-50 border border-rose-200 text-xs font-bold text-rose-700">
+          <span id="singleHolidayText"></span>
         </div>
 
-        <!-- 출근 24h -->
-        <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+        <!-- 출근 시간 (24h) -->
+        <div class="space-y-1.5">
           <div class="flex items-center justify-between">
-            <label for="singleStartInput" class="text-xs font-bold text-slate-800">출근 시간 (24h)</label>
-            <span id="singleEarlyBadge" class="hidden text-[11px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">08:00 이전 → 08:00 적용</span>
+            <label for="singleStartInput" class="text-xs font-bold text-slate-700">출근 시간 (24h)</label>
+            <span id="singleEarlyBadge" class="hidden px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-700">08:00 이전 출근 → 08:00 고정 적용</span>
           </div>
-          <div class="flex flex-wrap items-center gap-2">
-            <input type="text" id="singleStartInput" maxlength="5" inputmode="numeric" placeholder="08:00" required class="w-24 rounded-xl border border-slate-300 bg-white px-3 py-2 text-center font-mono text-base font-bold text-slate-900" />
-            <select id="singleStartHour" class="rounded-lg border border-slate-300 bg-white px-2 py-2 text-xs font-mono font-semibold"></select>
-            <span class="font-bold text-slate-400">:</span>
-            <select id="singleStartMin" class="rounded-lg border border-slate-300 bg-white px-2 py-2 text-xs font-mono font-semibold"></select>
+          <div class="flex items-center gap-2">
+            <input type="text" id="singleStartInput" maxlength="5" inputmode="numeric" placeholder="08:00" class="w-24 rounded-xl border border-slate-300 px-3 py-2 text-center font-mono text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            <select id="singleStartHour" class="flex-1 rounded-xl border border-slate-300 bg-white px-2.5 py-2 text-xs font-mono font-semibold text-slate-800"></select>
+            <select id="singleStartMin" class="flex-1 rounded-xl border border-slate-300 bg-white px-2.5 py-2 text-xs font-mono font-semibold text-slate-800"></select>
           </div>
-          <div class="flex flex-wrap gap-1.5">
-            <button type="button" data-single-start="07:30" class="px-2 py-1 rounded-lg text-[11px] font-mono font-semibold bg-white border border-slate-200 hover:border-indigo-400">07:30</button>
-            <button type="button" data-single-start="08:00" class="px-2 py-1 rounded-lg text-[11px] font-mono font-semibold bg-white border border-slate-200 hover:border-indigo-400">08:00</button>
-            <button type="button" data-single-start="08:30" class="px-2 py-1 rounded-lg text-[11px] font-mono font-semibold bg-white border border-slate-200 hover:border-indigo-400">08:30</button>
-            <button type="button" data-single-start="09:00" class="px-2 py-1 rounded-lg text-[11px] font-mono font-semibold bg-white border border-slate-200 hover:border-indigo-400">09:00</button>
+          <div class="flex flex-wrap gap-1">
+            <button type="button" data-single-start="07:30" class="px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700">07:30</button>
+            <button type="button" data-single-start="08:00" class="px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700">08:00</button>
+            <button type="button" data-single-start="09:00" class="px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700">09:00</button>
           </div>
         </div>
 
-        <!-- 퇴근 24h -->
-        <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
-          <div class="flex items-center justify-between">
-            <label for="singleEndInput" class="text-xs font-bold text-slate-800">퇴근 시간 (24h)</label>
-            <span class="text-[11px] text-slate-400">00:00 ~ 24:00</span>
+        <!-- 퇴근 시간 (24h) -->
+        <div class="space-y-1.5">
+          <label for="singleEndInput" class="block text-xs font-bold text-slate-700">퇴근 시간 (24h)</label>
+          <div class="flex items-center gap-2">
+            <input type="text" id="singleEndInput" maxlength="5" inputmode="numeric" placeholder="17:00" class="w-24 rounded-xl border border-slate-300 px-3 py-2 text-center font-mono text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            <select id="singleEndHour" class="flex-1 rounded-xl border border-slate-300 bg-white px-2.5 py-2 text-xs font-mono font-semibold text-slate-800"></select>
+            <select id="singleEndMin" class="flex-1 rounded-xl border border-slate-300 bg-white px-2.5 py-2 text-xs font-mono font-semibold text-slate-800"></select>
           </div>
-          <div class="flex flex-wrap items-center gap-2">
-            <input type="text" id="singleEndInput" maxlength="5" inputmode="numeric" placeholder="17:00" required class="w-24 rounded-xl border border-slate-300 bg-white px-3 py-2 text-center font-mono text-base font-bold text-slate-900" />
-            <select id="singleEndHour" class="rounded-lg border border-slate-300 bg-white px-2 py-2 text-xs font-mono font-semibold"></select>
-            <span class="font-bold text-slate-400">:</span>
-            <select id="singleEndMin" class="rounded-lg border border-slate-300 bg-white px-2 py-2 text-xs font-mono font-semibold"></select>
-          </div>
-          <div class="flex flex-wrap gap-1.5">
-            <button type="button" data-single-end="17:00" class="px-2 py-1 rounded-lg text-[11px] font-mono font-semibold bg-white border border-slate-200 hover:border-indigo-400">17:00</button>
-            <button type="button" data-single-end="18:30" class="px-2 py-1 rounded-lg text-[11px] font-mono font-semibold bg-white border border-slate-200 hover:border-indigo-400">18:30</button>
-            <button type="button" data-single-end="19:30" class="px-2 py-1 rounded-lg text-[11px] font-mono font-semibold bg-white border border-slate-200 hover:border-indigo-400">19:30</button>
-            <button type="button" data-single-end="20:30" class="px-2 py-1 rounded-lg text-[11px] font-mono font-semibold bg-white border border-slate-200 hover:border-indigo-400">20:30</button>
-            <button type="button" data-single-end="21:30" class="px-2 py-1 rounded-lg text-[11px] font-mono font-semibold bg-white border border-slate-200 hover:border-indigo-400">21:30</button>
-            <button type="button" data-single-end="22:00" class="px-2 py-1 rounded-lg text-[11px] font-mono font-semibold bg-white border border-slate-200 hover:border-indigo-400">22:00</button>
+          <div class="flex flex-wrap gap-1">
+            <button type="button" data-single-end="17:00" class="px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700">17:00</button>
+            <button type="button" data-single-end="18:30" class="px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700">18:30</button>
+            <button type="button" data-single-end="19:30" class="px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700">19:30</button>
+            <button type="button" data-single-end="20:30" class="px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700">20:30</button>
+            <button type="button" data-single-end="21:30" class="px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700">21:30</button>
+            <button type="button" data-single-end="22:00" class="px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700">22:00</button>
           </div>
         </div>
 
+        <!-- 비고 -->
         <div>
           <label for="singleNote" class="block text-xs font-bold text-slate-700 mb-1">비고 (선택)</label>
-          <input type="text" id="singleNote" maxlength="60" placeholder="예: 라인 점검, 납기 대응" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+          <input type="text" id="singleNote" maxlength="60" placeholder="특이사항 입력" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
         </div>
 
-        <!-- 미리보기 -->
-        <div class="rounded-xl bg-slate-900 text-white p-3.5 space-y-2">
-          <div class="flex items-center justify-between">
-            <span class="text-[11px] font-bold text-slate-300 uppercase">실시간 계산 미리보기</span>
-            <span id="singleError" class="hidden text-xs font-bold text-rose-400"></span>
+        <p id="singleError" class="hidden text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2"></p>
+
+        <!-- 실시간 계산 미리보기 -->
+        <div class="rounded-xl bg-slate-50 border border-slate-200 p-3 space-y-2">
+          <div class="flex items-center justify-between text-[11px] text-slate-500">
+            <span>적용 구간: <strong id="sPrevRange" class="font-mono text-slate-800">-</strong></span>
+            <span>제외: <strong id="sPrevDeduct" class="text-slate-700">-</strong></span>
           </div>
-          <div class="grid grid-cols-4 gap-2 text-center">
-            <div class="rounded-lg bg-white/10 p-2">
-              <p class="text-[10px] text-slate-300">적용 구간</p>
-              <p id="sPrevRange" class="text-xs font-mono font-bold mt-0.5">-</p>
-              <p id="sPrevDeduct" class="text-[10px] text-slate-400">-</p>
+          <div class="grid grid-cols-3 gap-2 text-center">
+            <div class="rounded-lg bg-white border border-slate-200 py-1.5">
+              <div class="text-[10px] text-slate-500">정상(h)</div>
+              <div id="sPrevReg" class="font-mono text-sm font-extrabold text-slate-800">0</div>
             </div>
-            <div class="rounded-lg bg-white/10 p-2">
-              <p class="text-[10px] text-slate-300">정상(h)</p>
-              <p id="sPrevReg" class="text-sm font-extrabold mt-0.5">0</p>
+            <div class="rounded-lg bg-amber-50 border border-amber-200 py-1.5">
+              <div class="text-[10px] text-amber-700">연장(h)</div>
+              <div id="sPrevOt" class="font-mono text-sm font-extrabold text-amber-700">0</div>
             </div>
-            <div class="rounded-lg bg-amber-500/20 border border-amber-400/30 p-2">
-              <p class="text-[10px] text-amber-200">연장(h)</p>
-              <p id="sPrevOt" class="text-sm font-extrabold text-amber-300 mt-0.5">0</p>
-            </div>
-            <div class="rounded-lg bg-rose-500/20 border border-rose-400/30 p-2">
-              <p class="text-[10px] text-rose-200">특근(h)</p>
-              <p id="sPrevHol" class="text-sm font-extrabold text-rose-300 mt-0.5">0</p>
+            <div class="rounded-lg bg-rose-50 border border-rose-200 py-1.5">
+              <div class="text-[10px] text-rose-700">특근(h)</div>
+              <div id="sPrevHol" class="font-mono text-sm font-extrabold text-rose-700">0</div>
             </div>
           </div>
         </div>
 
         <div class="flex items-center justify-between pt-2 border-t border-slate-100">
           <button type="button" id="btnDeleteSingle" class="hidden px-3.5 py-2 rounded-xl text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200">
-            이 기록 삭제
+            기록 삭제
           </button>
           <div class="flex items-center gap-2 ml-auto">
             <button type="button" id="btnCancelSingle" class="px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200">취소</button>
-            <button type="submit" id="btnSaveSingle" class="px-5 py-2 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700">저장</button>
+            <button type="submit" id="btnSaveSingle" class="px-5 py-2 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-xs">저장</button>
           </div>
         </div>
       </form>
@@ -563,48 +565,110 @@
   </div>
 
   <!-- ===================================================================== -->
-  <!-- 모달 3: 부서 / 팀 / 팀원 관리 모달 (Firestore 연동)                     -->
+  <!-- 모달 2-B: 상세 출퇴근 기록 선택 항목 일괄 수정 모달 (24h)              -->
   <!-- ===================================================================== -->
-  <div id="manageModal" class="hidden fixed inset-0 z-50 bg-slate-900/55 backdrop-blur-xs flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
-      <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+  <div id="detailBulkEditModal" class="hidden fixed inset-0 z-50 bg-slate-900/55 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-md overflow-hidden">
+      <div class="px-5 py-4 border-b border-slate-200 bg-indigo-50/70 flex items-center justify-between">
         <div>
-          <h3 class="text-lg font-bold text-slate-900">부서 / 팀원 관리 (Firestore 실시간 동기화)</h3>
-          <p class="text-xs text-slate-500">부서와 팀을 구성하고 소속 팀원을 추가·수정·삭제할 수 있습니다.</p>
+          <h3 class="text-base font-bold text-slate-900">선택 기록 일괄 수정 (24h)</h3>
+          <p id="detailBulkCountText" class="text-xs text-indigo-700 font-semibold mt-0.5">선택된 0건의 출퇴근 시간을 일괄 변경합니다.</p>
         </div>
-        <button type="button" id="btnCloseManageModal" class="p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/70">✕</button>
+        <button type="button" id="btnCloseDetailBulkModal" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/70">✕</button>
       </div>
 
-      <div class="p-6 overflow-y-auto space-y-6">
-        <!-- 1. 부서 및 팀 관리 -->
-        <div class="space-y-3">
-          <h4 class="text-sm font-bold text-slate-800">1. 부서 · 팀 목록</h4>
-          <form id="addTeamForm" class="grid grid-cols-1 sm:grid-cols-12 gap-2">
-            <input type="text" id="newDeptName" placeholder="부서명 (예: 생산부)" maxlength="20" required class="sm:col-span-4 rounded-xl border border-slate-300 px-3 py-2 text-sm" />
-            <input type="text" id="newTeamName" placeholder="팀명 (예: 생산1팀)" maxlength="20" required class="sm:col-span-5 rounded-xl border border-slate-300 px-3 py-2 text-sm" />
-            <button type="submit" class="sm:col-span-3 px-4 py-2 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700">
-              부서/팀 추가
-            </button>
-          </form>
-          <div id="manageTeamList" class="flex flex-wrap gap-2"></div>
+      <form id="detailBulkForm" class="p-5 space-y-4">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label for="detailBulkStart" class="block text-xs font-bold text-slate-700 mb-1">출근 시간 (24h)</label>
+            <input type="text" id="detailBulkStart" value="08:00" maxlength="5" inputmode="numeric" placeholder="08:00" required class="w-full rounded-xl border border-slate-300 px-3 py-2 text-center font-mono text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+          </div>
+          <div>
+            <label for="detailBulkEnd" class="block text-xs font-bold text-slate-700 mb-1">퇴근 시간 (24h)</label>
+            <input type="text" id="detailBulkEnd" value="19:30" maxlength="5" inputmode="numeric" placeholder="19:30" required class="w-full rounded-xl border border-slate-300 px-3 py-2 text-center font-mono text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+          </div>
         </div>
 
-        <hr class="border-slate-200" />
+        <div class="flex flex-wrap items-center gap-1.5 text-[11px]">
+          <span class="text-slate-400 font-semibold">빠른 퇴근:</span>
+          <button type="button" data-bulk-end="17:00" class="px-2 py-0.5 rounded-md font-mono font-semibold bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700">17:00</button>
+          <button type="button" data-bulk-end="18:30" class="px-2 py-0.5 rounded-md font-mono font-semibold bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700">18:30</button>
+          <button type="button" data-bulk-end="19:30" class="px-2 py-0.5 rounded-md font-mono font-semibold bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700">19:30</button>
+          <button type="button" data-bulk-end="20:30" class="px-2 py-0.5 rounded-md font-mono font-semibold bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700">20:30</button>
+          <button type="button" data-bulk-end="21:30" class="px-2 py-0.5 rounded-md font-mono font-semibold bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700">21:30</button>
+          <button type="button" data-bulk-end="22:00" class="px-2 py-0.5 rounded-md font-mono font-semibold bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700">22:00</button>
+        </div>
 
-        <!-- 2. 팀원 관리 -->
-        <div class="space-y-3">
-          <h4 class="text-sm font-bold text-slate-800">2. 팀원 목록</h4>
-          <form id="addMemberForm" class="grid grid-cols-1 sm:grid-cols-12 gap-2">
-            <select id="newMemberTeamSelect" required class="sm:col-span-5 rounded-xl border border-slate-300 px-3 py-2 text-sm bg-white"></select>
-            <input type="text" id="newMemberName" placeholder="성명" maxlength="20" required class="sm:col-span-3 rounded-xl border border-slate-300 px-3 py-2 text-sm" />
-            <input type="text" id="newMemberPos" placeholder="직급 (선택)" maxlength="15" class="sm:col-span-2 rounded-xl border border-slate-300 px-3 py-2 text-sm" />
-            <button type="submit" class="sm:col-span-2 px-3 py-2 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700">추가</button>
-          </form>
-          <div id="manageMemberList" class="divide-y divide-slate-100 border border-slate-200 rounded-xl max-h-64 overflow-y-auto"></div>
+        <div class="space-y-1.5">
+          <label class="inline-flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer">
+            <input type="checkbox" id="detailBulkUpdateNote" class="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
+            비고도 함께 일괄 변경
+          </label>
+          <input type="text" id="detailBulkNote" maxlength="60" disabled placeholder="체크 시 일괄 적용할 비고 입력" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-800 disabled:bg-slate-100 disabled:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+          <button type="button" id="btnCancelDetailBulk" class="px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200">취소</button>
+          <button type="submit" class="px-5 py-2 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-xs">일괄 수정 저장</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- 모달 3: 부서 / 팀원 관리 모달 - 조직도(Org Chart) 뷰 (Firestore 연동)  -->
+  <!-- ===================================================================== -->
+  <div id="manageModal" class="hidden fixed inset-0 z-50 bg-slate-900/55 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-5xl max-h-[92vh] flex flex-col overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-gradient-to-r from-slate-900 to-indigo-950 text-white">
+        <div>
+          <h3 class="text-lg font-bold tracking-tight">부서 / 팀원 조직도 관리 (Firestore 실시간 동기화)</h3>
+          <p class="text-xs text-indigo-200 mt-0.5">조직도에서 부서를 추가하고, 각 부서 노드 안에서 여러 명의 팀원을 한 번에 등록·이동·삭제할 수 있습니다.</p>
+        </div>
+        <button type="button" id="btnCloseManageModal" class="p-2 rounded-lg text-white/70 hover:text-white hover:bg-white/15">✕</button>
+      </div>
+
+      <div class="p-5 sm:p-6 overflow-y-auto bg-slate-50/70 space-y-0 flex-1">
+        <!-- 조직도 최상위 루트 노드 (회사 / 전체 조직 + 부서 추가) -->
+        <div class="flex flex-col items-center">
+          <div class="w-full max-w-xl bg-white rounded-2xl border-2 border-indigo-600 shadow-md p-4 space-y-3">
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-2">
+                <span class="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-xs font-extrabold">ORG</span>
+                <div>
+                  <h4 class="text-sm font-extrabold text-slate-900">전체 조직도</h4>
+                  <p id="orgSummaryBadge" class="text-[11px] font-semibold text-indigo-600">총 0개 부서 · 0명</p>
+                </div>
+              </div>
+              <span class="px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 text-[11px] font-bold">최상위</span>
+            </div>
+
+            <form id="addTeamForm" class="flex flex-col sm:flex-row gap-2">
+              <select
+                id="newParentDept"
+                title="상위 부서 선택 (하위 팀 등록 시 선택)"
+                class="sm:w-44 rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs sm:text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="">최상위 부서로 추가</option>
+              </select>
+              <input type="text" id="newDeptName" placeholder="새 부서 또는 하위 팀명 (예: 생산부, 생산1팀)" maxlength="25" required class="flex-1 rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              <button type="submit" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shrink-0">
+                + 부서 추가
+              </button>
+            </form>
+          </div>
+
+          <!-- 루트 하단 수직 연결선 -->
+          <div class="w-0.5 h-6 bg-indigo-300"></div>
+        </div>
+
+        <!-- 부서별 조직도 노드 컨테이너 -->
+        <div class="relative pt-4 border-t-2 border-indigo-200">
+          <div id="orgChartContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 items-start"></div>
         </div>
       </div>
 
-      <div class="px-6 py-3.5 border-t border-slate-200 bg-slate-50 flex flex-wrap items-center justify-between gap-2">
+      <div class="px-6 py-3.5 border-t border-slate-200 bg-white flex flex-wrap items-center justify-between gap-2">
         <div class="flex items-center gap-2">
           <button type="button" id="btnSeedSample" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200">
             샘플 데이터 넣기
@@ -815,14 +879,14 @@ service cloud.firestore {
     // 3. 애플리케이션 상태
     // =========================================================================
     const state = {
-      teams: [],               // [{ id, department, teamName, order }]
-      members: [],             // [{ id, name, department, team, position, active }]
+      teams: [],               // [{ id, name, department, order }]
+      members: [],             // [{ id, name, department, active }]
       recordsMap: new Map(),   // key: `${date}_${memberId}` -> { id, date, memberId, startTime, endTime, note }
       customHolidays: {},      // { 'YYYY-MM-DD': '휴일명' }
       weekStartDate: '',       // 선택된 주의 일요일 ('YYYY-MM-DD')
       selectedDept: 'ALL',
-      selectedTeam: 'ALL',
       highlightedMemberId: null,
+      selectedDetailIds: new Set(),
       detailExpanded: true,
       holidayViewYear: '2026',
       fbStatus: 'syncing',     // 'syncing' | 'connected' | 'error'
@@ -1025,8 +1089,6 @@ service cloud.firestore {
       jumpDatePicker: document.getElementById('jumpDatePicker'),
 
       deptFilterTabs: document.getElementById('deptFilterTabs'),
-      teamTabDivider: document.getElementById('teamTabDivider'),
-      teamFilterTabs: document.getElementById('teamFilterTabs'),
       gridFilterBadge: document.getElementById('gridFilterBadge'),
       panelFilterBadge: document.getElementById('panelFilterBadge'),
 
@@ -1038,13 +1100,19 @@ service cloud.firestore {
       detailCountBadge: document.getElementById('detailCountBadge'),
       detailTableContainer: document.getElementById('detailTableContainer'),
       detailTableBody: document.getElementById('detailTableBody'),
+      detailBulkBar: document.getElementById('detailBulkBar'),
+      detailSelectedCount: document.getElementById('detailSelectedCount'),
+      btnDetailBulkEdit: document.getElementById('btnDetailBulkEdit'),
+      btnDetailBulkDelete: document.getElementById('btnDetailBulkDelete'),
+      detailSelectAll: document.getElementById('detailSelectAll'),
 
+      // 우측 주 52시간 현황 패널
       kpiTotalOvertime: document.getElementById('kpiTotalOvertime'),
       kpiTotalHoliday: document.getElementById('kpiTotalHoliday'),
       kpiExceededCount: document.getElementById('kpiExceededCount'),
       member52hList: document.getElementById('member52hList'),
 
-      // 모달 1: 부서/팀 일괄 입력
+      // 모달 1: 부서원 일괄 입력
       btnOpenBatchModal: document.getElementById('btnOpenBatchModal'),
       batchModal: document.getElementById('batchModal'),
       btnCloseBatchModal: document.getElementById('btnCloseBatchModal'),
@@ -1054,7 +1122,6 @@ service cloud.firestore {
       btnBatchPrevDay: document.getElementById('btnBatchPrevDay'),
       btnBatchNextDay: document.getElementById('btnBatchNextDay'),
       batchDeptSelect: document.getElementById('batchDeptSelect'),
-      batchTeamSelect: document.getElementById('batchTeamSelect'),
       batchCommonStart: document.getElementById('batchCommonStart'),
       batchCommonEnd: document.getElementById('batchCommonEnd'),
       btnApplyCommonTime: document.getElementById('btnApplyCommonTime'),
@@ -1091,20 +1158,27 @@ service cloud.firestore {
       btnDeleteSingle: document.getElementById('btnDeleteSingle'),
       btnCancelSingle: document.getElementById('btnCancelSingle'),
 
-      // 모달 3: 부서/팀원 관리
+      // 모달 2-B: 상세 기록 선택 일괄 수정
+      detailBulkEditModal: document.getElementById('detailBulkEditModal'),
+      btnCloseDetailBulkModal: document.getElementById('btnCloseDetailBulkModal'),
+      btnCancelDetailBulk: document.getElementById('btnCancelDetailBulk'),
+      detailBulkForm: document.getElementById('detailBulkForm'),
+      detailBulkCountText: document.getElementById('detailBulkCountText'),
+      detailBulkStart: document.getElementById('detailBulkStart'),
+      detailBulkEnd: document.getElementById('detailBulkEnd'),
+      detailBulkUpdateNote: document.getElementById('detailBulkUpdateNote'),
+      detailBulkNote: document.getElementById('detailBulkNote'),
+
+      // 모달 3: 부서/팀원 조직도 관리
       btnOpenManageModal: document.getElementById('btnOpenManageModal'),
       manageModal: document.getElementById('manageModal'),
       btnCloseManageModal: document.getElementById('btnCloseManageModal'),
       btnDoneManageModal: document.getElementById('btnDoneManageModal'),
       addTeamForm: document.getElementById('addTeamForm'),
+      newParentDept: document.getElementById('newParentDept'),
       newDeptName: document.getElementById('newDeptName'),
-      newTeamName: document.getElementById('newTeamName'),
-      manageTeamList: document.getElementById('manageTeamList'),
-      addMemberForm: document.getElementById('addMemberForm'),
-      newMemberTeamSelect: document.getElementById('newMemberTeamSelect'),
-      newMemberName: document.getElementById('newMemberName'),
-      newMemberPos: document.getElementById('newMemberPos'),
-      manageMemberList: document.getElementById('manageMemberList'),
+      orgSummaryBadge: document.getElementById('orgSummaryBadge'),
+      orgChartContainer: document.getElementById('orgChartContainer'),
       btnSeedSample: document.getElementById('btnSeedSample'),
       btnClearRecords: document.getElementById('btnClearRecords'),
 
@@ -1119,7 +1193,7 @@ service cloud.firestore {
       holidayYearTabs: document.getElementById('holidayYearTabs'),
       holidayListContainer: document.getElementById('holidayListContainer'),
 
-      // 모달 5: Firebase 안내 & 확인 모달 & 토스트
+      // 모달 5: Firebase 안내 & 기타
       fbGuideModal: document.getElementById('fbGuideModal'),
       btnCloseFbGuide: document.getElementById('btnCloseFbGuide'),
       btnOkFbGuide: document.getElementById('btnOkFbGuide'),
@@ -1135,23 +1209,172 @@ service cloud.firestore {
     };
 
     // =========================================================================
-    // 6. 토스트, 확인 모달, Firebase 상태 표시
+    // 7. 조회 / 필터 헬퍼 (계층형 부서/하위팀 구조 + 기존 Firestore 문서 하위 호환)
     // =========================================================================
-    function showToast(msg, type = 'success') {
+    function getDeptName(t) {
+      return (t?.name || t?.department || t?.teamName || '').trim();
+    }
+
+    function getMemberDept(m) {
+      return (m?.department || m?.team || '').trim();
+    }
+
+    function getTeamById(teamId) {
+      if (!teamId) return null;
+      return state.teams.find((t) => t.id === teamId) || null;
+    }
+
+    /** 팀 객체의 전체 계층 경로 반환 (예: "생산부 > 생산1팀") */
+    function getTeamPath(team) {
+      if (!team) return '';
+      const parts = [];
+      const visited = new Set();
+      let cur = team;
+      while (cur && !visited.has(cur.id)) {
+        visited.add(cur.id);
+        parts.unshift(getDeptName(cur));
+        cur = cur.parentId ? getTeamById(cur.parentId) : null;
+      }
+      return parts.join(' > ');
+    }
+
+    /** 특정 부서와 모든 하위 부서(재귀)의 ID Set 반환 */
+    function getDescendantTeamIds(rootTeamId) {
+      const ids = new Set([rootTeamId]);
+      const queue = [rootTeamId];
+      while (queue.length > 0) {
+        const curId = queue.shift();
+        state.teams.forEach((t) => {
+          if (t.parentId === curId && !ids.has(t.id)) {
+            ids.add(t.id);
+            queue.push(t.id);
+          }
+        });
+      }
+      return ids;
+    }
+
+    /** 계층 트리 순서대로 평탄화된 부서 목록 반환 [{ team, depth, path }] */
+    function getFlattenedTeams() {
+      const result = [];
+      const visited = new Set();
+      const validIds = new Set(state.teams.map((t) => t.id));
+
+      const traverse = (parentId, depth) => {
+        const children = state.teams
+          .filter((t) => (parentId === null ? !t.parentId || !validIds.has(t.parentId) : t.parentId === parentId))
+          .sort((a, b) => (a.order ?? 999) - (b.order ?? 999) || getDeptName(a).localeCompare(getDeptName(b), 'ko'));
+
+        children.forEach((t) => {
+          if (visited.has(t.id)) return;
+          visited.add(t.id);
+          result.push({ team: t, depth, path: getTeamPath(t) });
+          traverse(t.id, depth + 1);
+        });
+      };
+
+      traverse(null, 0);
+      return result;
+    }
+
+    /** 팀원이 소속된 팀 객체 조회 (teamId 우선, 없으면 기존 department 이름으로 매칭) */
+    function getMemberTeam(m) {
+      if (!m) return null;
+      if (m.teamId) {
+        const byId = getTeamById(m.teamId);
+        if (byId) return byId;
+      }
+      const dep = getMemberDept(m);
+      if (!dep) return null;
+      return state.teams.find((t) => getDeptName(t) === dep || getTeamPath(t) === dep) || null;
+    }
+
+    /** 화면/엑셀에 표시할 팀원의 부서 경로명 */
+    function getMemberDeptLabel(m) {
+      const team = getMemberTeam(m);
+      return team ? getTeamPath(team) : (getMemberDept(m) || '미배정');
+    }
+
+    /** 특정 부서(하위 부서 포함) 소속 여부 판별 */
+    function isMemberInDeptFilter(member, filterValue) {
+      if (!filterValue || filterValue === 'ALL') return true;
+      const teamObj = getTeamById(filterValue);
+      if (teamObj) {
+        const allowedIds = getDescendantTeamIds(teamObj.id);
+        const mTeam = getMemberTeam(member);
+        if (mTeam && allowedIds.has(mTeam.id)) return true;
+        // 하위 호환: teamId가 없고 department 문자열만 있는 경우
+        const allowedNames = new Set(
+          Array.from(allowedIds).map((id) => getDeptName(getTeamById(id)))
+        );
+        return allowedNames.has(getMemberDept(member));
+      }
+      return getMemberDept(member) === filterValue;
+    }
+
+    function getVisibleMembers() {
+      const flat = getFlattenedTeams();
+      const orderMap = new Map(flat.map((item, idx) => [item.team.id, idx]));
+      return state.members
+        .filter((m) => m.active !== false)
+        .filter((m) => isMemberInDeptFilter(m, state.selectedDept))
+        .sort((a, b) => {
+          const ta = getMemberTeam(a);
+          const tb = getMemberTeam(b);
+          const oa = ta ? (orderMap.get(ta.id) ?? 999) : 999;
+          const ob = tb ? (orderMap.get(tb.id) ?? 999) : 999;
+          if (oa !== ob) return oa - ob;
+          return a.name.localeCompare(b.name, 'ko');
+        });
+    }
+
+    function getRecord(dateStr, memberId) {
+      return state.recordsMap.get(`${dateStr}_${memberId}`) || null;
+    }
+
+    function getVisibleWeekRecords() {
+      const weekSet = new Set(getWeekDates(state.weekStartDate));
+      const memberIds = new Set(getVisibleMembers().map((m) => m.id));
+      const list = [];
+      state.recordsMap.forEach((rec) => {
+        if (weekSet.has(rec.date) && memberIds.has(rec.memberId)) {
+          list.push(rec);
+        }
+      });
+      return list.sort((a, b) => {
+        if (a.date !== b.date) return a.date.localeCompare(b.date);
+        const ma = state.members.find((x) => x.id === a.memberId);
+        const mb = state.members.find((x) => x.id === b.memberId);
+        return (ma?.name || '').localeCompare(mb?.name || '', 'ko');
+      });
+    }
+
+    function getActiveFilterLabel() {
+      if (state.selectedDept === 'ALL') return '전체 부서';
+      const t = getTeamById(state.selectedDept);
+      return t ? getTeamPath(t) : state.selectedDept;
+    }
+
+    // =========================================================================
+    // 6. 토스트 / 확인 모달 / Firebase 상태 표시
+    // =========================================================================
+    function showToast(message, type = 'info') {
       const styles = {
-        success: 'bg-slate-900 text-white border-slate-700',
-        error: 'bg-rose-600 text-white border-rose-500',
-        info: 'bg-indigo-600 text-white border-indigo-500',
+        success: 'bg-emerald-600 text-white',
+        error: 'bg-rose-600 text-white',
+        info: 'bg-slate-800 text-white',
       };
       const el = document.createElement('div');
-      el.className = `pointer-events-auto px-4 py-3 rounded-xl border shadow-lg text-xs sm:text-sm font-semibold transition-all duration-300 translate-y-2 opacity-0 ${styles[type] || styles.success}`;
-      el.textContent = msg;
+      el.className = `pointer-events-auto px-4 py-2.5 rounded-xl shadow-lg text-xs sm:text-sm font-semibold transition-all duration-300 opacity-0 translate-y-2 ${styles[type] || styles.info}`;
+      el.textContent = message;
       els.toastContainer.appendChild(el);
-      requestAnimationFrame(() => el.classList.remove('translate-y-2', 'opacity-0'));
+      requestAnimationFrame(() => {
+        el.classList.remove('opacity-0', 'translate-y-2');
+      });
       setTimeout(() => {
-        el.classList.add('translate-y-2', 'opacity-0');
+        el.classList.add('opacity-0', 'translate-y-2');
         setTimeout(() => el.remove(), 300);
-      }, 3000);
+      }, 3200);
     }
 
     function openConfirm(title, message, onConfirm) {
@@ -1205,64 +1428,6 @@ service cloud.firestore {
     }
 
     // =========================================================================
-    // 7. 조회 / 필터 헬퍼
-    // =========================================================================
-    function getUniqueDepartments() {
-      const set = new Set();
-      state.teams.forEach((t) => t.department && set.add(t.department));
-      state.members.forEach((m) => m.department && set.add(m.department));
-      return Array.from(set);
-    }
-
-    function getTeamsByDepartment(dept) {
-      const filtered = dept === 'ALL'
-        ? state.teams
-        : state.teams.filter((t) => t.department === dept);
-      return filtered.slice().sort((a, b) => (a.order ?? 999) - (b.order ?? 999) || a.teamName.localeCompare(b.teamName, 'ko'));
-    }
-
-    function getVisibleMembers() {
-      const teamOrderMap = new Map(state.teams.map((t, i) => [`${t.department}::${t.teamName}`, t.order ?? i]));
-      return state.members
-        .filter((m) => m.active !== false)
-        .filter((m) => state.selectedDept === 'ALL' || m.department === state.selectedDept)
-        .filter((m) => state.selectedTeam === 'ALL' || m.team === state.selectedTeam)
-        .sort((a, b) => {
-          const oa = teamOrderMap.get(`${a.department}::${a.team}`) ?? 999;
-          const ob = teamOrderMap.get(`${b.department}::${b.team}`) ?? 999;
-          if (oa !== ob) return oa - ob;
-          return a.name.localeCompare(b.name, 'ko');
-        });
-    }
-
-    function getRecord(dateStr, memberId) {
-      return state.recordsMap.get(`${dateStr}_${memberId}`) || null;
-    }
-
-    function getVisibleWeekRecords() {
-      const weekSet = new Set(getWeekDates(state.weekStartDate));
-      const memberIds = new Set(getVisibleMembers().map((m) => m.id));
-      const list = [];
-      state.recordsMap.forEach((rec) => {
-        if (weekSet.has(rec.date) && memberIds.has(rec.memberId)) {
-          list.push(rec);
-        }
-      });
-      return list.sort((a, b) => {
-        if (a.date !== b.date) return a.date.localeCompare(b.date);
-        const ma = state.members.find((x) => x.id === a.memberId);
-        const mb = state.members.find((x) => x.id === b.memberId);
-        return (ma?.name || '').localeCompare(mb?.name || '', 'ko');
-      });
-    }
-
-    function getActiveFilterLabel() {
-      if (state.selectedDept === 'ALL' && state.selectedTeam === 'ALL') return '전체 부서·팀';
-      if (state.selectedTeam !== 'ALL') return `${state.selectedDept !== 'ALL' ? state.selectedDept + ' · ' : ''}${state.selectedTeam}`;
-      return `${state.selectedDept} (전체 팀)`;
-    }
-
-    // =========================================================================
     // 8. Firestore 실시간 구독 (onSnapshot) & 샘플 데이터 Batch 쓰기
     // =========================================================================
     function subscribeFirestore() {
@@ -1271,19 +1436,28 @@ service cloud.firestore {
       const checkAllLoaded = () => {
         const { teams, members, records, holidays } = state.initialLoaded;
         if (teams && members && records && holidays) {
-          if (state.fbStatus !== 'error') setFbStatus('connected');
-          // 팀원이 비어있으면 샘플 불러오기 배너 표시
-          els.emptyDbBanner.classList.toggle('hidden', state.members.length > 0);
+          setFbStatus('connected');
+          els.emptyDbBanner.classList.toggle('hidden', state.members.length > 0 || state.teams.length > 0);
         }
       };
 
-      // 1) teams 컬렉션
+      // 1) teams 컬렉션 (기존 name / department / teamName + 계층형 parentId 지원)
       onSnapshot(
         collection(db, 'teams'),
         (snap) => {
           state.teams = snap.docs
-            .map((d) => ({ id: d.id, ...d.data() }))
-            .sort((a, b) => (a.order ?? 999) - (b.order ?? 999) || (a.teamName || '').localeCompare(b.teamName || '', 'ko'));
+            .map((d) => {
+              const data = d.data();
+              const deptLabel = (data.name || data.department || data.teamName || '').trim();
+              return {
+                id: d.id,
+                ...data,
+                name: deptLabel,
+                department: deptLabel,
+                parentId: data.parentId || null,
+              };
+            })
+            .sort((a, b) => (a.order ?? 999) - (b.order ?? 999) || getDeptName(a).localeCompare(getDeptName(b), 'ko'));
           state.initialLoaded.teams = true;
           checkAllLoaded();
           renderAll();
@@ -1296,7 +1470,10 @@ service cloud.firestore {
       onSnapshot(
         collection(db, 'members'),
         (snap) => {
-          state.members = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+          state.members = snap.docs.map((d) => {
+            const data = d.data();
+            return { id: d.id, ...data, department: (data.department || data.team || '').trim() };
+          });
           state.initialLoaded.members = true;
           checkAllLoaded();
           renderAll();
@@ -1329,7 +1506,8 @@ service cloud.firestore {
           const obj = {};
           snap.docs.forEach((d) => {
             const data = d.data();
-            if (data.date && data.name) obj[data.date] = data.name;
+            const key = data.date || d.id;
+            if (key && data.name) obj[key] = data.name;
           });
           state.customHolidays = obj;
           state.initialLoaded.holidays = true;
@@ -1341,7 +1519,7 @@ service cloud.firestore {
       );
     }
 
-    /** Firestore에 샘플 부서/팀/팀원/주간 기록 일괄 등록 (writeBatch) */
+    /** Firestore에 샘플 부서/팀원/주간 기록 일괄 등록 (writeBatch) */
     async function seedSampleDataToFirestore() {
       try {
         setFbStatus('syncing');
@@ -1349,10 +1527,11 @@ service cloud.firestore {
         const d = getWeekDates(state.weekStartDate); // 일~토
 
         const sampleTeams = [
-          { id: 'team_prod1', department: '생산부', teamName: '생산1팀', order: 1 },
-          { id: 'team_prod2', department: '생산부', teamName: '생산2팀', order: 2 },
-          { id: 'team_qc', department: '품질부', teamName: '품질팀', order: 3 },
-          { id: 'team_dev', department: '신규사업부', teamName: '개발팀', order: 4 },
+          { id: 'dept_prod', name: '생산부', department: '생산부', parentId: null, order: 1, createdAt: serverTimestamp() },
+          { id: 'dept_prod1', name: '생산1팀', department: '생산1팀', parentId: 'dept_prod', order: 1, createdAt: serverTimestamp() },
+          { id: 'dept_prod2', name: '생산2팀', department: '생산2팀', parentId: 'dept_prod', order: 2, createdAt: serverTimestamp() },
+          { id: 'dept_qc', name: '품질팀', department: '품질팀', parentId: null, order: 2, createdAt: serverTimestamp() },
+          { id: 'dept_newbiz', name: '신규사업부', department: '신규사업부', parentId: null, order: 3, createdAt: serverTimestamp() },
         ];
 
         sampleTeams.forEach((t) => {
@@ -1360,14 +1539,14 @@ service cloud.firestore {
         });
 
         const sampleMembers = [
-          { id: 'm_1', name: '김왕근', department: '생산부', team: '생산1팀', position: '반장', active: true },
-          { id: 'm_2', name: '김홍열', department: '생산부', team: '생산1팀', position: '주임', active: true },
-          { id: 'm_3', name: '유화석', department: '생산부', team: '생산1팀', position: '사원', active: true },
-          { id: 'm_4', name: '김희중', department: '생산부', team: '생산2팀', position: '반장', active: true },
-          { id: 'm_5', name: '백승현', department: '생산부', team: '생산2팀', position: '주임', active: true },
-          { id: 'm_6', name: '김창선', department: '생산부', team: '생산2팀', position: '사원', active: true },
-          { id: 'm_7', name: '신재수', department: '품질부', team: '품질팀', position: '과장', active: true },
-          { id: 'm_8', name: '이정훈', department: '신규사업부', team: '개발팀', position: '대리', active: true },
+          { id: 'm_1', name: '김왕근', teamId: 'dept_prod1', department: '생산1팀', active: true },
+          { id: 'm_2', name: '김홍열', teamId: 'dept_prod1', department: '생산1팀', active: true },
+          { id: 'm_3', name: '유화석', teamId: 'dept_prod1', department: '생산1팀', active: true },
+          { id: 'm_4', name: '김희중', teamId: 'dept_prod2', department: '생산2팀', active: true },
+          { id: 'm_5', name: '백승현', teamId: 'dept_prod2', department: '생산2팀', active: true },
+          { id: 'm_6', name: '김창선', teamId: 'dept_prod2', department: '생산2팀', active: true },
+          { id: 'm_7', name: '신재수', teamId: 'dept_qc', department: '품질팀', active: true },
+          { id: 'm_8', name: '이정훈', teamId: 'dept_newbiz', department: '신규사업부', active: true },
         ];
 
         sampleMembers.forEach((m) => {
@@ -1456,12 +1635,18 @@ service cloud.firestore {
       els.gridFilterBadge.textContent = label;
       els.panelFilterBadge.textContent = label;
 
-      // 부서 탭
-      const depts = getUniqueDepartments();
-      const deptItems = [{ id: 'ALL', label: `전체 (${state.members.length})` }];
-      depts.forEach((dep) => {
-        const cnt = state.members.filter((m) => m.department === dep).length;
-        deptItems.push({ id: dep, label: `${dep} (${cnt})` });
+      // 계층형 부서 필터 탭 (상위 부서 클릭 시 하위 팀원 포함 표시)
+      const flatTeams = getFlattenedTeams();
+      const validIds = new Set(flatTeams.map((f) => f.team.id));
+      if (state.selectedDept !== 'ALL' && !validIds.has(state.selectedDept)) {
+        state.selectedDept = 'ALL';
+      }
+
+      const deptItems = [{ id: 'ALL', label: `전체 (${state.members.length})`, depth: 0 }];
+      flatTeams.forEach(({ team, depth }) => {
+        const cnt = state.members.filter((m) => isMemberInDeptFilter(m, team.id)).length;
+        const prefix = depth > 0 ? '↳ ' : '';
+        deptItems.push({ id: team.id, label: `${prefix}${getDeptName(team)} (${cnt})`, depth });
       });
 
       els.deptFilterTabs.innerHTML = deptItems
@@ -1469,30 +1654,12 @@ service cloud.firestore {
           const active = state.selectedDept === item.id;
           const cls = active
             ? 'bg-indigo-600 text-white shadow-xs'
+            : item.depth > 0
+            ? 'bg-indigo-50/70 text-indigo-700 hover:bg-indigo-100 border border-indigo-200/70'
             : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900';
           return `<button type="button" data-filter-dept="${escapeHtml(item.id)}" class="px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-colors ${cls}">${escapeHtml(item.label)}</button>`;
         })
         .join('');
-
-      // 팀 탭 (부서 선택 시 해당 부서 팀, 전체 선택 시 모든 팀)
-      const teams = getTeamsByDepartment(state.selectedDept);
-      if (teams.length > 0) {
-        els.teamTabDivider.classList.remove('hidden');
-        const teamBtns = [
-          `<button type="button" data-filter-team="ALL" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${state.selectedTeam === 'ALL' ? 'bg-slate-800 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'}">전체 팀</button>`,
-        ];
-        teams.forEach((t) => {
-          const active = state.selectedTeam === t.teamName;
-          const cls = active
-            ? 'bg-slate-800 text-white'
-            : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100';
-          teamBtns.push(`<button type="button" data-filter-team="${escapeHtml(t.teamName)}" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${cls}">${escapeHtml(t.teamName)}</button>`);
-        });
-        els.teamFilterTabs.innerHTML = teamBtns.join('');
-      } else {
-        els.teamTabDivider.classList.add('hidden');
-        els.teamFilterTabs.innerHTML = '';
-      }
     }
 
     function renderWeeklyGrid() {
@@ -1500,11 +1667,11 @@ service cloud.firestore {
       const metas = weekDates.map(getDateMeta);
       const members = getVisibleMembers();
 
-      // 1행: 요일 헤더 (클릭 시 해당 날짜 부서/팀 일괄 입력 모달 오픈)
+      // 1행: 요일 헤더 (클릭 시 해당 날짜 부서원 일괄 입력 모달 오픈)
       const row1 = `
         <tr>
           <th rowspan="3" class="sticky left-0 z-10 bg-slate-800 text-white border border-slate-600 px-3 py-2 text-xs font-bold min-w-[130px] shadow-[2px_0_4px_-2px_rgba(0,0,0,0.2)]">
-            부서·팀 / 성명
+            부서 / 성명
           </th>
           ${metas
             .map((m) => {
@@ -1515,7 +1682,7 @@ service cloud.firestore {
                 <th
                   colspan="2"
                   data-batch-date="${m.dateStr}"
-                  title="${m.dateStr} (${m.dayFullName}) 클릭하여 부서/팀 일괄 입력"
+                  title="${m.dateStr} (${m.dayFullName}) 클릭하여 부서원 일괄 입력"
                   class="${bg} border border-slate-600/40 py-2 px-1 text-xs font-bold cursor-pointer transition-colors"
                 >
                   ${m.dayFullName}
@@ -1541,7 +1708,7 @@ service cloud.firestore {
                 <th
                   colspan="2"
                   data-batch-date="${m.dateStr}"
-                  title="클릭하여 ${m.dateStr} 부서/팀 일괄 입력"
+                  title="클릭하여 ${m.dateStr} 부서원 일괄 입력"
                   class="${bg} border border-slate-300 py-1.5 px-1 text-xs font-extrabold cursor-pointer transition-colors"
                 >
                   <div>${m.dayNum}일 <span class="text-[10px] font-normal opacity-60">+일괄</span></div>
@@ -1621,11 +1788,8 @@ service cloud.firestore {
           return `
             <tr data-grid-row="${escapeHtml(member.id)}" class="${rowCls}">
               <td class="sticky left-0 z-10 ${stickyBg} border border-slate-300 px-2.5 py-2 text-left whitespace-nowrap shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]">
-                <div class="font-bold text-slate-900 text-xs">
-                  ${escapeHtml(member.name)}
-                  ${member.position ? `<span class="text-[10px] font-normal text-slate-400">${escapeHtml(member.position)}</span>` : ''}
-                </div>
-                <div class="text-[10px] font-medium text-slate-500">${escapeHtml(member.department)} · ${escapeHtml(member.team)}</div>
+                <div class="font-bold text-slate-900 text-xs">${escapeHtml(member.name)}</div>
+                <div class="text-[10px] font-medium text-slate-500">${escapeHtml(getMemberDeptLabel(member))}</div>
               </td>
               ${cells}
             </tr>
@@ -1634,15 +1798,37 @@ service cloud.firestore {
         .join('');
     }
 
+    function updateDetailBulkBar(visibleRecords = null) {
+      const records = visibleRecords || getVisibleWeekRecords();
+      const visibleIds = new Set(records.map((r) => r.id));
+      state.selectedDetailIds.forEach((id) => {
+        if (!visibleIds.has(id)) state.selectedDetailIds.delete(id);
+      });
+
+      const count = state.selectedDetailIds.size;
+      els.detailSelectedCount.textContent = `${count}건 선택`;
+      els.btnDetailBulkEdit.disabled = count === 0;
+      els.btnDetailBulkDelete.disabled = count === 0;
+
+      if (records.length === 0) {
+        els.detailSelectAll.checked = false;
+        els.detailSelectAll.indeterminate = false;
+      } else {
+        els.detailSelectAll.checked = count === records.length;
+        els.detailSelectAll.indeterminate = count > 0 && count < records.length;
+      }
+    }
+
     function renderDetailTable() {
       const records = getVisibleWeekRecords();
       els.detailCountBadge.textContent = `${records.length}건`;
+      updateDetailBulkBar(records);
 
       if (records.length === 0) {
         els.detailTableBody.innerHTML = `
           <tr>
-            <td colspan="10" class="py-10 text-center text-sm text-slate-400">
-              해당 주간에 등록된 출퇴근 기록이 없습니다. 상단 '+ 부서/팀 일괄 입력' 또는 날짜 헤더를 클릭해 입력해 보세요.
+            <td colspan="11" class="py-10 text-center text-sm text-slate-400">
+              해당 주간에 등록된 출퇴근 기록이 없습니다. 상단 '+ 부서원 일괄 입력' 또는 날짜 헤더를 클릭해 입력해 보세요.
             </td>
           </tr>
         `;
@@ -1654,6 +1840,7 @@ service cloud.firestore {
           const member = state.members.find((m) => m.id === rec.memberId);
           const calc = calculateWorkHours(rec.date, rec.startTime, rec.endTime);
           const m = calc.meta;
+          const isChecked = state.selectedDetailIds.has(rec.id);
 
           let badge = `<span class="ml-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-600">${m.dayName}</span>`;
           if (m.isPublicHoliday) badge = `<span class="ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700">${m.dayName}·${escapeHtml(m.holidayName)}</span>`;
@@ -1664,9 +1851,12 @@ service cloud.firestore {
             : `<span class="font-semibold text-slate-800">${rec.startTime}</span>`;
 
           return `
-            <tr class="hover:bg-slate-50 transition-colors">
+            <tr class="${isChecked ? 'bg-indigo-50/60' : 'hover:bg-slate-50'} transition-colors">
+              <td class="py-2.5 px-3 text-center">
+                <input type="checkbox" data-detail-check="${escapeHtml(rec.id)}" ${isChecked ? 'checked' : ''} class="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" />
+              </td>
               <td class="py-2.5 px-4 whitespace-nowrap font-mono text-xs font-semibold text-slate-800">${rec.date}${badge}</td>
-              <td class="py-2.5 px-3 whitespace-nowrap text-xs text-slate-600">${escapeHtml(member ? `${member.department} · ${member.team}` : '-')}</td>
+              <td class="py-2.5 px-3 whitespace-nowrap text-xs text-slate-600">${escapeHtml(member ? getMemberDeptLabel(member) : '-')}</td>
               <td class="py-2.5 px-3 whitespace-nowrap font-bold text-slate-900">${escapeHtml(member ? member.name : '-')}</td>
               <td class="py-2.5 px-3 whitespace-nowrap font-mono text-xs">${startHtml} ~ <span class="font-semibold text-slate-800">${rec.endTime}</span></td>
               <td class="py-2.5 px-3 whitespace-nowrap text-xs text-slate-500">중${calc.lunchDeductMin}/석${calc.dinnerDeductMin}분</td>
@@ -1754,7 +1944,7 @@ service cloud.firestore {
             <div class="flex items-center justify-between gap-2 mb-2">
               <div class="flex items-center gap-1.5 min-w-0">
                 <span class="font-extrabold text-slate-900 text-sm truncate">${escapeHtml(item.member.name)}</span>
-                <span class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 text-[10px] font-semibold shrink-0">${escapeHtml(item.member.department)}·${escapeHtml(item.member.team)}</span>
+                <span class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 text-[10px] font-semibold shrink-0">${escapeHtml(getMemberDeptLabel(item.member))}</span>
               </div>
               ${badge}
             </div>
@@ -1796,20 +1986,20 @@ service cloud.firestore {
     }
 
     // =========================================================================
-    // 10. 모달 1: 부서/팀원 일괄 입력 모달 로직
+    // 10. 모달 1: 부서원 일괄 입력 모달 로직
     // =========================================================================
-    function populateBatchDeptTeamSelects(defaultDept = 'ALL', defaultTeam = 'ALL') {
-      const depts = getUniqueDepartments();
-      els.batchDeptSelect.innerHTML = `<option value="ALL">전체 부서</option>` +
-        depts.map((d) => `<option value="${escapeHtml(d)}" ${d === defaultDept ? 'selected' : ''}>${escapeHtml(d)}</option>`).join('');
-      updateBatchTeamOptions(defaultTeam);
-    }
-
-    function updateBatchTeamOptions(selectedTeam = 'ALL') {
-      const dept = els.batchDeptSelect.value;
-      const teams = getTeamsByDepartment(dept);
-      els.batchTeamSelect.innerHTML = `<option value="ALL">전체 팀</option>` +
-        teams.map((t) => `<option value="${escapeHtml(t.teamName)}" ${t.teamName === selectedTeam ? 'selected' : ''}>${dept === 'ALL' ? `[${escapeHtml(t.department)}] ` : ''}${escapeHtml(t.teamName)}</option>`).join('');
+    function populateBatchDeptSelect(defaultDept = 'ALL') {
+      const flatTeams = getFlattenedTeams();
+      els.batchDeptSelect.innerHTML =
+        `<option value="ALL">전체 부서</option>` +
+        flatTeams
+          .map(({ team, depth }) => {
+            const indent = depth > 0 ? `${'　'.repeat(depth)}└ ` : '';
+            const hasChildren = state.teams.some((t) => t.parentId === team.id);
+            const suffix = hasChildren ? ' (하위 포함)' : '';
+            return `<option value="${escapeHtml(team.id)}" ${team.id === defaultDept ? 'selected' : ''}>${indent}${escapeHtml(getDeptName(team))}${suffix}</option>`;
+          })
+          .join('');
     }
 
     function updateBatchDayBadge() {
@@ -1852,19 +2042,17 @@ service cloud.firestore {
       updateBatchDayBadge();
       const dateStr = els.batchDate.value;
       const dept = els.batchDeptSelect.value;
-      const team = els.batchTeamSelect.value;
 
       const matchedMembers = state.members
         .filter((m) => m.active !== false)
-        .filter((m) => dept === 'ALL' || m.department === dept)
-        .filter((m) => team === 'ALL' || m.team === team)
-        .sort((a, b) => a.department.localeCompare(b.department, 'ko') || a.team.localeCompare(b.team, 'ko') || a.name.localeCompare(b.name, 'ko'));
+        .filter((m) => isMemberInDeptFilter(m, dept))
+        .sort((a, b) => getMemberDeptLabel(a).localeCompare(getMemberDeptLabel(b), 'ko') || a.name.localeCompare(b.name, 'ko'));
 
       if (matchedMembers.length === 0) {
         els.batchTableBody.innerHTML = `
           <tr>
             <td colspan="7" class="py-12 text-center text-sm text-slate-400">
-              선택한 부서·팀에 소속된 인원이 없습니다.
+              선택한 부서에 소속된 인원이 없습니다.
             </td>
           </tr>
         `;
@@ -1893,7 +2081,7 @@ service cloud.firestore {
                   <span class="font-bold text-slate-900 text-sm">${escapeHtml(m.name)}</span>
                   ${existing ? '<span class="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 text-[10px] font-bold">저장됨</span>' : ''}
                 </div>
-                <div class="text-[11px] text-slate-500">${escapeHtml(m.department)} · ${escapeHtml(m.team)}</div>
+                <div class="text-[11px] text-slate-500">${escapeHtml(getMemberDeptLabel(m))}</div>
               </td>
               <td class="py-2.5 px-3">
                 <input
@@ -1947,7 +2135,7 @@ service cloud.firestore {
 
     function openBatchModal(dateStr = null) {
       els.batchDate.value = dateStr || getTodayStr();
-      populateBatchDeptTeamSelects(state.selectedDept, state.selectedTeam);
+      populateBatchDeptSelect(state.selectedDept);
       renderBatchTable();
       els.batchModal.classList.remove('hidden');
     }
@@ -1991,8 +2179,8 @@ service cloud.firestore {
       }
 
       try {
-        els.btnSaveBatch.disabled = true;
-        els.btnSaveBatch.textContent = '저장 중...';
+        // 유효성 검증 통과 시 팝업 즉시 종료 후 Firestore 일괄 저장
+        closeBatchModal();
         const batch = writeBatch(db);
         itemsToSave.forEach((item) => {
           const docId = `${dateStr}_${item.memberId}`;
@@ -2005,7 +2193,6 @@ service cloud.firestore {
             updatedAt: serverTimestamp(),
           });
         });
-        await batch.commit();
 
         const targetSunday = getSundayOfWeek(dateStr);
         if (targetSunday !== state.weekStartDate) {
@@ -2013,24 +2200,21 @@ service cloud.firestore {
           renderAll();
         }
 
+        await batch.commit();
         showToast(`${dateStr} 기준 ${itemsToSave.length}명의 근무 기록을 일괄 저장했습니다.`, 'success');
-        closeBatchModal();
       } catch (err) {
         handleFirestoreError(err, 'saveBatch');
-      } finally {
-        els.btnSaveBatch.disabled = false;
-        els.btnSaveBatch.textContent = '선택 인원 일괄 저장';
       }
     }
 
     // =========================================================================
-    // 11. 모달 2: 1인 빠른 수정 모달 로직
+    // 11. 모달 2: 1인 빠른 출퇴근 수정 모달 로직
     // =========================================================================
     function initSingle24hSelects() {
-      const fillH = (sel, max) => {
+      const fillH = (sel, maxH) => {
         sel.innerHTML = '';
-        for (let i = 0; i <= max; i++) {
-          const v = String(i).padStart(2, '0');
+        for (let h = 0; h <= maxH; h++) {
+          const v = String(h).padStart(2, '0');
           sel.innerHTML += `<option value="${v}">${v}시</option>`;
         }
       };
@@ -2106,7 +2290,7 @@ service cloud.firestore {
 
     function openSingleModal(dateStr, memberId) {
       els.singleMember.innerHTML = state.members
-        .map((m) => `<option value="${escapeHtml(m.id)}" ${m.id === memberId ? 'selected' : ''}>[${escapeHtml(m.department)}·${escapeHtml(m.team)}] ${escapeHtml(m.name)}</option>`)
+        .map((m) => `<option value="${escapeHtml(m.id)}" ${m.id === memberId ? 'selected' : ''}>[${escapeHtml(getMemberDeptLabel(m))}] ${escapeHtml(m.name)}</option>`)
         .join('');
       els.singleDate.value = dateStr;
 
@@ -2136,60 +2320,219 @@ service cloud.firestore {
     }
 
     // =========================================================================
-    // 12. 모달 3 & 4: 부서/팀원 관리 & 공휴일 관리 렌더링
+    // 12. 모달 3 & 4: 부서/팀원 조직도 관리 (계층형 하위 부서 지원) & 공휴일 관리
     // =========================================================================
     function renderManageModal() {
-      els.newMemberTeamSelect.innerHTML = state.teams.length
-        ? state.teams
-            .map((t) => `<option value="${escapeHtml(t.department)}:::${escapeHtml(t.teamName)}">${escapeHtml(t.department)} · ${escapeHtml(t.teamName)}</option>`)
-            .join('')
-        : '<option value="">먼저 부서/팀을 추가하세요</option>';
+      const flatTeams = getFlattenedTeams();
+      const validIds = new Set(state.teams.map((t) => t.id));
+      const rootTeams = state.teams
+        .filter((t) => !t.parentId || !validIds.has(t.parentId))
+        .sort((a, b) => (a.order ?? 999) - (b.order ?? 999) || getDeptName(a).localeCompare(getDeptName(b), 'ko'));
 
-      els.manageTeamList.innerHTML = state.teams.length
-        ? state.teams
-            .map((t) => {
-              const cnt = state.members.filter((m) => m.department === t.department && m.team === t.teamName).length;
-              return `
-                <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-xs font-bold text-slate-700">
-                  <span>${escapeHtml(t.department)} · ${escapeHtml(t.teamName)} <span class="text-slate-400 font-normal">(${cnt}명)</span></span>
-                  <button type="button" data-del-team-id="${escapeHtml(t.id)}" class="text-slate-400 hover:text-rose-600" title="삭제">✕</button>
+      const subCount = state.teams.length - rootTeams.length;
+      els.orgSummaryBadge.textContent = `총 ${rootTeams.length}개 부서${subCount > 0 ? ` (하위 팀 ${subCount}개)` : ''} · ${state.members.length}명`;
+
+      // 상단 루트 노드의 '상위 부서 선택' 드롭다운 동기화
+      const prevParentVal = els.newParentDept.value;
+      els.newParentDept.innerHTML =
+        `<option value="">최상위 부서로 추가</option>` +
+        flatTeams
+          .map(({ team, depth }) => {
+            const indent = depth > 0 ? `${'　'.repeat(depth)}└ ` : '';
+            return `<option value="${escapeHtml(team.id)}" ${team.id === prevParentVal ? 'selected' : ''}>${indent}${escapeHtml(getDeptName(team))} 하위</option>`;
+          })
+          .join('');
+
+      if (state.teams.length === 0 && state.members.length === 0) {
+        els.orgChartContainer.innerHTML = `
+          <div class="col-span-full py-12 text-center bg-white rounded-2xl border border-dashed border-slate-300 text-sm text-slate-400">
+            등록된 부서가 없습니다. 위 최상위 조직도에서 부서명을 입력해 첫 번째 부서를 추가해 주세요.
+          </div>
+        `;
+        return;
+      }
+
+      const teamOptsHtml = (curTeamId) =>
+        flatTeams
+          .map(({ team, depth }) => {
+            const indent = depth > 0 ? `${'　'.repeat(depth)}└ ` : '';
+            return `<option value="${escapeHtml(team.id)}" ${team.id === curTeamId ? 'selected' : ''}>${indent}${escapeHtml(getDeptName(team))}</option>`;
+          })
+          .join('');
+
+      const buildMembersTreeHtml = (deptMembers) => {
+        if (!deptMembers.length) {
+          return `<div class="pl-4 py-2 text-[11px] text-slate-400">직속 팀원이 없습니다.</div>`;
+        }
+        return deptMembers
+          .map((m) => {
+            const mTeam = getMemberTeam(m);
+            return `
+              <div class="relative pl-4 py-1 flex items-center justify-between gap-2 hover:bg-indigo-50/50 rounded-lg transition-colors">
+                <span class="absolute left-0 top-1/2 -translate-y-1/2 w-3 h-0.5 bg-indigo-200"></span>
+                <div class="flex items-center gap-1.5 min-w-0">
+                  <span class="w-1.5 h-1.5 rounded-full bg-indigo-400 shrink-0"></span>
+                  <span class="text-xs font-bold text-slate-800 truncate">${escapeHtml(m.name)}</span>
                 </div>
-              `;
-            })
-            .join('')
-        : '<p class="text-xs text-slate-400">등록된 부서/팀이 없습니다.</p>';
-
-      if (state.members.length === 0) {
-        els.manageMemberList.innerHTML = '<div class="p-4 text-center text-xs text-slate-400">등록된 팀원이 없습니다.</div>';
-      } else {
-        const teamOpts = (curDept, curTeam) =>
-          state.teams
-            .map((t) => {
-              const val = `${t.department}:::${t.teamName}`;
-              const sel = t.department === curDept && t.teamName === curTeam ? 'selected' : '';
-              return `<option value="${escapeHtml(val)}" ${sel}>${escapeHtml(t.department)} · ${escapeHtml(t.teamName)}</option>`;
-            })
-            .join('');
-
-        els.manageMemberList.innerHTML = state.members
-          .slice()
-          .sort((a, b) => a.department.localeCompare(b.department, 'ko') || a.team.localeCompare(b.team, 'ko') || a.name.localeCompare(b.name, 'ko'))
-          .map(
-            (m) => `
-            <div class="px-4 py-2.5 flex items-center justify-between gap-2 hover:bg-slate-50">
-              <div class="flex items-center gap-2.5 min-w-0">
-                <select data-move-member="${escapeHtml(m.id)}" class="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700">
-                  ${teamOpts(m.department, m.team)}
-                </select>
-                <span class="text-sm font-bold text-slate-900 truncate">${escapeHtml(m.name)}</span>
-                ${m.position ? `<span class="text-xs text-slate-400">${escapeHtml(m.position)}</span>` : ''}
+                <div class="flex items-center gap-1 shrink-0">
+                  ${
+                    flatTeams.length > 1
+                      ? `<select data-move-member="${escapeHtml(m.id)}" title="부서/팀 이동" class="max-w-[110px] rounded-md border border-slate-200 bg-white px-1 py-0.5 text-[10px] font-semibold text-slate-600 focus:outline-none focus:ring-1 focus:ring-indigo-500">${teamOptsHtml(mTeam?.id || '')}</select>`
+                      : ''
+                  }
+                  <button type="button" data-del-member="${escapeHtml(m.id)}" title="팀원 삭제" class="px-1 py-0.5 rounded-md text-[11px] font-bold text-rose-500 hover:text-rose-700 hover:bg-rose-50">✕</button>
+                </div>
               </div>
-              <button type="button" data-del-member="${escapeHtml(m.id)}" class="text-xs font-semibold text-rose-600 hover:bg-rose-50 px-2 py-1 rounded-lg">삭제</button>
+            `;
+          })
+          .join('');
+      };
+
+      /** 재귀적으로 부서 및 하위 부서(팀) 노드 렌더링 */
+      const buildDeptNode = (team, depth = 0) => {
+        const deptName = getDeptName(team);
+        const directMembers = state.members
+          .filter((m) => {
+            const mt = getMemberTeam(m);
+            return mt && mt.id === team.id;
+          })
+          .sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+
+        const childTeams = state.teams
+          .filter((t) => t.parentId === team.id)
+          .sort((a, b) => (a.order ?? 999) - (b.order ?? 999) || getDeptName(a).localeCompare(getDeptName(b), 'ko'));
+
+        const totalWithSubCount = state.members.filter((m) => isMemberInDeptFilter(m, team.id)).length;
+        const isRoot = depth === 0;
+
+        const headerBg = isRoot
+          ? 'bg-indigo-50/90 border-indigo-100'
+          : 'bg-sky-50/80 border-sky-200/80';
+        const dotColor = isRoot ? 'bg-indigo-600' : 'bg-sky-500';
+        const cardBorder = isRoot ? 'border-slate-200 shadow-sm' : 'border-sky-200/90 shadow-2xs';
+
+        const childrenHtml = childTeams.length
+          ? `
+            <div class="px-3 pb-3 pt-2 bg-slate-50/70 border-t border-slate-100 space-y-2.5">
+              <div class="flex items-center gap-1.5 text-[10px] font-extrabold text-sky-700 uppercase tracking-wider">
+                <span>↳ 하위 부서 / 팀 (${childTeams.length})</span>
+              </div>
+              <div class="pl-3 border-l-2 border-sky-300 space-y-2.5">
+                ${childTeams.map((ct) => buildDeptNode(ct, depth + 1)).join('')}
+              </div>
             </div>
           `
-          )
-          .join('');
+          : '';
+
+        return `
+          <div class="relative flex flex-col">
+            ${isRoot ? '<div class="mx-auto w-0.5 h-4 bg-indigo-300 -mt-4"></div>' : ''}
+
+            <div class="bg-white rounded-2xl border ${cardBorder} overflow-hidden flex flex-col">
+              <!-- 부서/팀 노드 헤더 -->
+              <div class="px-3.5 py-2.5 ${headerBg} border-b flex items-center justify-between gap-2">
+                <div class="flex items-center gap-1.5 min-w-0">
+                  <span class="w-2.5 h-2.5 rounded-sm ${dotColor} shrink-0"></span>
+                  <h5 class="${isRoot ? 'text-sm' : 'text-xs'} font-extrabold text-slate-900 truncate">${escapeHtml(deptName)}</h5>
+                  <span class="px-1.5 py-0.5 rounded-full bg-white text-[10px] font-bold text-indigo-700 border border-indigo-200 shrink-0" title="하위 부서 포함 전체 인원">
+                    ${childTeams.length > 0 ? `총 ${totalWithSubCount}명` : `${directMembers.length}명`}
+                  </span>
+                </div>
+                <div class="flex items-center gap-1 shrink-0">
+                  <button
+                    type="button"
+                    data-toggle-subdept-form="${escapeHtml(team.id)}"
+                    title="이 부서 아래에 하위 팀/부서 추가"
+                    class="px-2 py-0.5 rounded-lg text-[10px] font-bold text-sky-700 bg-white hover:bg-sky-100 border border-sky-200 transition-colors"
+                  >
+                    + 하위팀
+                  </button>
+                  <button
+                    type="button"
+                    data-del-team-id="${escapeHtml(team.id)}"
+                    title="부서 삭제"
+                    class="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 text-xs font-bold"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+
+              <!-- 인라인 하위 부서 추가 폼 (토글) -->
+              <form
+                data-org-add-subdept="${escapeHtml(team.id)}"
+                class="hidden px-3 py-2 bg-sky-50/60 border-b border-sky-100 flex items-center gap-1.5"
+              >
+                <input
+                  type="text"
+                  data-subdept-input
+                  placeholder="'${escapeHtml(deptName)}' 하위 팀명 입력"
+                  maxlength="25"
+                  required
+                  class="flex-1 rounded-lg border border-sky-300 bg-white px-2.5 py-1 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                />
+                <button type="submit" class="px-2.5 py-1 rounded-lg text-[11px] font-bold text-white bg-sky-600 hover:bg-sky-700 shrink-0">
+                  추가
+                </button>
+              </form>
+
+              <!-- 직속 팀원 트리 목록 -->
+              <div class="px-3 py-2">
+                <div class="border-l-2 border-indigo-200 ml-1 space-y-0.5 max-h-44 overflow-y-auto pr-1">
+                  ${buildMembersTreeHtml(directMembers)}
+                </div>
+              </div>
+
+              <!-- 직속 팀원 다중 일괄 추가 -->
+              <form data-org-add-members="${escapeHtml(team.id)}" data-org-dept-name="${escapeHtml(deptName)}" class="px-3 py-2.5 bg-slate-50 border-t border-slate-100 space-y-1.5">
+                <textarea
+                  rows="2"
+                  data-org-names-input
+                  placeholder="${escapeHtml(deptName)} 팀원 여러 명 입력 (쉼표·줄바꿈·공백 구분)"
+                  class="w-full rounded-xl border border-slate-300 bg-white px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                ></textarea>
+                <button type="submit" class="w-full py-1.5 rounded-xl text-[11px] font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors">
+                  + ${escapeHtml(deptName)} 팀원 일괄 추가
+                </button>
+              </form>
+
+              <!-- 하위 부서(팀) 트리 -->
+              ${childrenHtml}
+            </div>
+          </div>
+        `;
+      };
+
+      const cards = rootTeams.map((t) => buildDeptNode(t, 0));
+
+      // 미배정/삭제된 부서 소속 팀원 카드
+      const unassignedMembers = state.members
+        .filter((m) => !getMemberTeam(m))
+        .sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+
+      if (unassignedMembers.length > 0) {
+        cards.push(`
+          <div class="relative flex flex-col">
+            <div class="mx-auto w-0.5 h-4 bg-amber-300 -mt-4"></div>
+            <div class="bg-white rounded-2xl border border-amber-300 shadow-sm overflow-hidden flex flex-col">
+              <div class="px-4 py-3 bg-amber-50 border-b border-amber-200 flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded-sm bg-amber-500"></span>
+                  <h5 class="text-sm font-extrabold text-slate-900">미배정 / 삭제된 부서</h5>
+                  <span class="px-2 py-0.5 rounded-full bg-white text-[11px] font-bold text-amber-700 border border-amber-200">${unassignedMembers.length}명</span>
+                </div>
+              </div>
+              <div class="px-3.5 py-2.5">
+                <div class="border-l-2 border-amber-200 ml-1 space-y-0.5 max-h-56 overflow-y-auto pr-1">
+                  ${buildMembersTreeHtml(unassignedMembers)}
+                </div>
+              </div>
+            </div>
+          </div>
+        `);
       }
+
+      els.orgChartContainer.innerHTML = cards.join('');
     }
 
     function renderHolidayModal() {
@@ -2253,7 +2596,7 @@ service cloud.firestore {
         const weekRecords = getVisibleWeekRecords();
 
         const sheet1 = members.map((m) => {
-          const row = { 부서: m.department, 팀: m.team, 성명: m.name };
+          const row = { 부서: getMemberDeptLabel(m), 성명: m.name };
           metas.forEach((meta) => {
             const rec = getRecord(meta.dateStr, m.id);
             const c = rec ? calculateWorkHours(rec.date, rec.startTime, rec.endTime) : null;
@@ -2277,8 +2620,7 @@ service cloud.firestore {
           const diff = total - WEEKLY_LIMIT_MIN;
           const diffH = minToHours(diff);
           return {
-            부서: m.department,
-            팀: m.team,
+            부서: getMemberDeptLabel(m),
             성명: m.name,
             '정상(h)': minToHours(reg),
             '연장(h)': minToHours(ot),
@@ -2296,8 +2638,7 @@ service cloud.firestore {
             날짜: rec.date,
             요일: c.meta.dayName,
             구분: c.meta.isPublicHoliday ? `공휴일(${c.meta.holidayName})` : c.meta.isWeekend ? '주말특근' : '평일',
-            부서: m?.department || '-',
-            팀: m?.team || '-',
+            부서: m ? getMemberDeptLabel(m) : '-',
             성명: m?.name || '-',
             '출근(24h)': rec.startTime,
             '적용출근(24h)': c.effectiveStartTime,
@@ -2307,6 +2648,7 @@ service cloud.firestore {
             '정상(h)': minToHours(c.regularMin),
             '연장(h)': minToHours(c.overtimeMin),
             '특근(h)': minToHours(c.holidayMin),
+            '합계(h)': minToHours(c.totalMin),
             비고: rec.note || '',
           };
         });
@@ -2330,35 +2672,29 @@ service cloud.firestore {
     // =========================================================================
     function bindEvents() {
       // 주간 이동
-      els.btnPrevWeek.addEventListener('click', () => { state.weekStartDate = addDays(state.weekStartDate, -7); renderAll(); });
-      els.btnNextWeek.addEventListener('click', () => { state.weekStartDate = addDays(state.weekStartDate, 7); renderAll(); });
-      els.btnThisWeek.addEventListener('click', () => { state.weekStartDate = getSundayOfWeek(getTodayStr()); renderAll(); });
+      els.btnPrevWeek.addEventListener('click', () => { state.weekStartDate = addDays(state.weekStartDate, -7); state.selectedDetailIds.clear(); renderAll(); });
+      els.btnNextWeek.addEventListener('click', () => { state.weekStartDate = addDays(state.weekStartDate, 7); state.selectedDetailIds.clear(); renderAll(); });
+      els.btnThisWeek.addEventListener('click', () => { state.weekStartDate = getSundayOfWeek(getTodayStr()); state.selectedDetailIds.clear(); renderAll(); });
       els.jumpDatePicker.addEventListener('change', (e) => {
         if (!e.target.value) return;
         state.weekStartDate = getSundayOfWeek(e.target.value);
+        state.selectedDetailIds.clear();
         renderAll();
       });
 
-      // 부서/팀 필터 탭
+      // 부서 필터 탭
       els.deptFilterTabs.addEventListener('click', (e) => {
         const btn = e.target.closest('button[data-filter-dept]');
         if (!btn) return;
         state.selectedDept = btn.dataset.filterDept;
-        state.selectedTeam = 'ALL';
         state.highlightedMemberId = null;
-        renderAll();
-      });
-      els.teamFilterTabs.addEventListener('click', (e) => {
-        const btn = e.target.closest('button[data-filter-team]');
-        if (!btn) return;
-        state.selectedTeam = btn.dataset.filterTeam;
-        state.highlightedMemberId = null;
+        state.selectedDetailIds.clear();
         renderAll();
       });
 
       // 빈 DB 배너 버튼
       els.btnBannerSeedSample.addEventListener('click', () => {
-        openConfirm('샘플 데이터 불러오기', '샘플 부서(생산부·품질부·신규사업부), 팀원 8명 및 이번 주 근무 기록을 Firestore에 등록하시겠습니까?', seedSampleDataToFirestore);
+        openConfirm('샘플 데이터 불러오기', '샘플 부서(생산1팀·생산2팀·품질팀·신규사업부), 팀원 8명 및 이번 주 근무 기록을 Firestore에 등록하시겠습니까?', seedSampleDataToFirestore);
       });
       els.btnBannerOpenManage.addEventListener('click', () => {
         renderManageModal();
@@ -2396,10 +2732,116 @@ service cloud.firestore {
           const docId = delBtn.dataset.detailDelId;
           openConfirm('기록 삭제', '해당 출퇴근 기록을 Firestore에서 삭제하시겠습니까?', async () => {
             try {
+              state.selectedDetailIds.delete(docId);
               await deleteDoc(doc(db, 'workRecords', docId));
               showToast('근무 기록이 삭제되었습니다.', 'info');
             } catch (err) { handleFirestoreError(err, 'deleteRecord'); }
           });
+        }
+      });
+
+      // 상세 기록 체크박스 (전체 선택 / 개별 선택 / 선택 삭제 / 선택 일괄 수정)
+      els.detailSelectAll.addEventListener('change', () => {
+        const records = getVisibleWeekRecords();
+        if (els.detailSelectAll.checked) {
+          records.forEach((r) => state.selectedDetailIds.add(r.id));
+        } else {
+          state.selectedDetailIds.clear();
+        }
+        renderDetailTable();
+      });
+
+      els.detailTableBody.addEventListener('change', (e) => {
+        const cb = e.target.closest('input[data-detail-check]');
+        if (!cb) return;
+        const id = cb.dataset.detailCheck;
+        if (cb.checked) state.selectedDetailIds.add(id);
+        else state.selectedDetailIds.delete(id);
+        const tr = cb.closest('tr');
+        if (tr) tr.className = cb.checked ? 'bg-indigo-50/60 transition-colors' : 'hover:bg-slate-50 transition-colors';
+        updateDetailBulkBar();
+      });
+
+      els.btnDetailBulkDelete.addEventListener('click', () => {
+        const ids = Array.from(state.selectedDetailIds);
+        if (ids.length === 0) return;
+        openConfirm('선택 기록 일괄 삭제', `선택한 ${ids.length}건의 출퇴근 기록을 Firestore에서 모두 삭제하시겠습니까?`, async () => {
+          try {
+            const batch = writeBatch(db);
+            ids.forEach((docId) => batch.delete(doc(db, 'workRecords', docId)));
+            state.selectedDetailIds.clear();
+            await batch.commit();
+            showToast(`선택한 ${ids.length}건의 기록을 삭제했습니다.`, 'info');
+          } catch (err) { handleFirestoreError(err, 'detailBulkDelete'); }
+        });
+      });
+
+      const closeDetailBulkModal = () => els.detailBulkEditModal.classList.add('hidden');
+      els.btnDetailBulkEdit.addEventListener('click', () => {
+        const count = state.selectedDetailIds.size;
+        if (count === 0) return;
+        els.detailBulkCountText.textContent = `선택된 ${count}건의 출퇴근 시간을 일괄 변경합니다.`;
+        els.detailBulkStart.value = '08:00';
+        els.detailBulkEnd.value = '19:30';
+        els.detailBulkUpdateNote.checked = false;
+        els.detailBulkNote.value = '';
+        els.detailBulkNote.disabled = true;
+        els.detailBulkEditModal.classList.remove('hidden');
+      });
+      els.btnCloseDetailBulkModal.addEventListener('click', closeDetailBulkModal);
+      els.btnCancelDetailBulk.addEventListener('click', closeDetailBulkModal);
+      els.detailBulkEditModal.addEventListener('click', (e) => { if (e.target === els.detailBulkEditModal) closeDetailBulkModal(); });
+
+      els.detailBulkStart.addEventListener('input', () => autoFormatTimeInput(els.detailBulkStart));
+      els.detailBulkEnd.addEventListener('input', () => autoFormatTimeInput(els.detailBulkEnd));
+      els.detailBulkUpdateNote.addEventListener('change', () => {
+        els.detailBulkNote.disabled = !els.detailBulkUpdateNote.checked;
+        if (!els.detailBulkNote.disabled) els.detailBulkNote.focus();
+      });
+      els.detailBulkForm.addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-bulk-end]');
+        if (btn) els.detailBulkEnd.value = btn.dataset.bulkEnd;
+      });
+
+      els.detailBulkForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const ids = Array.from(state.selectedDetailIds);
+        if (ids.length === 0) { closeDetailBulkModal(); return; }
+
+        const startTime = els.detailBulkStart.value.trim();
+        const endTime = els.detailBulkEnd.value.trim();
+        const sampleCheck = calculateWorkHours(getTodayStr(), startTime, endTime);
+        if (!sampleCheck.valid) {
+          showToast(sampleCheck.error, 'error');
+          return;
+        }
+
+        const shouldUpdateNote = els.detailBulkUpdateNote.checked;
+        const newNote = els.detailBulkNote.value.trim();
+
+        // 저장 클릭 시 팝업 즉시 종료 후 Firestore 일괄 업데이트
+        closeDetailBulkModal();
+        try {
+          const batch = writeBatch(db);
+          let updatedCount = 0;
+          ids.forEach((docId) => {
+            const rec = state.recordsMap.get(docId);
+            if (!rec) return;
+            batch.set(doc(db, 'workRecords', docId), {
+              date: rec.date,
+              memberId: rec.memberId,
+              startTime,
+              endTime,
+              note: shouldUpdateNote ? newNote : (rec.note || ''),
+              updatedAt: serverTimestamp(),
+            });
+            updatedCount += 1;
+          });
+          state.selectedDetailIds.clear();
+          await batch.commit();
+          showToast(`${updatedCount}건의 출퇴근 기록을 일괄 수정했습니다.`, 'success');
+        } catch (err) {
+          handleFirestoreError(err, 'detailBulkEdit');
         }
       });
 
@@ -2427,8 +2869,7 @@ service cloud.firestore {
       els.btnBatchPrevDay.addEventListener('click', () => { els.batchDate.value = addDays(els.batchDate.value || getTodayStr(), -1); renderBatchTable(); });
       els.btnBatchNextDay.addEventListener('click', () => { els.batchDate.value = addDays(els.batchDate.value || getTodayStr(), 1); renderBatchTable(); });
 
-      els.batchDeptSelect.addEventListener('change', () => { updateBatchTeamOptions('ALL'); renderBatchTable(); });
-      els.batchTeamSelect.addEventListener('change', renderBatchTable);
+      els.batchDeptSelect.addEventListener('change', renderBatchTable);
 
       els.batchCommonStart.addEventListener('input', () => autoFormatTimeInput(els.batchCommonStart));
       els.batchCommonEnd.addEventListener('input', () => autoFormatTimeInput(els.batchCommonEnd));
@@ -2547,6 +2988,8 @@ service cloud.firestore {
         const calc = calculateWorkHours(dateStr, startTime, endTime);
         if (!calc.valid) { showToast(calc.error, 'error'); return; }
 
+        // 저장 클릭 시 팝업 즉시 종료 후 Firestore 저장
+        closeSingleModal();
         try {
           const docId = `${dateStr}_${memberId}`;
           await setDoc(doc(db, 'workRecords', docId), {
@@ -2558,22 +3001,21 @@ service cloud.firestore {
             updatedAt: serverTimestamp(),
           });
           showToast('출퇴근 기록이 저장되었습니다.', 'success');
-          closeSingleModal();
         } catch (err) { handleFirestoreError(err, 'saveSingle'); }
       });
 
       els.btnDeleteSingle.addEventListener('click', () => {
         const docId = `${els.singleDate.value}_${els.singleMember.value}`;
         openConfirm('기록 삭제', '이 날짜의 출퇴근 기록을 삭제하시겠습니까?', async () => {
+          closeSingleModal();
           try {
             await deleteDoc(doc(db, 'workRecords', docId));
             showToast('출퇴근 기록이 삭제되었습니다.', 'info');
-            closeSingleModal();
           } catch (err) { handleFirestoreError(err, 'deleteSingle'); }
         });
       });
 
-      // --- 모달 3: 부서/팀원 관리 모달 ---
+      // --- 모달 3: 부서/팀원 조직도 관리 모달 ---
       const closeManage = () => els.manageModal.classList.add('hidden');
       els.btnOpenManageModal.addEventListener('click', () => { renderManageModal(); els.manageModal.classList.remove('hidden'); });
       els.btnCloseManageModal.addEventListener('click', closeManage);
@@ -2582,78 +3024,197 @@ service cloud.firestore {
 
       els.addTeamForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const department = els.newDeptName.value.trim();
-        const teamName = els.newTeamName.value.trim();
-        if (!department || !teamName) return;
-        if (state.teams.some((t) => t.department === department && t.teamName === teamName)) {
-          showToast('이미 존재하는 부서·팀입니다.', 'error');
+        const deptName = els.newDeptName.value.trim();
+        const parentId = els.newParentDept.value || null;
+        if (!deptName) return;
+
+        // 같은 상위 부서 내에 동일한 이름 중복 방지
+        if (state.teams.some((t) => (t.parentId || null) === parentId && getDeptName(t) === deptName)) {
+          showToast('같은 위치에 이미 존재하는 부서(팀)명입니다.', 'error');
           return;
         }
         try {
-          const id = uid('team');
-          await setDoc(doc(db, 'teams', id), { id, department, teamName, order: state.teams.length + 1 });
-          els.newTeamName.value = '';
-          showToast(`'${department} · ${teamName}'이(가) 추가되었습니다.`, 'success');
+          const id = uid('dept');
+          const siblingCount = state.teams.filter((t) => (t.parentId || null) === parentId).length;
+          await setDoc(doc(db, 'teams', id), {
+            id,
+            name: deptName,
+            department: deptName,
+            parentId,
+            order: siblingCount + 1,
+            createdAt: serverTimestamp(),
+          });
+          els.newDeptName.value = '';
+          const parentObj = parentId ? getTeamById(parentId) : null;
+          const label = parentObj ? `${getTeamPath(parentObj)} > ${deptName}` : deptName;
+          showToast(`'${label}' 부서가 조직도에 추가되었습니다.`, 'success');
         } catch (err) { handleFirestoreError(err, 'addTeam'); }
       });
 
-      els.manageTeamList.addEventListener('click', (e) => {
-        const btn = e.target.closest('button[data-del-team-id]');
-        if (!btn) return;
-        const team = state.teams.find((t) => t.id === btn.dataset.delTeamId);
-        if (!team) return;
-        openConfirm('부서/팀 삭제', `'${team.department} · ${team.teamName}' 팀을 삭제하시겠습니까? (소속 팀원은 유지되거나 재지정할 수 있습니다)`, async () => {
+      // 조직도 내 부서별 하위 팀 추가 & 다중 팀원 일괄 추가
+      els.orgChartContainer.addEventListener('submit', async (e) => {
+        // 1) 부서 노드 내부에서 바로 하위 팀 추가
+        const subForm = e.target.closest('form[data-org-add-subdept]');
+        if (subForm) {
+          e.preventDefault();
+          const parentId = subForm.dataset.orgAddSubdept;
+          const inputEl = subForm.querySelector('[data-subdept-input]');
+          const subName = (inputEl?.value || '').trim();
+          if (!subName) return;
+
+          if (state.teams.some((t) => t.parentId === parentId && getDeptName(t) === subName)) {
+            showToast('이미 존재하는 하위 팀명입니다.', 'error');
+            return;
+          }
           try {
-            await deleteDoc(doc(db, 'teams', team.id));
-            showToast('팀이 삭제되었습니다.', 'info');
-          } catch (err) { handleFirestoreError(err, 'deleteTeam'); }
-        });
-      });
+            const id = uid('dept');
+            const siblingCount = state.teams.filter((t) => t.parentId === parentId).length;
+            await setDoc(doc(db, 'teams', id), {
+              id,
+              name: subName,
+              department: subName,
+              parentId,
+              order: siblingCount + 1,
+              createdAt: serverTimestamp(),
+            });
+            inputEl.value = '';
+            subForm.classList.add('hidden');
+            const parentObj = getTeamById(parentId);
+            showToast(`'${parentObj ? getDeptName(parentObj) + ' > ' : ''}${subName}' 하위 팀이 추가되었습니다.`, 'success');
+          } catch (err) {
+            handleFirestoreError(err, 'addSubDept');
+          }
+          return;
+        }
 
-      els.addMemberForm.addEventListener('submit', async (e) => {
+        // 2) 부서 노드 내 다중 팀원 일괄 추가 (쉼표/줄바꿈/공백 구분)
+        const form = e.target.closest('form[data-org-add-members]');
+        if (!form) return;
         e.preventDefault();
-        const val = els.newMemberTeamSelect.value;
-        const name = els.newMemberName.value.trim();
-        const position = els.newMemberPos.value.trim();
-        if (!val || !name) { showToast('부서/팀과 성명을 입력해 주세요.', 'error'); return; }
-        const [department, team] = val.split(':::');
+
+        const teamId = form.dataset.orgAddMembers;
+        const department = form.dataset.orgDeptName || getDeptName(getTeamById(teamId));
+        const inputEl = form.querySelector('[data-org-names-input]');
+        const raw = (inputEl?.value || '').trim();
+        if (!raw) {
+          showToast('추가할 팀원 성명을 입력해 주세요.', 'error');
+          return;
+        }
+
+        const names = raw
+          .split(/[\n,\s]+/)
+          .map((n) => n.trim())
+          .filter(Boolean);
+
+        if (names.length === 0) {
+          showToast('유효한 성명을 입력해 주세요.', 'error');
+          return;
+        }
+
         try {
-          const id = uid('m');
-          await setDoc(doc(db, 'members', id), { id, name, department, team, position, active: true });
-          els.newMemberName.value = '';
-          els.newMemberPos.value = '';
-          showToast(`'${name}' 팀원이 추가되었습니다.`, 'success');
-        } catch (err) { handleFirestoreError(err, 'addMember'); }
+          const batch = writeBatch(db);
+          names.forEach((name, idx) => {
+            const id = `${uid('m')}_${idx}`;
+            batch.set(doc(db, 'members', id), {
+              id,
+              name,
+              teamId,
+              department,
+              active: true,
+            });
+          });
+          inputEl.value = '';
+          await batch.commit();
+          showToast(`'${department}'에 ${names.length}명의 팀원을 일괄 추가했습니다.`, 'success');
+        } catch (err) {
+          handleFirestoreError(err, 'addMembersBatch');
+        }
       });
 
-      els.manageMemberList.addEventListener('change', async (e) => {
+      // 조직도 내 부서/하위팀 이동
+      els.orgChartContainer.addEventListener('change', async (e) => {
         const sel = e.target.closest('select[data-move-member]');
         if (!sel) return;
         const m = state.members.find((x) => x.id === sel.dataset.moveMember);
         if (!m) return;
-        const [department, team] = sel.value.split(':::');
+        const targetTeam = getTeamById(sel.value);
+        if (!targetTeam) return;
+        const department = getDeptName(targetTeam);
         try {
-          await setDoc(doc(db, 'members', m.id), { ...m, department, team });
-          showToast(`'${m.name}' 팀원의 소속이 변경되었습니다.`, 'info');
+          await setDoc(doc(db, 'members', m.id), {
+            id: m.id,
+            name: m.name,
+            teamId: targetTeam.id,
+            department,
+            active: true,
+          });
+          showToast(`'${m.name}' 팀원이 '${getTeamPath(targetTeam)}'(으)로 이동되었습니다.`, 'info');
         } catch (err) { handleFirestoreError(err, 'moveMember'); }
       });
 
-      els.manageMemberList.addEventListener('click', (e) => {
-        const btn = e.target.closest('button[data-del-member]');
-        if (!btn) return;
-        const m = state.members.find((x) => x.id === btn.dataset.delMember);
-        if (!m) return;
-        openConfirm('팀원 삭제', `'${m.name}' 팀원과 해당 팀원의 모든 근무 기록을 삭제하시겠습니까?`, async () => {
-          try {
-            const batch = writeBatch(db);
-            batch.delete(doc(db, 'members', m.id));
-            state.recordsMap.forEach((rec, docId) => {
-              if (rec.memberId === m.id) batch.delete(doc(db, 'workRecords', docId));
-            });
-            await batch.commit();
-            showToast(`'${m.name}' 팀원이 삭제되었습니다.`, 'info');
-          } catch (err) { handleFirestoreError(err, 'deleteMember'); }
-        });
+      // 조직도 내 하위팀 입력창 토글 & 부서 삭제 & 팀원 삭제
+      els.orgChartContainer.addEventListener('click', (e) => {
+        const toggleSubBtn = e.target.closest('button[data-toggle-subdept-form]');
+        if (toggleSubBtn) {
+          const parentId = toggleSubBtn.dataset.toggleSubdeptForm;
+          const form = els.orgChartContainer.querySelector(`form[data-org-add-subdept="${CSS.escape(parentId)}"]`);
+          if (form) {
+            form.classList.toggle('hidden');
+            if (!form.classList.contains('hidden')) {
+              const inp = form.querySelector('[data-subdept-input]');
+              if (inp) inp.focus();
+            }
+          }
+          return;
+        }
+
+        const delTeamBtn = e.target.closest('button[data-del-team-id]');
+        if (delTeamBtn) {
+          const team = state.teams.find((t) => t.id === delTeamBtn.dataset.delTeamId);
+          if (!team) return;
+          const deptLabel = getTeamPath(team);
+          const childTeams = state.teams.filter((t) => t.parentId === team.id);
+          const extraMsg = childTeams.length > 0
+            ? ` (하위 팀 ${childTeams.length}개는 상위 부서로 안전하게 유지됩니다)`
+            : ' (소속 팀원은 미배정으로 남아 다른 부서로 이동할 수 있습니다)';
+
+          openConfirm('부서 삭제', `'${deptLabel}' 부서를 삭제하시겠습니까?${extraMsg}`, async () => {
+            try {
+              const batch = writeBatch(db);
+              batch.delete(doc(db, 'teams', team.id));
+              // 하위 팀이 있는 경우 삭제되는 부서의 상위(parentId)로 승격하여 고아 노드 방지
+              childTeams.forEach((ct) => {
+                batch.set(doc(db, 'teams', ct.id), {
+                  id: ct.id,
+                  name: getDeptName(ct),
+                  department: getDeptName(ct),
+                  parentId: team.parentId || null,
+                  order: ct.order ?? 1,
+                });
+              });
+              await batch.commit();
+              showToast('부서가 삭제되었습니다.', 'info');
+            } catch (err) { handleFirestoreError(err, 'deleteTeam'); }
+          });
+          return;
+        }
+
+        const delMemberBtn = e.target.closest('button[data-del-member]');
+        if (delMemberBtn) {
+          const m = state.members.find((x) => x.id === delMemberBtn.dataset.delMember);
+          if (!m) return;
+          openConfirm('팀원 삭제', `'${m.name}' 팀원과 해당 팀원의 모든 근무 기록을 삭제하시겠습니까?`, async () => {
+            try {
+              const batch = writeBatch(db);
+              batch.delete(doc(db, 'members', m.id));
+              state.recordsMap.forEach((rec, docId) => {
+                if (rec.memberId === m.id) batch.delete(doc(db, 'workRecords', docId));
+              });
+              await batch.commit();
+              showToast(`'${m.name}' 팀원이 삭제되었습니다.`, 'info');
+            } catch (err) { handleFirestoreError(err, 'deleteMember'); }
+          });
+        }
       });
 
       els.btnSeedSample.addEventListener('click', () => {
