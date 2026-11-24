@@ -58,7 +58,7 @@
               </button>
             </div>
             <p class="text-[11px] text-slate-500 truncate mt-0.5">
-              24h 표기 · 정상 08:00~17:00 (08:00 이전 출근 08:00 고정) · 중식 12:00~13:00 / 석식 18:00~18:30 제외 · 주말/공휴일 특근 · 주 52h 관리
+              24h 표기 · 정상 08:00~17:00 (08:00 이전 출근 08:00 고정) · 중식 12~13시 / 석식 18~18:30 제외 · 연차(8h)/반차(4h) 포함 · 주말/공휴일 특근 · 주 52h 관리
             </p>
           </div>
         </div>
@@ -190,6 +190,7 @@
               <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-xs bg-[#b91c1c]"></span> 일요일·공휴일(특근)</span>
               <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-xs bg-[#1e3a5f]"></span> 평일</span>
               <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-xs bg-[#1d4ed8]"></span> 토요일(특근)</span>
+              <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-xs bg-violet-500"></span> 연차(8h)·반차(4h)</span>
             </div>
           </div>
 
@@ -247,7 +248,7 @@
               </div>
             </div>
 
-            <table class="w-full text-left border-collapse min-w-[880px]">
+            <table class="w-full text-left border-collapse min-w-[920px]">
               <thead>
                 <tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                   <th class="py-2.5 px-3 w-10 text-center">
@@ -256,7 +257,7 @@
                   <th class="py-2.5 px-4">날짜 (요일/구분)</th>
                   <th class="py-2.5 px-3">부서</th>
                   <th class="py-2.5 px-3">성명</th>
-                  <th class="py-2.5 px-3">출근 ~ 퇴근 (24h)</th>
+                  <th class="py-2.5 px-3">유형 / 출근~퇴근 (24h)</th>
                   <th class="py-2.5 px-3">제외(중/석)</th>
                   <th class="py-2.5 px-3 text-right">정상(h)</th>
                   <th class="py-2.5 px-3 text-right text-amber-700">연장(h)</th>
@@ -280,7 +281,7 @@
               <span id="panelFilterBadge" class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-white/15 text-indigo-100">전체</span>
             </div>
             <p class="text-[11px] text-slate-300 mt-1">
-              법정 주 52시간(정상+연장+특근) 기준 부족/초과 실시간 집계 · 클릭 시 그리드 강조
+              주 52h(정상[연차·반차 포함]+연장+특근) 기준 부족/초과 집계 · 클릭 시 그리드 강조
             </p>
           </div>
 
@@ -316,8 +317,8 @@
       <!-- 모달 헤더 -->
       <div class="px-5 py-4 border-b border-slate-200 bg-gradient-to-r from-indigo-700 to-slate-900 text-white flex items-center justify-between gap-3">
         <div>
-          <h3 class="text-base sm:text-lg font-extrabold tracking-tight">부서원 일괄 근무시간 입력 (24h)</h3>
-          <p class="text-xs text-indigo-100 mt-0.5">부서를 선택하여 소속 부서원의 출퇴근 시간을 한 번에 입력하고 Firestore에 일괄 저장합니다.</p>
+          <h3 class="text-base sm:text-lg font-extrabold tracking-tight">부서원 일괄 근무시간 입력 (24h · 연차/반차 지원)</h3>
+          <p class="text-xs text-indigo-100 mt-0.5">부서를 선택하여 소속 부서원의 출퇴근 및 연차(8h)·반차(4h)를 한 번에 입력하고 Firestore에 일괄 저장합니다.</p>
         </div>
         <button type="button" id="btnCloseBatchModal" class="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/15 transition-colors">
           <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -326,7 +327,7 @@
         </button>
       </div>
 
-      <!-- 상단 컨트롤 영역: 날짜 선택 + 부서 선택 + 공통 시간 일괄 적용 바 -->
+      <!-- 상단 컨트롤 영역: 날짜 선택 + 부서 선택 + 공통 시간/유형 일괄 적용 바 -->
       <div class="p-4 sm:p-5 bg-slate-50 border-b border-slate-200 space-y-3.5">
         <!-- 1행: 날짜 & 부서 선택 -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 items-end">
@@ -357,11 +358,20 @@
           </div>
         </div>
 
-        <!-- 2행: 공통 시간 일괄 적용 컨트롤 바 (24시간제) -->
+        <!-- 2행: 공통 유형 & 시간 일괄 적용 컨트롤 바 (24시간제) -->
         <div class="p-3.5 rounded-xl bg-white border border-indigo-200 shadow-xs space-y-2.5">
           <div class="flex flex-wrap items-center justify-between gap-2">
             <div class="flex flex-wrap items-center gap-2">
-              <span class="text-xs font-extrabold text-indigo-800">공통 시간 일괄 적용 (24h):</span>
+              <span class="text-xs font-extrabold text-indigo-800">공통 일괄 적용:</span>
+              <select
+                id="batchCommonLeave"
+                class="rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="none">일반근무</option>
+                <option value="annual">연차 (8h)</option>
+                <option value="am_half">오전반차 (4h)</option>
+                <option value="pm_half">오후반차 (4h)</option>
+              </select>
               <div class="flex items-center gap-1.5">
                 <span class="text-[11px] font-bold text-slate-500">출근</span>
                 <input
@@ -371,7 +381,7 @@
                   maxlength="5"
                   inputmode="numeric"
                   placeholder="08:00"
-                  class="w-20 rounded-lg border border-slate-300 px-2 py-1.5 text-center font-mono text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  class="w-20 rounded-lg border border-slate-300 px-2 py-1.5 text-center font-mono text-sm font-bold text-slate-900 disabled:bg-slate-100 disabled:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
                 <span class="text-slate-400 font-bold">~</span>
                 <span class="text-[11px] font-bold text-slate-500">퇴근</span>
@@ -382,7 +392,7 @@
                   maxlength="5"
                   inputmode="numeric"
                   placeholder="19:30"
-                  class="w-20 rounded-lg border border-slate-300 px-2 py-1.5 text-center font-mono text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  class="w-20 rounded-lg border border-slate-300 px-2 py-1.5 text-center font-mono text-sm font-bold text-slate-900 disabled:bg-slate-100 disabled:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
               <button
@@ -390,7 +400,7 @@
                 id="btnApplyCommonTime"
                 class="px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-xs"
               >
-                선택 인원 시간 일괄 적용
+                선택 인원 일괄 적용
               </button>
             </div>
 
@@ -405,8 +415,10 @@
             <span class="text-slate-400 font-semibold mr-1">출근 프리셋:</span>
             <button type="button" data-batch-preset-start="07:30" class="px-2 py-0.5 rounded-md font-mono font-semibold bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700">07:30</button>
             <button type="button" data-batch-preset-start="08:00" class="px-2 py-0.5 rounded-md font-mono font-semibold bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700">08:00</button>
+            <button type="button" data-batch-preset-start="13:00" class="px-2 py-0.5 rounded-md font-mono font-semibold bg-violet-50 text-violet-700 hover:bg-violet-100">13:00(오전반차)</button>
             <span class="text-slate-300 mx-1">|</span>
             <span class="text-slate-400 font-semibold mr-1">퇴근 프리셋:</span>
+            <button type="button" data-batch-preset-end="12:00" class="px-2 py-0.5 rounded-md font-mono font-semibold bg-violet-50 text-violet-700 hover:bg-violet-100">12:00(오후반차)</button>
             <button type="button" data-batch-preset-end="17:00" class="px-2 py-0.5 rounded-md font-mono font-semibold bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700">17:00</button>
             <button type="button" data-batch-preset-end="18:30" class="px-2 py-0.5 rounded-md font-mono font-semibold bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700">18:30</button>
             <button type="button" data-batch-preset-end="19:30" class="px-2 py-0.5 rounded-md font-mono font-semibold bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700">19:30</button>
@@ -419,16 +431,17 @@
 
       <!-- 부서원별 일괄 입력 테이블 -->
       <div class="flex-1 overflow-auto">
-        <table class="w-full text-left border-collapse min-w-[900px]">
+        <table class="w-full text-left border-collapse min-w-[980px]">
           <thead class="sticky top-0 z-10 bg-slate-100 border-b border-slate-200 text-[11px] font-bold text-slate-600 uppercase">
             <tr>
               <th class="py-2.5 px-3 text-center w-12">선택</th>
-              <th class="py-2.5 px-3 w-44">성명 (부서)</th>
-              <th class="py-2.5 px-3 w-36">출근 (24h)</th>
-              <th class="py-2.5 px-3 w-32">퇴근 (24h)</th>
+              <th class="py-2.5 px-3 w-40">성명 (부서)</th>
+              <th class="py-2.5 px-3 w-32">근무 유형</th>
+              <th class="py-2.5 px-3 w-28">출근 (24h)</th>
+              <th class="py-2.5 px-3 w-28">퇴근 (24h)</th>
               <th class="py-2.5 px-3">비고</th>
               <th class="py-2.5 px-3 w-52">자동계산 미리보기</th>
-              <th class="py-2.5 px-3 text-center w-20">기존기록</th>
+              <th class="py-2.5 px-3 text-center w-16">기록</th>
             </tr>
           </thead>
           <tbody id="batchTableBody" class="divide-y divide-slate-100 text-xs sm:text-sm bg-white"></tbody>
@@ -457,16 +470,16 @@
   </div>
 
   <!-- ===================================================================== -->
-  <!-- 모달 2: 1인 빠른 출퇴근 입력 / 수정 모달 (24h)                         -->
+  <!-- 모달 2: 1인 빠른 출퇴근 입력 / 수정 모달 (24h · 연차/반차 지원)         -->
   <!-- ===================================================================== -->
   <div id="singleModal" class="hidden fixed inset-0 z-50 bg-slate-900/55 backdrop-blur-xs flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-lg overflow-hidden">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-lg max-h-[94vh] flex flex-col overflow-hidden">
       <div class="px-5 py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
         <h3 id="singleModalTitle" class="text-base font-bold text-slate-900">1인 출퇴근 입력 (24h)</h3>
         <button type="button" id="btnCloseSingleModal" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/70">✕</button>
       </div>
 
-      <form id="singleForm" class="p-5 space-y-4">
+      <form id="singleForm" class="p-5 space-y-4 overflow-y-auto">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <div class="flex items-center justify-between mb-1">
@@ -485,39 +498,57 @@
           <span id="singleHolidayText"></span>
         </div>
 
-        <!-- 출근 시간 (24h) -->
+        <!-- 근무 유형 (일반 / 연차 8h / 오전반차 4h / 오후반차 4h) -->
         <div class="space-y-1.5">
-          <div class="flex items-center justify-between">
-            <label for="singleStartInput" class="text-xs font-bold text-slate-700">출근 시간 (24h)</label>
-            <span id="singleEarlyBadge" class="hidden px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-700">08:00 이전 출근 → 08:00 고정 적용</span>
+          <label class="block text-xs font-bold text-slate-700">근무 유형 (연차 8h · 반차 4h 근무시간 포함)</label>
+          <input type="hidden" id="singleLeaveType" value="none" />
+          <div id="singleLeaveButtons" class="grid grid-cols-4 gap-1.5">
+            <button type="button" data-single-leave="none" class="py-2 px-2 rounded-xl text-xs font-bold border transition-colors">일반근무</button>
+            <button type="button" data-single-leave="annual" class="py-2 px-2 rounded-xl text-xs font-bold border transition-colors">연차 (8h)</button>
+            <button type="button" data-single-leave="am_half" class="py-2 px-2 rounded-xl text-xs font-bold border transition-colors">오전반차(4h)</button>
+            <button type="button" data-single-leave="pm_half" class="py-2 px-2 rounded-xl text-xs font-bold border transition-colors">오후반차(4h)</button>
           </div>
-          <div class="flex items-center gap-2">
-            <input type="text" id="singleStartInput" maxlength="5" inputmode="numeric" placeholder="08:00" class="w-24 rounded-xl border border-slate-300 px-3 py-2 text-center font-mono text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-            <select id="singleStartHour" class="flex-1 rounded-xl border border-slate-300 bg-white px-2.5 py-2 text-xs font-mono font-semibold text-slate-800"></select>
-            <select id="singleStartMin" class="flex-1 rounded-xl border border-slate-300 bg-white px-2.5 py-2 text-xs font-mono font-semibold text-slate-800"></select>
-          </div>
-          <div class="flex flex-wrap gap-1">
-            <button type="button" data-single-start="07:30" class="px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700">07:30</button>
-            <button type="button" data-single-start="08:00" class="px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700">08:00</button>
-            <button type="button" data-single-start="09:00" class="px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700">09:00</button>
-          </div>
+          <div id="singleLeaveInfoBanner" class="hidden px-3 py-2 rounded-xl bg-violet-50 border border-violet-200 text-xs font-semibold text-violet-800"></div>
         </div>
 
-        <!-- 퇴근 시간 (24h) -->
-        <div class="space-y-1.5">
-          <label for="singleEndInput" class="block text-xs font-bold text-slate-700">퇴근 시간 (24h)</label>
-          <div class="flex items-center gap-2">
-            <input type="text" id="singleEndInput" maxlength="5" inputmode="numeric" placeholder="17:00" class="w-24 rounded-xl border border-slate-300 px-3 py-2 text-center font-mono text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-            <select id="singleEndHour" class="flex-1 rounded-xl border border-slate-300 bg-white px-2.5 py-2 text-xs font-mono font-semibold text-slate-800"></select>
-            <select id="singleEndMin" class="flex-1 rounded-xl border border-slate-300 bg-white px-2.5 py-2 text-xs font-mono font-semibold text-slate-800"></select>
+        <!-- 출퇴근 시간 입력 영역 (연차 선택 시 비활성화) -->
+        <div id="singleTimeInputsWrapper" class="space-y-4">
+          <!-- 출근 시간 (24h) -->
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between">
+              <label for="singleStartInput" class="text-xs font-bold text-slate-700">출근 시간 (24h)</label>
+              <span id="singleEarlyBadge" class="hidden px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-700">08:00 이전 출근 → 08:00 고정 적용</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <input type="text" id="singleStartInput" maxlength="5" inputmode="numeric" placeholder="08:00" class="w-24 rounded-xl border border-slate-300 px-3 py-2 text-center font-mono text-sm font-bold text-slate-900 disabled:bg-slate-100 disabled:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              <select id="singleStartHour" class="flex-1 rounded-xl border border-slate-300 bg-white px-2.5 py-2 text-xs font-mono font-semibold text-slate-800 disabled:bg-slate-100"></select>
+              <select id="singleStartMin" class="flex-1 rounded-xl border border-slate-300 bg-white px-2.5 py-2 text-xs font-mono font-semibold text-slate-800 disabled:bg-slate-100"></select>
+            </div>
+            <div class="flex flex-wrap gap-1">
+              <button type="button" data-single-start="07:30" class="px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700">07:30</button>
+              <button type="button" data-single-start="08:00" class="px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700">08:00</button>
+              <button type="button" data-single-start="09:00" class="px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700">09:00</button>
+              <button type="button" data-single-start="13:00" class="px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-violet-50 text-violet-700 hover:bg-violet-100">13:00</button>
+            </div>
           </div>
-          <div class="flex flex-wrap gap-1">
-            <button type="button" data-single-end="17:00" class="px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700">17:00</button>
-            <button type="button" data-single-end="18:30" class="px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700">18:30</button>
-            <button type="button" data-single-end="19:30" class="px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700">19:30</button>
-            <button type="button" data-single-end="20:30" class="px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700">20:30</button>
-            <button type="button" data-single-end="21:30" class="px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700">21:30</button>
-            <button type="button" data-single-end="22:00" class="px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700">22:00</button>
+
+          <!-- 퇴근 시간 (24h) -->
+          <div class="space-y-1.5">
+            <label for="singleEndInput" class="block text-xs font-bold text-slate-700">퇴근 시간 (24h)</label>
+            <div class="flex items-center gap-2">
+              <input type="text" id="singleEndInput" maxlength="5" inputmode="numeric" placeholder="17:00" class="w-24 rounded-xl border border-slate-300 px-3 py-2 text-center font-mono text-sm font-bold text-slate-900 disabled:bg-slate-100 disabled:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              <select id="singleEndHour" class="flex-1 rounded-xl border border-slate-300 bg-white px-2.5 py-2 text-xs font-mono font-semibold text-slate-800 disabled:bg-slate-100"></select>
+              <select id="singleEndMin" class="flex-1 rounded-xl border border-slate-300 bg-white px-2.5 py-2 text-xs font-mono font-semibold text-slate-800 disabled:bg-slate-100"></select>
+            </div>
+            <div class="flex flex-wrap gap-1">
+              <button type="button" data-single-end="12:00" class="px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-violet-50 text-violet-700 hover:bg-violet-100">12:00</button>
+              <button type="button" data-single-end="17:00" class="px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700">17:00</button>
+              <button type="button" data-single-end="18:30" class="px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700">18:30</button>
+              <button type="button" data-single-end="19:30" class="px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700">19:30</button>
+              <button type="button" data-single-end="20:30" class="px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700">20:30</button>
+              <button type="button" data-single-end="21:30" class="px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700">21:30</button>
+              <button type="button" data-single-end="22:00" class="px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700">22:00</button>
+            </div>
           </div>
         </div>
 
@@ -578,19 +609,30 @@
       </div>
 
       <form id="detailBulkForm" class="p-5 space-y-4">
+        <div>
+          <label for="detailBulkLeave" class="block text-xs font-bold text-slate-700 mb-1">근무 유형</label>
+          <select id="detailBulkLeave" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <option value="none">일반근무</option>
+            <option value="annual">연차 (8h 포함)</option>
+            <option value="am_half">오전반차 (4h 포함)</option>
+            <option value="pm_half">오후반차 (4h 포함)</option>
+          </select>
+        </div>
+
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label for="detailBulkStart" class="block text-xs font-bold text-slate-700 mb-1">출근 시간 (24h)</label>
-            <input type="text" id="detailBulkStart" value="08:00" maxlength="5" inputmode="numeric" placeholder="08:00" required class="w-full rounded-xl border border-slate-300 px-3 py-2 text-center font-mono text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            <input type="text" id="detailBulkStart" value="08:00" maxlength="5" inputmode="numeric" placeholder="08:00" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-center font-mono text-sm font-bold text-slate-900 disabled:bg-slate-100 disabled:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
           </div>
           <div>
             <label for="detailBulkEnd" class="block text-xs font-bold text-slate-700 mb-1">퇴근 시간 (24h)</label>
-            <input type="text" id="detailBulkEnd" value="19:30" maxlength="5" inputmode="numeric" placeholder="19:30" required class="w-full rounded-xl border border-slate-300 px-3 py-2 text-center font-mono text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            <input type="text" id="detailBulkEnd" value="19:30" maxlength="5" inputmode="numeric" placeholder="19:30" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-center font-mono text-sm font-bold text-slate-900 disabled:bg-slate-100 disabled:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
           </div>
         </div>
 
         <div class="flex flex-wrap items-center gap-1.5 text-[11px]">
           <span class="text-slate-400 font-semibold">빠른 퇴근:</span>
+          <button type="button" data-bulk-end="12:00" class="px-2 py-0.5 rounded-md font-mono font-semibold bg-violet-50 text-violet-700 hover:bg-violet-100">12:00</button>
           <button type="button" data-bulk-end="17:00" class="px-2 py-0.5 rounded-md font-mono font-semibold bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700">17:00</button>
           <button type="button" data-bulk-end="18:30" class="px-2 py-0.5 rounded-md font-mono font-semibold bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700">18:30</button>
           <button type="button" data-bulk-end="19:30" class="px-2 py-0.5 rounded-md font-mono font-semibold bg-slate-100 hover:bg-indigo-100 hover:text-indigo-700">19:30</button>
@@ -623,7 +665,7 @@
       <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-gradient-to-r from-slate-900 to-indigo-950 text-white">
         <div>
           <h3 class="text-lg font-bold tracking-tight">부서 / 팀원 조직도 관리 (Firestore 실시간 동기화)</h3>
-          <p class="text-xs text-indigo-200 mt-0.5">조직도에서 부서를 추가하고, 각 부서 노드 안에서 여러 명의 팀원을 한 번에 등록·이동·삭제할 수 있습니다.</p>
+          <p class="text-xs text-indigo-200 mt-0.5">조직도에서 부서와 하위 팀을 추가하고, 각 노드 안에서 여러 명의 팀원을 한 번에 등록·이동·삭제할 수 있습니다.</p>
         </div>
         <button type="button" id="btnCloseManageModal" class="p-2 rounded-lg text-white/70 hover:text-white hover:bg-white/15">✕</button>
       </div>
@@ -784,7 +826,7 @@ service cloud.firestore {
     } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
     // =========================================================================
-    // 1. Firebase 설정 및 초기화 (업로드된 정확한 Config)
+    // 1. Firebase 설정 및 초기화
     // =========================================================================
     const firebaseConfig = {
       apiKey: "AIzaSyBkQ1xL8meosSWDcg9ypXzZ7rwRaQcAirk",
@@ -808,6 +850,13 @@ service cloud.firestore {
     const DINNER_START_MIN = 18 * 60;    // 18:00
     const DINNER_END_MIN = 18 * 60 + 30; // 18:30
     const WEEKLY_LIMIT_MIN = 52 * 60;    // 주 52시간
+
+    const LEAVE_META = {
+      none:    { label: '일반근무', shortLabel: '일반',     minutes: 0,   badgeCls: 'bg-slate-100 text-slate-600' },
+      annual:  { label: '연차 (8h)', shortLabel: '연차',     minutes: 480, badgeCls: 'bg-violet-100 text-violet-800 border border-violet-200' },
+      am_half: { label: '오전반차 (4h)', shortLabel: '오전반차', minutes: 240, badgeCls: 'bg-fuchsia-100 text-fuchsia-800 border border-fuchsia-200' },
+      pm_half: { label: '오후반차 (4h)', shortLabel: '오후반차', minutes: 240, badgeCls: 'bg-purple-100 text-purple-800 border border-purple-200' },
+    };
 
     const DAY_NAMES = ['일', '월', '화', '수', '목', '금', '토'];
     const DAY_FULL_NAMES = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
@@ -879,9 +928,9 @@ service cloud.firestore {
     // 3. 애플리케이션 상태
     // =========================================================================
     const state = {
-      teams: [],               // [{ id, name, department, order }]
-      members: [],             // [{ id, name, department, active }]
-      recordsMap: new Map(),   // key: `${date}_${memberId}` -> { id, date, memberId, startTime, endTime, note }
+      teams: [],               // [{ id, name, department, parentId, order }]
+      members: [],             // [{ id, name, teamId, department, active }]
+      recordsMap: new Map(),   // key: `${date}_${memberId}` -> { id, date, memberId, startTime, endTime, leaveType, note }
       customHolidays: {},      // { 'YYYY-MM-DD': '휴일명' }
       weekStartDate: '',       // 선택된 주의 일요일 ('YYYY-MM-DD')
       selectedDept: 'ALL',
@@ -897,7 +946,7 @@ service cloud.firestore {
     let confirmCallback = null;
 
     // =========================================================================
-    // 4. 날짜 / 24시간 유틸리티 & 계산 엔진
+    // 4. 날짜 / 24시간 유틸리티 & 계산 엔진 (연차 8h / 반차 4h 포함)
     // =========================================================================
     function formatDateStr(dt) {
       const y = dt.getFullYear();
@@ -950,6 +999,10 @@ service cloud.firestore {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
+    }
+
+    function normalizeLeaveType(lt) {
+      return LEAVE_META[lt] ? lt : 'none';
     }
 
     function isValidTime24(str) {
@@ -1020,23 +1073,122 @@ service cloud.firestore {
       };
     }
 
-    /** 핵심 근로시간 계산 엔진 (24h, 08:00 하한 고정, 중/석식 제외, 주말·공휴일 특근) */
-    function calculateWorkHours(dateStr, startTime, endTime) {
+    /**
+     * 핵심 근로시간 계산 엔진
+     * - 24h 표기, 08:00 이전 출근 시 08:00 고정
+     * - 중식(12:00~13:00), 석식(18:00~18:30) 중복 시간 제외
+     * - 주말/공휴일 특근 분리
+     * - 연차(annual): 8시간(480분) 정상근무 포함
+     * - 오전반차(am_half) / 오후반차(pm_half): 4시간(240분) 정상근무 포함 + 실제 출퇴근 시간 합산
+     */
+    function calculateWorkHours(dateStr, startTime, endTime, rawLeaveType = 'none') {
       const meta = getDateMeta(dateStr);
-      if (!isValidTime24(startTime) || !isValidTime24(endTime)) {
-        return { valid: false, error: '24시간 형식(HH:MM, 00:00~24:00)으로 입력하세요.', meta, isEarlyClamped: false, effectiveStartTime: '08:00', lunchDeductMin: 0, dinnerDeductMin: 0, regularMin: 0, overtimeMin: 0, holidayMin: 0, totalMin: 0 };
+      const leaveType = normalizeLeaveType(rawLeaveType);
+      const leaveInfo = LEAVE_META[leaveType];
+
+      // 1) 연차 (8h): 출퇴근 시간 없이 8시간 정상근무 포함
+      if (leaveType === 'annual') {
+        return {
+          valid: true,
+          error: '',
+          meta,
+          leaveType,
+          leaveLabel: leaveInfo.label,
+          leaveMin: 480,
+          isEarlyClamped: false,
+          effectiveStartTime: '-',
+          lunchDeductMin: 0,
+          dinnerDeductMin: 0,
+          regularMin: 480,
+          overtimeMin: 0,
+          holidayMin: 0,
+          totalMin: 480,
+        };
       }
 
-      const rawStart = timeToMinutes(startTime);
-      const rawEnd = timeToMinutes(endTime);
+      const sTrim = (startTime || '').trim();
+      const eTrim = (endTime || '').trim();
+
+      // 2) 반차(4h)만 입력하고 출퇴근 시간을 모두 비운 경우: 반차 4시간만 반영
+      if ((leaveType === 'am_half' || leaveType === 'pm_half') && !sTrim && !eTrim) {
+        return {
+          valid: true,
+          error: '',
+          meta,
+          leaveType,
+          leaveLabel: leaveInfo.label,
+          leaveMin: 240,
+          isEarlyClamped: false,
+          effectiveStartTime: '-',
+          lunchDeductMin: 0,
+          dinnerDeductMin: 0,
+          regularMin: 240,
+          overtimeMin: 0,
+          holidayMin: 0,
+          totalMin: 240,
+        };
+      }
+
+      // 3) 출퇴근 시간 유효성 검사
+      if (!isValidTime24(sTrim) || !isValidTime24(eTrim)) {
+        return {
+          valid: false,
+          error: '24시간 형식(HH:MM, 00:00~24:00)으로 입력하세요.',
+          meta,
+          leaveType,
+          leaveLabel: leaveInfo.label,
+          leaveMin: leaveInfo.minutes,
+          isEarlyClamped: false,
+          effectiveStartTime: '08:00',
+          lunchDeductMin: 0,
+          dinnerDeductMin: 0,
+          regularMin: 0,
+          overtimeMin: 0,
+          holidayMin: 0,
+          totalMin: 0,
+        };
+      }
+
+      const rawStart = timeToMinutes(sTrim);
+      const rawEnd = timeToMinutes(eTrim);
       const isEarlyClamped = rawStart < WORK_START_MIN;
       const effStart = Math.max(rawStart, WORK_START_MIN);
 
       if (rawEnd <= rawStart) {
-        return { valid: false, error: '퇴근 시간은 출근 시간보다 늦어야 합니다.', meta, isEarlyClamped, effectiveStartTime: minutesToTime(effStart), lunchDeductMin: 0, dinnerDeductMin: 0, regularMin: 0, overtimeMin: 0, holidayMin: 0, totalMin: 0 };
+        return {
+          valid: false,
+          error: '퇴근 시간은 출근 시간보다 늦어야 합니다.',
+          meta,
+          leaveType,
+          leaveLabel: leaveInfo.label,
+          leaveMin: leaveInfo.minutes,
+          isEarlyClamped,
+          effectiveStartTime: minutesToTime(effStart),
+          lunchDeductMin: 0,
+          dinnerDeductMin: 0,
+          regularMin: 0,
+          overtimeMin: 0,
+          holidayMin: 0,
+          totalMin: 0,
+        };
       }
       if (rawEnd <= WORK_START_MIN) {
-        return { valid: false, error: '08:00 이전 출근은 08:00 고정 계산되므로 퇴근은 08:00 이후여야 합니다.', meta, isEarlyClamped, effectiveStartTime: '08:00', lunchDeductMin: 0, dinnerDeductMin: 0, regularMin: 0, overtimeMin: 0, holidayMin: 0, totalMin: 0 };
+        return {
+          valid: false,
+          error: '08:00 이전 출근은 08:00 고정 계산되므로 퇴근은 08:00 이후여야 합니다.',
+          meta,
+          leaveType,
+          leaveLabel: leaveInfo.label,
+          leaveMin: leaveInfo.minutes,
+          isEarlyClamped,
+          effectiveStartTime: '08:00',
+          lunchDeductMin: 0,
+          dinnerDeductMin: 0,
+          regularMin: 0,
+          overtimeMin: 0,
+          holidayMin: 0,
+          totalMin: 0,
+        };
       }
 
       const lunchDeductMin = getOverlap(effStart, rawEnd, LUNCH_START_MIN, LUNCH_END_MIN);
@@ -1056,10 +1208,19 @@ service cloud.firestore {
         overtimeMin = Math.max(0, otRaw - dinnerDeductMin);
       }
 
+      // 반차 4시간(240분) 정상근무에 합산
+      const leaveMin = leaveInfo.minutes;
+      if (leaveMin > 0) {
+        regularMin += leaveMin;
+      }
+
       return {
         valid: true,
         error: '',
         meta,
+        leaveType,
+        leaveLabel: leaveInfo.label,
+        leaveMin,
         isEarlyClamped,
         effectiveStartTime: minutesToTime(effStart),
         lunchDeductMin,
@@ -1122,6 +1283,7 @@ service cloud.firestore {
       btnBatchPrevDay: document.getElementById('btnBatchPrevDay'),
       btnBatchNextDay: document.getElementById('btnBatchNextDay'),
       batchDeptSelect: document.getElementById('batchDeptSelect'),
+      batchCommonLeave: document.getElementById('batchCommonLeave'),
       batchCommonStart: document.getElementById('batchCommonStart'),
       batchCommonEnd: document.getElementById('batchCommonEnd'),
       btnApplyCommonTime: document.getElementById('btnApplyCommonTime'),
@@ -1141,6 +1303,10 @@ service cloud.firestore {
       singleMember: document.getElementById('singleMember'),
       singleHolidayBanner: document.getElementById('singleHolidayBanner'),
       singleHolidayText: document.getElementById('singleHolidayText'),
+      singleLeaveType: document.getElementById('singleLeaveType'),
+      singleLeaveButtons: document.getElementById('singleLeaveButtons'),
+      singleLeaveInfoBanner: document.getElementById('singleLeaveInfoBanner'),
+      singleTimeInputsWrapper: document.getElementById('singleTimeInputsWrapper'),
       singleEarlyBadge: document.getElementById('singleEarlyBadge'),
       singleStartInput: document.getElementById('singleStartInput'),
       singleStartHour: document.getElementById('singleStartHour'),
@@ -1164,6 +1330,7 @@ service cloud.firestore {
       btnCancelDetailBulk: document.getElementById('btnCancelDetailBulk'),
       detailBulkForm: document.getElementById('detailBulkForm'),
       detailBulkCountText: document.getElementById('detailBulkCountText'),
+      detailBulkLeave: document.getElementById('detailBulkLeave'),
       detailBulkStart: document.getElementById('detailBulkStart'),
       detailBulkEnd: document.getElementById('detailBulkEnd'),
       detailBulkUpdateNote: document.getElementById('detailBulkUpdateNote'),
@@ -1209,7 +1376,7 @@ service cloud.firestore {
     };
 
     // =========================================================================
-    // 7. 조회 / 필터 헬퍼 (계층형 부서/하위팀 구조 + 기존 Firestore 문서 하위 호환)
+    // 6. 조회 / 필터 헬퍼 (계층형 부서/하위팀 구조 + 기존 Firestore 문서 하위 호환)
     // =========================================================================
     function getDeptName(t) {
       return (t?.name || t?.department || t?.teamName || '').trim();
@@ -1224,7 +1391,6 @@ service cloud.firestore {
       return state.teams.find((t) => t.id === teamId) || null;
     }
 
-    /** 팀 객체의 전체 계층 경로 반환 (예: "생산부 > 생산1팀") */
     function getTeamPath(team) {
       if (!team) return '';
       const parts = [];
@@ -1238,7 +1404,6 @@ service cloud.firestore {
       return parts.join(' > ');
     }
 
-    /** 특정 부서와 모든 하위 부서(재귀)의 ID Set 반환 */
     function getDescendantTeamIds(rootTeamId) {
       const ids = new Set([rootTeamId]);
       const queue = [rootTeamId];
@@ -1254,7 +1419,6 @@ service cloud.firestore {
       return ids;
     }
 
-    /** 계층 트리 순서대로 평탄화된 부서 목록 반환 [{ team, depth, path }] */
     function getFlattenedTeams() {
       const result = [];
       const visited = new Set();
@@ -1277,7 +1441,6 @@ service cloud.firestore {
       return result;
     }
 
-    /** 팀원이 소속된 팀 객체 조회 (teamId 우선, 없으면 기존 department 이름으로 매칭) */
     function getMemberTeam(m) {
       if (!m) return null;
       if (m.teamId) {
@@ -1289,13 +1452,11 @@ service cloud.firestore {
       return state.teams.find((t) => getDeptName(t) === dep || getTeamPath(t) === dep) || null;
     }
 
-    /** 화면/엑셀에 표시할 팀원의 부서 경로명 */
     function getMemberDeptLabel(m) {
       const team = getMemberTeam(m);
       return team ? getTeamPath(team) : (getMemberDept(m) || '미배정');
     }
 
-    /** 특정 부서(하위 부서 포함) 소속 여부 판별 */
     function isMemberInDeptFilter(member, filterValue) {
       if (!filterValue || filterValue === 'ALL') return true;
       const teamObj = getTeamById(filterValue);
@@ -1303,10 +1464,7 @@ service cloud.firestore {
         const allowedIds = getDescendantTeamIds(teamObj.id);
         const mTeam = getMemberTeam(member);
         if (mTeam && allowedIds.has(mTeam.id)) return true;
-        // 하위 호환: teamId가 없고 department 문자열만 있는 경우
-        const allowedNames = new Set(
-          Array.from(allowedIds).map((id) => getDeptName(getTeamById(id)))
-        );
+        const allowedNames = new Set(Array.from(allowedIds).map((id) => getDeptName(getTeamById(id))));
         return allowedNames.has(getMemberDept(member));
       }
       return getMemberDept(member) === filterValue;
@@ -1356,7 +1514,7 @@ service cloud.firestore {
     }
 
     // =========================================================================
-    // 6. 토스트 / 확인 모달 / Firebase 상태 표시
+    // 7. 토스트 / 확인 모달 / Firebase 상태 표시
     // =========================================================================
     function showToast(message, type = 'info') {
       const styles = {
@@ -1441,7 +1599,6 @@ service cloud.firestore {
         }
       };
 
-      // 1) teams 컬렉션 (기존 name / department / teamName + 계층형 parentId 지원)
       onSnapshot(
         collection(db, 'teams'),
         (snap) => {
@@ -1466,7 +1623,6 @@ service cloud.firestore {
         (err) => handleFirestoreError(err, 'teams')
       );
 
-      // 2) members 컬렉션
       onSnapshot(
         collection(db, 'members'),
         (snap) => {
@@ -1482,14 +1638,13 @@ service cloud.firestore {
         (err) => handleFirestoreError(err, 'members')
       );
 
-      // 3) workRecords 컬렉션
       onSnapshot(
         collection(db, 'workRecords'),
         (snap) => {
           const map = new Map();
           snap.docs.forEach((d) => {
             const data = d.data();
-            map.set(d.id, { id: d.id, ...data });
+            map.set(d.id, { id: d.id, ...data, leaveType: normalizeLeaveType(data.leaveType) });
           });
           state.recordsMap = map;
           state.initialLoaded.records = true;
@@ -1499,7 +1654,6 @@ service cloud.firestore {
         (err) => handleFirestoreError(err, 'workRecords')
       );
 
-      // 4) customHolidays 컬렉션
       onSnapshot(
         collection(db, 'customHolidays'),
         (snap) => {
@@ -1519,7 +1673,6 @@ service cloud.firestore {
       );
     }
 
-    /** Firestore에 샘플 부서/팀원/주간 기록 일괄 등록 (writeBatch) */
     async function seedSampleDataToFirestore() {
       try {
         setFbStatus('syncing');
@@ -1534,9 +1687,7 @@ service cloud.firestore {
           { id: 'dept_newbiz', name: '신규사업부', department: '신규사업부', parentId: null, order: 3, createdAt: serverTimestamp() },
         ];
 
-        sampleTeams.forEach((t) => {
-          batch.set(doc(db, 'teams', t.id), t);
-        });
+        sampleTeams.forEach((t) => batch.set(doc(db, 'teams', t.id), t));
 
         const sampleMembers = [
           { id: 'm_1', name: '김왕근', teamId: 'dept_prod1', department: '생산1팀', active: true },
@@ -1549,63 +1700,61 @@ service cloud.firestore {
           { id: 'm_8', name: '이정훈', teamId: 'dept_newbiz', department: '신규사업부', active: true },
         ];
 
-        sampleMembers.forEach((m) => {
-          batch.set(doc(db, 'members', m.id), m);
-        });
+        sampleMembers.forEach((m) => batch.set(doc(db, 'members', m.id), m));
 
         const sampleRecords = [
           // 김왕근 (주 56h - 52h 초과)
-          { date: d[1], memberId: 'm_1', startTime: '07:40', endTime: '20:30', note: '라인 증설 대응' },
-          { date: d[2], memberId: 'm_1', startTime: '08:00', endTime: '20:30', note: '' },
-          { date: d[3], memberId: 'm_1', startTime: '08:00', endTime: '20:00', note: '' },
-          { date: d[4], memberId: 'm_1', startTime: '08:00', endTime: '17:00', note: '' },
-          { date: d[5], memberId: 'm_1', startTime: '07:50', endTime: '21:00', note: '긴급 출하' },
-          { date: d[6], memberId: 'm_1', startTime: '08:00', endTime: '12:00', note: '토요 특근' },
+          { date: d[1], memberId: 'm_1', leaveType: 'none', startTime: '07:40', endTime: '20:30', note: '라인 증설 대응' },
+          { date: d[2], memberId: 'm_1', leaveType: 'none', startTime: '08:00', endTime: '20:30', note: '' },
+          { date: d[3], memberId: 'm_1', leaveType: 'none', startTime: '08:00', endTime: '20:00', note: '' },
+          { date: d[4], memberId: 'm_1', leaveType: 'none', startTime: '08:00', endTime: '17:00', note: '' },
+          { date: d[5], memberId: 'm_1', leaveType: 'none', startTime: '07:50', endTime: '21:00', note: '긴급 출하' },
+          { date: d[6], memberId: 'm_1', leaveType: 'none', startTime: '08:00', endTime: '12:00', note: '토요 특근' },
           // 김홍열 (주 52h 충족)
-          { date: d[1], memberId: 'm_2', startTime: '08:00', endTime: '20:00', note: '' },
-          { date: d[2], memberId: 'm_2', startTime: '07:35', endTime: '20:00', note: '' },
-          { date: d[3], memberId: 'm_2', startTime: '08:00', endTime: '20:30', note: '' },
-          { date: d[4], memberId: 'm_2', startTime: '08:00', endTime: '17:00', note: '' },
-          { date: d[5], memberId: 'm_2', startTime: '08:00', endTime: '17:00', note: '' },
-          { date: d[6], memberId: 'm_2', startTime: '08:00', endTime: '12:00', note: '주말 점검' },
-          // 유화석 (주 47h 여유)
-          { date: d[1], memberId: 'm_3', startTime: '08:00', endTime: '19:30', note: '' },
-          { date: d[2], memberId: 'm_3', startTime: '08:00', endTime: '18:00', note: '' },
-          { date: d[3], memberId: 'm_3', startTime: '08:00', endTime: '19:30', note: '' },
-          { date: d[4], memberId: 'm_3', startTime: '08:00', endTime: '17:00', note: '' },
-          { date: d[5], memberId: 'm_3', startTime: '08:00', endTime: '19:30', note: '' },
-          // 김희중 (생산2팀, 49h)
-          { date: d[1], memberId: 'm_4', startTime: '08:00', endTime: '19:30', note: '' },
-          { date: d[2], memberId: 'm_4', startTime: '08:00', endTime: '19:30', note: '' },
-          { date: d[3], memberId: 'm_4', startTime: '08:00', endTime: '18:00', note: '' },
-          { date: d[4], memberId: 'm_4', startTime: '08:00', endTime: '17:00', note: '' },
-          { date: d[5], memberId: 'm_4', startTime: '08:00', endTime: '17:00', note: '' },
-          { date: d[6], memberId: 'm_4', startTime: '08:00', endTime: '12:00', note: '설비 보전' },
-          // 백승현 (생산2팀, 45.5h)
-          { date: d[1], memberId: 'm_5', startTime: '08:00', endTime: '19:00', note: '' },
-          { date: d[2], memberId: 'm_5', startTime: '08:00', endTime: '19:00', note: '' },
-          { date: d[3], memberId: 'm_5', startTime: '08:00', endTime: '18:00', note: '' },
-          { date: d[4], memberId: 'm_5', startTime: '08:00', endTime: '17:00', note: '' },
-          { date: d[5], memberId: 'm_5', startTime: '08:00', endTime: '19:00', note: '' },
-          // 김창선 (생산2팀, 59h 초과)
-          { date: d[1], memberId: 'm_6', startTime: '07:20', endTime: '22:00', note: '신규 금형 셋업' },
-          { date: d[2], memberId: 'm_6', startTime: '08:00', endTime: '21:30', note: '' },
-          { date: d[3], memberId: 'm_6', startTime: '08:00', endTime: '20:30', note: '' },
-          { date: d[4], memberId: 'm_6', startTime: '08:00', endTime: '18:00', note: '' },
-          { date: d[5], memberId: 'm_6', startTime: '08:00', endTime: '20:00', note: '' },
-          { date: d[6], memberId: 'm_6', startTime: '07:45', endTime: '12:00', note: '주말 시운전' },
-          // 신재수 (품질팀, 40h)
-          { date: d[1], memberId: 'm_7', startTime: '08:00', endTime: '17:00', note: '정기 검수' },
-          { date: d[2], memberId: 'm_7', startTime: '08:00', endTime: '17:00', note: '' },
-          { date: d[3], memberId: 'm_7', startTime: '08:00', endTime: '17:00', note: '' },
-          { date: d[4], memberId: 'm_7', startTime: '08:00', endTime: '17:00', note: '' },
-          { date: d[5], memberId: 'm_7', startTime: '08:00', endTime: '17:00', note: '' },
-          // 이정훈 (개발팀, 44h)
-          { date: d[1], memberId: 'm_8', startTime: '08:00', endTime: '19:30', note: '시제품 테스트' },
-          { date: d[2], memberId: 'm_8', startTime: '08:00', endTime: '19:30', note: '' },
-          { date: d[3], memberId: 'm_8', startTime: '08:00', endTime: '17:00', note: '' },
-          { date: d[4], memberId: 'm_8', startTime: '08:00', endTime: '17:00', note: '' },
-          { date: d[5], memberId: 'm_8', startTime: '08:00', endTime: '17:00', note: '' },
+          { date: d[1], memberId: 'm_2', leaveType: 'none', startTime: '08:00', endTime: '20:00', note: '' },
+          { date: d[2], memberId: 'm_2', leaveType: 'none', startTime: '07:35', endTime: '20:00', note: '' },
+          { date: d[3], memberId: 'm_2', leaveType: 'none', startTime: '08:00', endTime: '20:30', note: '' },
+          { date: d[4], memberId: 'm_2', leaveType: 'annual', startTime: '', endTime: '', note: '개인 연차' },
+          { date: d[5], memberId: 'm_2', leaveType: 'none', startTime: '08:00', endTime: '17:00', note: '' },
+          { date: d[6], memberId: 'm_2', leaveType: 'none', startTime: '08:00', endTime: '12:00', note: '주말 점검' },
+          // 유화석 (오전반차 포함)
+          { date: d[1], memberId: 'm_3', leaveType: 'none', startTime: '08:00', endTime: '19:30', note: '' },
+          { date: d[2], memberId: 'm_3', leaveType: 'am_half', startTime: '13:00', endTime: '18:00', note: '병원 진료' },
+          { date: d[3], memberId: 'm_3', leaveType: 'none', startTime: '08:00', endTime: '19:30', note: '' },
+          { date: d[4], memberId: 'm_3', leaveType: 'none', startTime: '08:00', endTime: '17:00', note: '' },
+          { date: d[5], memberId: 'm_3', leaveType: 'none', startTime: '08:00', endTime: '19:30', note: '' },
+          // 김희중 (오후반차 포함)
+          { date: d[1], memberId: 'm_4', leaveType: 'none', startTime: '08:00', endTime: '19:30', note: '' },
+          { date: d[2], memberId: 'm_4', leaveType: 'none', startTime: '08:00', endTime: '19:30', note: '' },
+          { date: d[3], memberId: 'm_4', leaveType: 'none', startTime: '08:00', endTime: '18:00', note: '' },
+          { date: d[4], memberId: 'm_4', leaveType: 'pm_half', startTime: '08:00', endTime: '12:00', note: '가족 행사' },
+          { date: d[5], memberId: 'm_4', leaveType: 'none', startTime: '08:00', endTime: '17:00', note: '' },
+          { date: d[6], memberId: 'm_4', leaveType: 'none', startTime: '08:00', endTime: '12:00', note: '설비 보전' },
+          // 백승현
+          { date: d[1], memberId: 'm_5', leaveType: 'none', startTime: '08:00', endTime: '19:00', note: '' },
+          { date: d[2], memberId: 'm_5', leaveType: 'none', startTime: '08:00', endTime: '19:00', note: '' },
+          { date: d[3], memberId: 'm_5', leaveType: 'none', startTime: '08:00', endTime: '18:00', note: '' },
+          { date: d[4], memberId: 'm_5', leaveType: 'none', startTime: '08:00', endTime: '17:00', note: '' },
+          { date: d[5], memberId: 'm_5', leaveType: 'none', startTime: '08:00', endTime: '19:00', note: '' },
+          // 김창선
+          { date: d[1], memberId: 'm_6', leaveType: 'none', startTime: '07:20', endTime: '22:00', note: '신규 금형 셋업' },
+          { date: d[2], memberId: 'm_6', leaveType: 'none', startTime: '08:00', endTime: '21:30', note: '' },
+          { date: d[3], memberId: 'm_6', leaveType: 'none', startTime: '08:00', endTime: '20:30', note: '' },
+          { date: d[4], memberId: 'm_6', leaveType: 'none', startTime: '08:00', endTime: '18:00', note: '' },
+          { date: d[5], memberId: 'm_6', leaveType: 'none', startTime: '08:00', endTime: '20:00', note: '' },
+          { date: d[6], memberId: 'm_6', leaveType: 'none', startTime: '07:45', endTime: '12:00', note: '주말 시운전' },
+          // 신재수
+          { date: d[1], memberId: 'm_7', leaveType: 'none', startTime: '08:00', endTime: '17:00', note: '정기 검수' },
+          { date: d[2], memberId: 'm_7', leaveType: 'none', startTime: '08:00', endTime: '17:00', note: '' },
+          { date: d[3], memberId: 'm_7', leaveType: 'none', startTime: '08:00', endTime: '17:00', note: '' },
+          { date: d[4], memberId: 'm_7', leaveType: 'none', startTime: '08:00', endTime: '17:00', note: '' },
+          { date: d[5], memberId: 'm_7', leaveType: 'none', startTime: '08:00', endTime: '17:00', note: '' },
+          // 이정훈
+          { date: d[1], memberId: 'm_8', leaveType: 'none', startTime: '08:00', endTime: '19:30', note: '시제품 테스트' },
+          { date: d[2], memberId: 'm_8', leaveType: 'none', startTime: '08:00', endTime: '19:30', note: '' },
+          { date: d[3], memberId: 'm_8', leaveType: 'none', startTime: '08:00', endTime: '17:00', note: '' },
+          { date: d[4], memberId: 'm_8', leaveType: 'none', startTime: '08:00', endTime: '17:00', note: '' },
+          { date: d[5], memberId: 'm_8', leaveType: 'none', startTime: '08:00', endTime: '17:00', note: '' },
         ];
 
         sampleRecords.forEach((r) => {
@@ -1635,7 +1784,6 @@ service cloud.firestore {
       els.gridFilterBadge.textContent = label;
       els.panelFilterBadge.textContent = label;
 
-      // 계층형 부서 필터 탭 (상위 부서 클릭 시 하위 팀원 포함 표시)
       const flatTeams = getFlattenedTeams();
       const validIds = new Set(flatTeams.map((f) => f.team.id));
       if (state.selectedDept !== 'ALL' && !validIds.has(state.selectedDept)) {
@@ -1667,7 +1815,6 @@ service cloud.firestore {
       const metas = weekDates.map(getDateMeta);
       const members = getVisibleMembers();
 
-      // 1행: 요일 헤더 (클릭 시 해당 날짜 부서원 일괄 입력 모달 오픈)
       const row1 = `
         <tr>
           <th rowspan="3" class="sticky left-0 z-10 bg-slate-800 text-white border border-slate-600 px-3 py-2 text-xs font-bold min-w-[130px] shadow-[2px_0_4px_-2px_rgba(0,0,0,0.2)]">
@@ -1693,7 +1840,6 @@ service cloud.firestore {
         </tr>
       `;
 
-      // 2행: 날짜 + 공휴일 배지 (클릭 가능)
       const row2 = `
         <tr>
           ${metas
@@ -1720,13 +1866,12 @@ service cloud.firestore {
         </tr>
       `;
 
-      // 3행: 연장(h) / 특근(h)
       const row3 = `
         <tr class="bg-slate-50 text-[11px] font-bold text-slate-700">
           ${metas
             .map(
               () => `
-                <th class="border border-slate-300 py-1.5 px-1 w-[64px] text-amber-800 bg-amber-50/40">연장(h)</th>
+                <th class="border border-slate-300 py-1.5 px-1 w-[66px] text-amber-800 bg-amber-50/40">연장(h)</th>
                 <th class="border border-slate-300 py-1.5 px-1 w-[64px] text-rose-800 bg-rose-50/40">특근(h)</th>
               `
             )
@@ -1756,23 +1901,42 @@ service cloud.firestore {
           const cells = metas
             .map((meta) => {
               const rec = getRecord(meta.dateStr, member.id);
-              const calc = rec ? calculateWorkHours(rec.date, rec.startTime, rec.endTime) : null;
+              const lt = normalizeLeaveType(rec?.leaveType);
+              const calc = rec ? calculateWorkHours(rec.date, rec.startTime, rec.endTime, lt) : null;
 
               const otText = calc && calc.valid && calc.overtimeMin > 0 ? fmtHours(calc.overtimeMin) : '';
               const holText = calc && calc.valid && calc.holidayMin > 0 ? fmtHours(calc.holidayMin) : '';
-              const timeShort = rec ? `${rec.startTime}~${rec.endTime}` : '';
+              const timeShort = rec && rec.startTime && rec.endTime ? `${rec.startTime}~${rec.endTime}` : '';
 
-              const tooltip = rec && calc && calc.valid
-                ? `${member.name} (${meta.dateStr} ${meta.dayName})\n24h: ${rec.startTime}${calc.isEarlyClamped ? '→08:00' : ''} ~ ${rec.endTime}\n정상 ${fmtHours(calc.regularMin)}h / 연장 ${fmtHours(calc.overtimeMin)}h / 특근 ${fmtHours(calc.holidayMin)}h`
-                : `${member.name} (${meta.dateStr}) - 클릭하여 빠른 입력`;
+              let tooltip = `${member.name} (${meta.dateStr}) - 클릭하여 빠른 입력`;
+              if (rec && calc && calc.valid) {
+                const ltStr = lt !== 'none' ? `[${LEAVE_META[lt].label}] ` : '';
+                const tInfo = lt === 'annual' ? '연차 8h 정상근무 포함' : timeShort ? `24h: ${rec.startTime}${calc.isEarlyClamped ? '→08:00' : ''} ~ ${rec.endTime}` : '반차 4h 반영';
+                tooltip = `${member.name} (${meta.dateStr} ${meta.dayName})\n${ltStr}${tInfo}\n정상 ${fmtHours(calc.regularMin)}h / 연장 ${fmtHours(calc.overtimeMin)}h / 특근 ${fmtHours(calc.holidayMin)}h`;
+              }
 
-              const cellBg = isHl ? 'bg-indigo-50/70 hover:bg-indigo-100' : 'bg-[#fef9e7] hover:bg-amber-100/80';
+              const isLeaveCell = lt !== 'none';
+              const cellBg = isHl
+                ? 'bg-indigo-50/70 hover:bg-indigo-100'
+                : isLeaveCell
+                ? 'bg-violet-50/75 hover:bg-violet-100/80'
+                : 'bg-[#fef9e7] hover:bg-amber-100/80';
 
-              const otCell = otText
-                ? `<div class="font-extrabold text-slate-900 text-xs">${otText}</div><div class="text-[9px] font-mono text-slate-500 mt-0.5">${escapeHtml(timeShort)}</div>`
-                : rec && !meta.isSpecialDay
-                ? `<div class="text-[10px] font-semibold text-slate-400">정상</div><div class="text-[9px] font-mono text-slate-400 mt-0.5">${escapeHtml(timeShort)}</div>`
-                : `<span class="text-slate-300 text-[10px]">-</span>`;
+              let otCell = `<span class="text-slate-300 text-[10px]">-</span>`;
+              if (lt === 'annual') {
+                otCell = `<span class="inline-block px-1.5 py-0.5 rounded bg-violet-600 text-white text-[10px] font-bold leading-tight">연차</span><div class="text-[9px] font-mono text-violet-700 font-bold mt-0.5">8h 포함</div>`;
+              } else if (lt === 'am_half' || lt === 'pm_half') {
+                const shortTxt = LEAVE_META[lt].shortLabel;
+                if (otText) {
+                  otCell = `<div class="inline-block px-1 py-0.2 rounded bg-violet-100 text-violet-800 text-[9px] font-bold leading-tight mb-0.5">${shortTxt}</div><div class="font-extrabold text-slate-900 text-xs leading-none">${otText}</div><div class="text-[9px] font-mono text-slate-500 mt-0.5">${escapeHtml(timeShort)}</div>`;
+                } else {
+                  otCell = `<span class="inline-block px-1.5 py-0.5 rounded bg-violet-100 text-violet-800 border border-violet-200 text-[9px] font-bold leading-tight">${shortTxt}</span>${timeShort ? `<div class="text-[9px] font-mono text-slate-500 mt-0.5">${escapeHtml(timeShort)}</div>` : `<div class="text-[9px] font-mono text-violet-600 mt-0.5">4h</div>`}`;
+                }
+              } else if (otText) {
+                otCell = `<div class="font-extrabold text-slate-900 text-xs">${otText}</div><div class="text-[9px] font-mono text-slate-500 mt-0.5">${escapeHtml(timeShort)}</div>`;
+              } else if (rec && !meta.isSpecialDay) {
+                otCell = `<div class="text-[10px] font-semibold text-slate-400">정상</div><div class="text-[9px] font-mono text-slate-400 mt-0.5">${escapeHtml(timeShort)}</div>`;
+              }
 
               const holCell = holText
                 ? `<div class="font-extrabold text-rose-700 text-xs">${holText}</div><div class="text-[9px] font-mono text-rose-500 mt-0.5">${escapeHtml(timeShort)}</div>`
@@ -1838,7 +2002,8 @@ service cloud.firestore {
       els.detailTableBody.innerHTML = records
         .map((rec) => {
           const member = state.members.find((m) => m.id === rec.memberId);
-          const calc = calculateWorkHours(rec.date, rec.startTime, rec.endTime);
+          const lt = normalizeLeaveType(rec.leaveType);
+          const calc = calculateWorkHours(rec.date, rec.startTime, rec.endTime, lt);
           const m = calc.meta;
           const isChecked = state.selectedDetailIds.has(rec.id);
 
@@ -1846,9 +2011,22 @@ service cloud.firestore {
           if (m.isPublicHoliday) badge = `<span class="ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700">${m.dayName}·${escapeHtml(m.holidayName)}</span>`;
           else if (m.isWeekend) badge = `<span class="ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700">${m.dayName}·주말특근</span>`;
 
-          const startHtml = calc.isEarlyClamped
-            ? `<span class="text-slate-400 line-through">${rec.startTime}</span> <span class="text-indigo-600 font-bold">08:00</span>`
-            : `<span class="font-semibold text-slate-800">${rec.startTime}</span>`;
+          let timeColHtml = '';
+          if (lt === 'annual') {
+            timeColHtml = `<span class="px-2 py-0.5 rounded-md text-[11px] font-bold ${LEAVE_META.annual.badgeCls}">연차 (8h 포함)</span>`;
+          } else {
+            const leaveBadge = lt !== 'none'
+              ? `<span class="mr-1.5 px-1.5 py-0.5 rounded-md text-[10px] font-bold ${LEAVE_META[lt].badgeCls}">${LEAVE_META[lt].shortLabel}(4h)</span>`
+              : '';
+            if (rec.startTime && rec.endTime) {
+              const startHtml = calc.isEarlyClamped
+                ? `<span class="text-slate-400 line-through">${rec.startTime}</span> <span class="text-indigo-600 font-bold">08:00</span>`
+                : `<span class="font-semibold text-slate-800">${rec.startTime}</span>`;
+              timeColHtml = `${leaveBadge}<span class="font-mono text-xs">${startHtml} ~ <span class="font-semibold text-slate-800">${rec.endTime}</span></span>`;
+            } else {
+              timeColHtml = `${leaveBadge}<span class="text-xs text-slate-400">실근무 없음</span>`;
+            }
+          }
 
           return `
             <tr class="${isChecked ? 'bg-indigo-50/60' : 'hover:bg-slate-50'} transition-colors">
@@ -1858,8 +2036,8 @@ service cloud.firestore {
               <td class="py-2.5 px-4 whitespace-nowrap font-mono text-xs font-semibold text-slate-800">${rec.date}${badge}</td>
               <td class="py-2.5 px-3 whitespace-nowrap text-xs text-slate-600">${escapeHtml(member ? getMemberDeptLabel(member) : '-')}</td>
               <td class="py-2.5 px-3 whitespace-nowrap font-bold text-slate-900">${escapeHtml(member ? member.name : '-')}</td>
-              <td class="py-2.5 px-3 whitespace-nowrap font-mono text-xs">${startHtml} ~ <span class="font-semibold text-slate-800">${rec.endTime}</span></td>
-              <td class="py-2.5 px-3 whitespace-nowrap text-xs text-slate-500">중${calc.lunchDeductMin}/석${calc.dinnerDeductMin}분</td>
+              <td class="py-2.5 px-3 whitespace-nowrap">${timeColHtml}</td>
+              <td class="py-2.5 px-3 whitespace-nowrap text-xs text-slate-500">${lt === 'annual' ? '-' : `중${calc.lunchDeductMin}/석${calc.dinnerDeductMin}분`}</td>
               <td class="py-2.5 px-3 whitespace-nowrap text-right font-mono font-semibold text-slate-700">${fmtHours(calc.regularMin)}</td>
               <td class="py-2.5 px-3 whitespace-nowrap text-right font-mono font-bold text-amber-700">${calc.overtimeMin > 0 ? fmtHours(calc.overtimeMin) : '-'}</td>
               <td class="py-2.5 px-3 whitespace-nowrap text-right font-mono font-bold text-rose-700">${calc.holidayMin > 0 ? fmtHours(calc.holidayMin) : '-'}</td>
@@ -1886,15 +2064,20 @@ service cloud.firestore {
         let regMin = 0;
         let otMin = 0;
         let holMin = 0;
+        let annualCnt = 0;
+        let halfCnt = 0;
 
         weekDates.forEach((dStr) => {
           const rec = getRecord(dStr, member.id);
           if (!rec) return;
-          const calc = calculateWorkHours(rec.date, rec.startTime, rec.endTime);
+          const lt = normalizeLeaveType(rec.leaveType);
+          const calc = calculateWorkHours(rec.date, rec.startTime, rec.endTime, lt);
           if (!calc.valid) return;
           regMin += calc.regularMin;
           otMin += calc.overtimeMin;
           holMin += calc.holidayMin;
+          if (lt === 'annual') annualCnt += 1;
+          else if (lt === 'am_half' || lt === 'pm_half') halfCnt += 1;
         });
 
         const totalMin = regMin + otMin + holMin;
@@ -1903,7 +2086,7 @@ service cloud.firestore {
         totalHolMin += holMin;
         if (diffMin > 0) exceededCnt += 1;
 
-        return { member, regMin, otMin, holMin, totalMin, diffMin };
+        return { member, regMin, otMin, holMin, totalMin, diffMin, annualCnt, halfCnt };
       });
 
       els.kpiTotalOvertime.textContent = `${fmtHours(totalOtMin)}h`;
@@ -1939,18 +2122,26 @@ service cloud.firestore {
           barColor = totalH >= 48 ? 'bg-amber-500' : 'bg-emerald-500';
         }
 
+        const leaveTags = [];
+        if (item.annualCnt > 0) leaveTags.push(`연차 ${item.annualCnt}`);
+        if (item.halfCnt > 0) leaveTags.push(`반차 ${item.halfCnt}`);
+        const leaveTagHtml = leaveTags.length
+          ? `<span class="px-1.5 py-0.5 rounded bg-violet-100 text-violet-700 text-[10px] font-bold shrink-0">${leaveTags.join('·')}</span>`
+          : '';
+
         return `
           <button type="button" data-highlight-member="${escapeHtml(item.member.id)}" class="w-full text-left rounded-xl border p-3.5 transition-all ${borderCls}">
             <div class="flex items-center justify-between gap-2 mb-2">
-              <div class="flex items-center gap-1.5 min-w-0">
+              <div class="flex items-center gap-1.5 min-w-0 flex-wrap">
                 <span class="font-extrabold text-slate-900 text-sm truncate">${escapeHtml(item.member.name)}</span>
                 <span class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 text-[10px] font-semibold shrink-0">${escapeHtml(getMemberDeptLabel(item.member))}</span>
+                ${leaveTagHtml}
               </div>
               ${badge}
             </div>
             <div class="grid grid-cols-3 gap-1.5 text-center mb-2.5">
               <div class="rounded-lg bg-slate-50 border border-slate-200/80 py-1.5 px-1">
-                <p class="text-[10px] text-slate-500 font-medium">정상</p>
+                <p class="text-[10px] text-slate-500 font-medium">정상(연/반 포함)</p>
                 <p class="text-xs font-bold text-slate-800 font-mono">${fmtHours(item.regMin)}h</p>
               </div>
               <div class="rounded-lg bg-amber-50/70 border border-amber-200/80 py-1.5 px-1">
@@ -1986,7 +2177,7 @@ service cloud.firestore {
     }
 
     // =========================================================================
-    // 10. 모달 1: 부서원 일괄 입력 모달 로직
+    // 10. 모달 1: 부서원 일괄 입력 모달 로직 (연차/반차 지원)
     // =========================================================================
     function populateBatchDeptSelect(defaultDept = 'ALL') {
       const flatTeams = getFlattenedTeams();
@@ -2018,24 +2209,47 @@ service cloud.firestore {
       }
     }
 
-    function buildBatchPreviewHtml(dateStr, startTime, endTime) {
-      const calc = calculateWorkHours(dateStr, startTime, endTime);
+    function buildBatchPreviewHtml(dateStr, startTime, endTime, leaveType = 'none') {
+      const calc = calculateWorkHours(dateStr, startTime, endTime, leaveType);
       if (!calc.valid) {
         return `<span class="text-[11px] font-bold text-rose-600">${escapeHtml(calc.error)}</span>`;
       }
+      if (calc.leaveType === 'annual') {
+        return `<span class="px-1.5 py-0.5 rounded bg-violet-100 text-violet-800 text-[10px] font-bold mr-1">연차</span><span class="font-mono text-xs font-bold text-slate-800">정상 8h 포함</span>`;
+      }
+      const leaveTag = calc.leaveType !== 'none'
+        ? `<span class="px-1.5 py-0.5 rounded bg-violet-100 text-violet-800 text-[10px] font-bold mr-1">${LEAVE_META[calc.leaveType].shortLabel}+4h</span>`
+        : '';
       const clampTag = calc.isEarlyClamped
-        ? `<span class="px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700 text-[10px] font-bold mr-1">→08:00 적용</span>`
+        ? `<span class="px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700 text-[10px] font-bold mr-1">→08:00</span>`
         : '';
       if (calc.meta.isSpecialDay) {
-        return `${clampTag}<span class="font-mono text-xs font-extrabold text-rose-700">특근 ${fmtHours(calc.holidayMin)}h</span> <span class="text-[10px] text-slate-400">(중${calc.lunchDeductMin}/석${calc.dinnerDeductMin})</span>`;
+        return `${leaveTag}${clampTag}<span class="font-mono text-xs font-extrabold text-rose-700">특근 ${fmtHours(calc.holidayMin)}h</span>${calc.regularMin > 0 ? ` · 정상 ${fmtHours(calc.regularMin)}h` : ''}`;
       }
-      return `${clampTag}<span class="font-mono text-xs font-semibold text-slate-700">정상 ${fmtHours(calc.regularMin)}h</span> · <span class="font-mono text-xs font-extrabold text-amber-700">연장 ${fmtHours(calc.overtimeMin)}h</span>`;
+      return `${leaveTag}${clampTag}<span class="font-mono text-xs font-semibold text-slate-700">정상 ${fmtHours(calc.regularMin)}h</span> · <span class="font-mono text-xs font-extrabold text-amber-700">연장 ${fmtHours(calc.overtimeMin)}h</span>`;
     }
 
     function updateBatchSelectionCount() {
       const checked = els.batchTableBody.querySelectorAll('input[data-batch-check]:checked').length;
       const total = els.batchTableBody.querySelectorAll('input[data-batch-check]').length;
       els.batchSummaryInfo.innerHTML = `대상 인원 ${total}명 중 <strong class="text-indigo-700">${checked}명 선택됨</strong> (선택된 인원만 일괄 저장됩니다)`;
+    }
+
+    function syncBatchCommonLeaveState() {
+      const lt = els.batchCommonLeave.value;
+      const isAnnual = lt === 'annual';
+      els.batchCommonStart.disabled = isAnnual;
+      els.batchCommonEnd.disabled = isAnnual;
+      if (lt === 'am_half') {
+        els.batchCommonStart.value = '13:00';
+        els.batchCommonEnd.value = '17:00';
+      } else if (lt === 'pm_half') {
+        els.batchCommonStart.value = '08:00';
+        els.batchCommonEnd.value = '12:00';
+      } else if (lt === 'none') {
+        if (!isValidTime24(els.batchCommonStart.value)) els.batchCommonStart.value = '08:00';
+        if (!isValidTime24(els.batchCommonEnd.value)) els.batchCommonEnd.value = '17:00';
+      }
     }
 
     function renderBatchTable() {
@@ -2051,7 +2265,7 @@ service cloud.firestore {
       if (matchedMembers.length === 0) {
         els.batchTableBody.innerHTML = `
           <tr>
-            <td colspan="7" class="py-12 text-center text-sm text-slate-400">
+            <td colspan="8" class="py-12 text-center text-sm text-slate-400">
               선택한 부서에 소속된 인원이 없습니다.
             </td>
           </tr>
@@ -2060,16 +2274,19 @@ service cloud.firestore {
         return;
       }
 
+      const defaultLeave = els.batchCommonLeave.value || 'none';
       const defaultStart = isValidTime24(els.batchCommonStart.value) ? els.batchCommonStart.value : '08:00';
       const defaultEnd = isValidTime24(els.batchCommonEnd.value) ? els.batchCommonEnd.value : '17:00';
 
       els.batchTableBody.innerHTML = matchedMembers
         .map((m) => {
           const existing = getRecord(dateStr, m.id);
-          const sVal = existing ? existing.startTime : defaultStart;
-          const eVal = existing ? existing.endTime : defaultEnd;
+          const lt = existing ? normalizeLeaveType(existing.leaveType) : defaultLeave;
+          const isAnnual = lt === 'annual';
+          const sVal = existing ? (existing.startTime || '') : (isAnnual ? '' : defaultStart);
+          const eVal = existing ? (existing.endTime || '') : (isAnnual ? '' : defaultEnd);
           const nVal = existing ? (existing.note || '') : '';
-          const previewHtml = buildBatchPreviewHtml(dateStr, sVal, eVal);
+          const previewHtml = buildBatchPreviewHtml(dateStr, sVal, eVal, lt);
 
           return `
             <tr data-batch-row="${escapeHtml(m.id)}" class="${existing ? 'bg-emerald-50/35' : 'hover:bg-slate-50'}">
@@ -2084,14 +2301,26 @@ service cloud.firestore {
                 <div class="text-[11px] text-slate-500">${escapeHtml(getMemberDeptLabel(m))}</div>
               </td>
               <td class="py-2.5 px-3">
+                <select
+                  data-batch-leave="${escapeHtml(m.id)}"
+                  class="w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="none" ${lt === 'none' ? 'selected' : ''}>일반근무</option>
+                  <option value="annual" ${lt === 'annual' ? 'selected' : ''}>연차(8h)</option>
+                  <option value="am_half" ${lt === 'am_half' ? 'selected' : ''}>오전반차(4h)</option>
+                  <option value="pm_half" ${lt === 'pm_half' ? 'selected' : ''}>오후반차(4h)</option>
+                </select>
+              </td>
+              <td class="py-2.5 px-3">
                 <input
                   type="text"
                   data-batch-start="${escapeHtml(m.id)}"
                   value="${escapeHtml(sVal)}"
+                  ${isAnnual ? 'disabled' : ''}
                   maxlength="5"
                   inputmode="numeric"
-                  placeholder="08:00"
-                  class="w-24 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-center font-mono text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  placeholder="${isAnnual ? '-' : '08:00'}"
+                  class="w-24 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-center font-mono text-sm font-bold text-slate-900 disabled:bg-slate-100 disabled:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </td>
               <td class="py-2.5 px-3">
@@ -2099,10 +2328,11 @@ service cloud.firestore {
                   type="text"
                   data-batch-end="${escapeHtml(m.id)}"
                   value="${escapeHtml(eVal)}"
+                  ${isAnnual ? 'disabled' : ''}
                   maxlength="5"
                   inputmode="numeric"
-                  placeholder="17:00"
-                  class="w-24 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-center font-mono text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  placeholder="${isAnnual ? '-' : '17:00'}"
+                  class="w-24 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-center font-mono text-sm font-bold text-slate-900 disabled:bg-slate-100 disabled:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </td>
               <td class="py-2.5 px-3">
@@ -2112,7 +2342,7 @@ service cloud.firestore {
                   value="${escapeHtml(nVal)}"
                   maxlength="60"
                   placeholder="비고 입력"
-                  class="w-full min-w-[120px] rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  class="w-full min-w-[110px] rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </td>
               <td data-batch-preview="${escapeHtml(m.id)}" class="py-2.5 px-3 whitespace-nowrap">
@@ -2135,6 +2365,8 @@ service cloud.firestore {
 
     function openBatchModal(dateStr = null) {
       els.batchDate.value = dateStr || getTodayStr();
+      els.batchCommonLeave.value = 'none';
+      syncBatchCommonLeaveState();
       populateBatchDeptSelect(state.selectedDept);
       renderBatchTable();
       els.batchModal.classList.remove('hidden');
@@ -2160,14 +2392,16 @@ service cloud.firestore {
       const itemsToSave = [];
       for (const cb of checkedBoxes) {
         const memberId = cb.dataset.batchCheck;
+        const leaveSelect = els.batchTableBody.querySelector(`select[data-batch-leave="${CSS.escape(memberId)}"]`);
         const startInput = els.batchTableBody.querySelector(`input[data-batch-start="${CSS.escape(memberId)}"]`);
         const endInput = els.batchTableBody.querySelector(`input[data-batch-end="${CSS.escape(memberId)}"]`);
         const noteInput = els.batchTableBody.querySelector(`input[data-batch-note="${CSS.escape(memberId)}"]`);
 
-        const startTime = startInput.value.trim();
-        const endTime = endInput.value.trim();
+        const leaveType = normalizeLeaveType(leaveSelect?.value);
+        const startTime = leaveType === 'annual' ? '' : startInput.value.trim();
+        const endTime = leaveType === 'annual' ? '' : endInput.value.trim();
         const note = noteInput.value.trim();
-        const calc = calculateWorkHours(dateStr, startTime, endTime);
+        const calc = calculateWorkHours(dateStr, startTime, endTime, leaveType);
 
         if (!calc.valid) {
           const m = state.members.find((x) => x.id === memberId);
@@ -2175,11 +2409,10 @@ service cloud.firestore {
           startInput.focus();
           return;
         }
-        itemsToSave.push({ memberId, startTime, endTime, note });
+        itemsToSave.push({ memberId, leaveType, startTime, endTime, note });
       }
 
       try {
-        // 유효성 검증 통과 시 팝업 즉시 종료 후 Firestore 일괄 저장
         closeBatchModal();
         const batch = writeBatch(db);
         itemsToSave.forEach((item) => {
@@ -2187,6 +2420,7 @@ service cloud.firestore {
           batch.set(doc(db, 'workRecords', docId), {
             date: dateStr,
             memberId: item.memberId,
+            leaveType: item.leaveType,
             startTime: item.startTime,
             endTime: item.endTime,
             note: item.note,
@@ -2208,7 +2442,7 @@ service cloud.firestore {
     }
 
     // =========================================================================
-    // 11. 모달 2: 1인 빠른 출퇴근 수정 모달 로직
+    // 11. 모달 2: 1인 빠른 출퇴근 수정 모달 로직 (연차/반차 지원)
     // =========================================================================
     function initSingle24hSelects() {
       const fillH = (sel, maxH) => {
@@ -2242,32 +2476,96 @@ service cloud.firestore {
       mSel.value = mm;
     }
 
+    function setSingleLeaveTypeUI(leaveType, autoAdjustTimes = false) {
+      const lt = normalizeLeaveType(leaveType);
+      els.singleLeaveType.value = lt;
+
+      els.singleLeaveButtons.querySelectorAll('button[data-single-leave]').forEach((btn) => {
+        const active = btn.dataset.singleLeave === lt;
+        if (active) {
+          btn.className = lt === 'none'
+            ? 'py-2 px-2 rounded-xl text-xs font-extrabold border bg-indigo-600 text-white border-indigo-600 shadow-xs'
+            : 'py-2 px-2 rounded-xl text-xs font-extrabold border bg-violet-600 text-white border-violet-600 shadow-xs';
+        } else {
+          btn.className = 'py-2 px-2 rounded-xl text-xs font-bold border bg-white text-slate-600 border-slate-300 hover:bg-slate-50';
+        }
+      });
+
+      const isAnnual = lt === 'annual';
+      els.singleStartInput.disabled = isAnnual;
+      els.singleStartHour.disabled = isAnnual;
+      els.singleStartMin.disabled = isAnnual;
+      els.singleEndInput.disabled = isAnnual;
+      els.singleEndHour.disabled = isAnnual;
+      els.singleEndMin.disabled = isAnnual;
+      els.singleTimeInputsWrapper.classList.toggle('opacity-45', isAnnual);
+      els.singleTimeInputsWrapper.classList.toggle('pointer-events-none', isAnnual);
+
+      if (lt === 'annual') {
+        els.singleLeaveInfoBanner.textContent = '연차 선택 시 출퇴근 시간 입력 없이 8시간이 정상 근무시간(주 52h)에 자동 포함됩니다.';
+        els.singleLeaveInfoBanner.classList.remove('hidden');
+      } else if (lt === 'am_half') {
+        els.singleLeaveInfoBanner.textContent = '오전반차 4시간 + 오후 실제 근무시간이 합산됩니다. (기본 오후 근무 13:00~17:00)';
+        els.singleLeaveInfoBanner.classList.remove('hidden');
+        if (autoAdjustTimes) {
+          els.singleStartInput.value = '13:00';
+          els.singleEndInput.value = '17:00';
+          syncSingleSelects(els.singleStartInput, els.singleStartHour, els.singleStartMin);
+          syncSingleSelects(els.singleEndInput, els.singleEndHour, els.singleEndMin);
+        }
+      } else if (lt === 'pm_half') {
+        els.singleLeaveInfoBanner.textContent = '오후반차 4시간 + 오전 실제 근무시간이 합산됩니다. (기본 오전 근무 08:00~12:00)';
+        els.singleLeaveInfoBanner.classList.remove('hidden');
+        if (autoAdjustTimes) {
+          els.singleStartInput.value = '08:00';
+          els.singleEndInput.value = '12:00';
+          syncSingleSelects(els.singleStartInput, els.singleStartHour, els.singleStartMin);
+          syncSingleSelects(els.singleEndInput, els.singleEndHour, els.singleEndMin);
+        }
+      } else {
+        els.singleLeaveInfoBanner.classList.add('hidden');
+        if (autoAdjustTimes) {
+          if (!isValidTime24(els.singleStartInput.value) || els.singleStartInput.value === '13:00') {
+            els.singleStartInput.value = '08:00';
+          }
+          if (!isValidTime24(els.singleEndInput.value) || els.singleEndInput.value === '12:00') {
+            els.singleEndInput.value = '17:00';
+          }
+          syncSingleSelects(els.singleStartInput, els.singleStartHour, els.singleStartMin);
+          syncSingleSelects(els.singleEndInput, els.singleEndHour, els.singleEndMin);
+        }
+      }
+
+      updateSinglePreview();
+    }
+
     function updateSinglePreview() {
       const dateStr = els.singleDate.value;
-      const sVal = els.singleStartInput.value.trim();
-      const eVal = els.singleEndInput.value.trim();
+      const lt = normalizeLeaveType(els.singleLeaveType.value);
+      const sVal = lt === 'annual' ? '' : els.singleStartInput.value.trim();
+      const eVal = lt === 'annual' ? '' : els.singleEndInput.value.trim();
       if (!dateStr) return;
 
-      const calc = calculateWorkHours(dateStr, sVal, eVal);
+      const calc = calculateWorkHours(dateStr, sVal, eVal, lt);
       const m = calc.meta;
 
       if (m.isPublicHoliday) {
         els.singleDayBadge.textContent = `${m.dayName} · ${m.holidayName}`;
         els.singleDayBadge.className = 'text-[11px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700';
         els.singleHolidayBanner.classList.remove('hidden');
-        els.singleHolidayText.textContent = `대한민국 공휴일 (${m.holidayName}) → 전 시간 특근`;
+        els.singleHolidayText.textContent = `대한민국 공휴일 (${m.holidayName}) → 실근무 전 시간 특근`;
       } else if (m.isWeekend) {
         els.singleDayBadge.textContent = `${m.dayName} · 주말 특근`;
         els.singleDayBadge.className = 'text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700';
         els.singleHolidayBanner.classList.remove('hidden');
-        els.singleHolidayText.textContent = `${m.dayFullName} 주말 → 전 시간 특근`;
+        els.singleHolidayText.textContent = `${m.dayFullName} 주말 → 실근무 전 시간 특근`;
       } else {
         els.singleDayBadge.textContent = `${m.dayName} · 평일`;
         els.singleDayBadge.className = 'text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600';
         els.singleHolidayBanner.classList.add('hidden');
       }
 
-      els.singleEarlyBadge.classList.toggle('hidden', !(calc.isEarlyClamped && isValidTime24(sVal)));
+      els.singleEarlyBadge.classList.toggle('hidden', !(lt !== 'annual' && calc.isEarlyClamped && isValidTime24(sVal)));
 
       if (!calc.valid) {
         els.singleError.textContent = calc.error;
@@ -2281,8 +2579,18 @@ service cloud.firestore {
       }
 
       els.singleError.classList.add('hidden');
-      els.sPrevRange.textContent = `${calc.effectiveStartTime}~${eVal}`;
-      els.sPrevDeduct.textContent = `중${calc.lunchDeductMin}/석${calc.dinnerDeductMin}분`;
+      if (lt === 'annual') {
+        els.sPrevRange.textContent = '연차 (8h 정상 포함)';
+        els.sPrevDeduct.textContent = '해당 없음';
+      } else if (lt !== 'none' && !sVal && !eVal) {
+        els.sPrevRange.textContent = `${LEAVE_META[lt].label} (실근무 없음)`;
+        els.sPrevDeduct.textContent = '해당 없음';
+      } else {
+        const prefix = lt !== 'none' ? `${LEAVE_META[lt].shortLabel}(4h) + ` : '';
+        els.sPrevRange.textContent = `${prefix}${calc.effectiveStartTime}~${eVal}`;
+        els.sPrevDeduct.textContent = `중${calc.lunchDeductMin}/석${calc.dinnerDeductMin}분`;
+      }
+
       els.sPrevReg.textContent = fmtHours(calc.regularMin);
       els.sPrevOt.textContent = fmtHours(calc.overtimeMin);
       els.sPrevHol.textContent = fmtHours(calc.holidayMin);
@@ -2295,10 +2603,11 @@ service cloud.firestore {
       els.singleDate.value = dateStr;
 
       const existing = getRecord(dateStr, memberId);
+      const lt = existing ? normalizeLeaveType(existing.leaveType) : 'none';
       if (existing) {
         els.singleModalTitle.textContent = '1인 출퇴근 수정 (24h)';
-        els.singleStartInput.value = existing.startTime;
-        els.singleEndInput.value = existing.endTime;
+        els.singleStartInput.value = existing.startTime || (lt === 'annual' ? '' : '08:00');
+        els.singleEndInput.value = existing.endTime || (lt === 'annual' ? '' : '17:00');
         els.singleNote.value = existing.note || '';
         els.btnDeleteSingle.classList.remove('hidden');
       } else {
@@ -2311,7 +2620,7 @@ service cloud.firestore {
 
       syncSingleSelects(els.singleStartInput, els.singleStartHour, els.singleStartMin);
       syncSingleSelects(els.singleEndInput, els.singleEndHour, els.singleEndMin);
-      updateSinglePreview();
+      setSingleLeaveTypeUI(lt, false);
       els.singleModal.classList.remove('hidden');
     }
 
@@ -2332,7 +2641,6 @@ service cloud.firestore {
       const subCount = state.teams.length - rootTeams.length;
       els.orgSummaryBadge.textContent = `총 ${rootTeams.length}개 부서${subCount > 0 ? ` (하위 팀 ${subCount}개)` : ''} · ${state.members.length}명`;
 
-      // 상단 루트 노드의 '상위 부서 선택' 드롭다운 동기화
       const prevParentVal = els.newParentDept.value;
       els.newParentDept.innerHTML =
         `<option value="">최상위 부서로 추가</option>` +
@@ -2388,7 +2696,6 @@ service cloud.firestore {
           .join('');
       };
 
-      /** 재귀적으로 부서 및 하위 부서(팀) 노드 렌더링 */
       const buildDeptNode = (team, depth = 0) => {
         const deptName = getDeptName(team);
         const directMembers = state.members
@@ -2429,7 +2736,6 @@ service cloud.firestore {
             ${isRoot ? '<div class="mx-auto w-0.5 h-4 bg-indigo-300 -mt-4"></div>' : ''}
 
             <div class="bg-white rounded-2xl border ${cardBorder} overflow-hidden flex flex-col">
-              <!-- 부서/팀 노드 헤더 -->
               <div class="px-3.5 py-2.5 ${headerBg} border-b flex items-center justify-between gap-2">
                 <div class="flex items-center gap-1.5 min-w-0">
                   <span class="w-2.5 h-2.5 rounded-sm ${dotColor} shrink-0"></span>
@@ -2458,7 +2764,6 @@ service cloud.firestore {
                 </div>
               </div>
 
-              <!-- 인라인 하위 부서 추가 폼 (토글) -->
               <form
                 data-org-add-subdept="${escapeHtml(team.id)}"
                 class="hidden px-3 py-2 bg-sky-50/60 border-b border-sky-100 flex items-center gap-1.5"
@@ -2476,14 +2781,12 @@ service cloud.firestore {
                 </button>
               </form>
 
-              <!-- 직속 팀원 트리 목록 -->
               <div class="px-3 py-2">
                 <div class="border-l-2 border-indigo-200 ml-1 space-y-0.5 max-h-44 overflow-y-auto pr-1">
                   ${buildMembersTreeHtml(directMembers)}
                 </div>
               </div>
 
-              <!-- 직속 팀원 다중 일괄 추가 -->
               <form data-org-add-members="${escapeHtml(team.id)}" data-org-dept-name="${escapeHtml(deptName)}" class="px-3 py-2.5 bg-slate-50 border-t border-slate-100 space-y-1.5">
                 <textarea
                   rows="2"
@@ -2496,7 +2799,6 @@ service cloud.firestore {
                 </button>
               </form>
 
-              <!-- 하위 부서(팀) 트리 -->
               ${childrenHtml}
             </div>
           </div>
@@ -2505,7 +2807,6 @@ service cloud.firestore {
 
       const cards = rootTeams.map((t) => buildDeptNode(t, 0));
 
-      // 미배정/삭제된 부서 소속 팀원 카드
       const unassignedMembers = state.members
         .filter((m) => !getMemberTeam(m))
         .sort((a, b) => a.name.localeCompare(b.name, 'ko'));
@@ -2582,7 +2883,7 @@ service cloud.firestore {
     }
 
     // =========================================================================
-    // 13. 엑셀 다운로드 (.xlsx - 3개 시트)
+    // 13. 엑셀 다운로드 (.xlsx - 3개 시트, 연차/반차 반영)
     // =========================================================================
     function exportToExcel() {
       try {
@@ -2599,22 +2900,33 @@ service cloud.firestore {
           const row = { 부서: getMemberDeptLabel(m), 성명: m.name };
           metas.forEach((meta) => {
             const rec = getRecord(meta.dateStr, m.id);
-            const c = rec ? calculateWorkHours(rec.date, rec.startTime, rec.endTime) : null;
+            const lt = normalizeLeaveType(rec?.leaveType);
+            const c = rec ? calculateWorkHours(rec.date, rec.startTime, rec.endTime, lt) : null;
             const prefix = `${meta.dayNum}일(${meta.dayName}${meta.holidayName ? '·' + meta.holidayName : ''})`;
-            row[`${prefix} 연장(h)`] = c && c.valid && c.overtimeMin > 0 ? minToHours(c.overtimeMin) : '';
+            if (lt === 'annual') {
+              row[`${prefix} 연장(h)`] = '연차(8h)';
+            } else if (lt === 'am_half' || lt === 'pm_half') {
+              const ot = c && c.valid && c.overtimeMin > 0 ? ` / ${minToHours(c.overtimeMin)}` : '';
+              row[`${prefix} 연장(h)`] = `${LEAVE_META[lt].shortLabel}(4h)${ot}`;
+            } else {
+              row[`${prefix} 연장(h)`] = c && c.valid && c.overtimeMin > 0 ? minToHours(c.overtimeMin) : '';
+            }
             row[`${prefix} 특근(h)`] = c && c.valid && c.holidayMin > 0 ? minToHours(c.holidayMin) : '';
           });
           return row;
         });
 
         const sheet2 = members.map((m) => {
-          let reg = 0, ot = 0, hol = 0;
+          let reg = 0, ot = 0, hol = 0, annualCnt = 0, halfCnt = 0;
           weekDates.forEach((dStr) => {
             const rec = getRecord(dStr, m.id);
             if (!rec) return;
-            const c = calculateWorkHours(rec.date, rec.startTime, rec.endTime);
+            const lt = normalizeLeaveType(rec.leaveType);
+            const c = calculateWorkHours(rec.date, rec.startTime, rec.endTime, lt);
             if (!c.valid) return;
             reg += c.regularMin; ot += c.overtimeMin; hol += c.holidayMin;
+            if (lt === 'annual') annualCnt += 1;
+            else if (lt === 'am_half' || lt === 'pm_half') halfCnt += 1;
           });
           const total = reg + ot + hol;
           const diff = total - WEEKLY_LIMIT_MIN;
@@ -2622,7 +2934,9 @@ service cloud.firestore {
           return {
             부서: getMemberDeptLabel(m),
             성명: m.name,
-            '정상(h)': minToHours(reg),
+            '연차(일)': annualCnt,
+            '반차(회)': halfCnt,
+            '정상(h, 연차·반차 포함)': minToHours(reg),
             '연장(h)': minToHours(ot),
             '특근(h)': minToHours(hol),
             '주간합계(h)': minToHours(total),
@@ -2633,16 +2947,18 @@ service cloud.firestore {
 
         const sheet3 = weekRecords.map((rec) => {
           const m = state.members.find((x) => x.id === rec.memberId);
-          const c = calculateWorkHours(rec.date, rec.startTime, rec.endTime);
+          const lt = normalizeLeaveType(rec.leaveType);
+          const c = calculateWorkHours(rec.date, rec.startTime, rec.endTime, lt);
           return {
             날짜: rec.date,
             요일: c.meta.dayName,
             구분: c.meta.isPublicHoliday ? `공휴일(${c.meta.holidayName})` : c.meta.isWeekend ? '주말특근' : '평일',
+            근무유형: LEAVE_META[lt].label,
             부서: m ? getMemberDeptLabel(m) : '-',
             성명: m?.name || '-',
-            '출근(24h)': rec.startTime,
+            '출근(24h)': lt === 'annual' ? '-' : (rec.startTime || '-'),
             '적용출근(24h)': c.effectiveStartTime,
-            '퇴근(24h)': rec.endTime,
+            '퇴근(24h)': lt === 'annual' ? '-' : (rec.endTime || '-'),
             '중식제외(분)': c.lunchDeductMin,
             '석식제외(분)': c.dinnerDeductMin,
             '정상(h)': minToHours(c.regularMin),
@@ -2658,7 +2974,7 @@ service cloud.firestore {
         XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(sheet2.length ? sheet2 : [{ 안내: '데이터 없음' }]), '팀원별_주52시간집계');
         XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(sheet3.length ? sheet3 : [{ 안내: '데이터 없음' }]), '주간상세기록(24h)');
 
-        const fname = `주간근로시간_${state.weekStartDate}_${getActiveFilterLabel().replace(/[·\s()]/g, '_')}.xlsx`;
+        const fname = `주간근로시간_${state.weekStartDate}_${getActiveFilterLabel().replace(/[·\s()>/]/g, '_')}.xlsx`;
         XLSX.writeFile(wb, fname);
         showToast(`엑셀 파일(${fname})을 다운로드했습니다.`, 'success');
       } catch (err) {
@@ -2694,7 +3010,7 @@ service cloud.firestore {
 
       // 빈 DB 배너 버튼
       els.btnBannerSeedSample.addEventListener('click', () => {
-        openConfirm('샘플 데이터 불러오기', '샘플 부서(생산1팀·생산2팀·품질팀·신규사업부), 팀원 8명 및 이번 주 근무 기록을 Firestore에 등록하시겠습니까?', seedSampleDataToFirestore);
+        openConfirm('샘플 데이터 불러오기', '샘플 부서(생산부·생산1팀·생산2팀·품질팀·신규사업부), 팀원 8명 및 이번 주 근무 기록을 Firestore에 등록하시겠습니까?', seedSampleDataToFirestore);
       });
       els.btnBannerOpenManage.addEventListener('click', () => {
         renderManageModal();
@@ -2776,18 +3092,38 @@ service cloud.firestore {
         });
       });
 
+      const syncDetailBulkLeaveState = () => {
+        const lt = els.detailBulkLeave.value;
+        const isAnnual = lt === 'annual';
+        els.detailBulkStart.disabled = isAnnual;
+        els.detailBulkEnd.disabled = isAnnual;
+        if (lt === 'am_half') {
+          els.detailBulkStart.value = '13:00';
+          els.detailBulkEnd.value = '17:00';
+        } else if (lt === 'pm_half') {
+          els.detailBulkStart.value = '08:00';
+          els.detailBulkEnd.value = '12:00';
+        } else if (lt === 'none') {
+          if (!isValidTime24(els.detailBulkStart.value)) els.detailBulkStart.value = '08:00';
+          if (!isValidTime24(els.detailBulkEnd.value)) els.detailBulkEnd.value = '19:30';
+        }
+      };
+
       const closeDetailBulkModal = () => els.detailBulkEditModal.classList.add('hidden');
       els.btnDetailBulkEdit.addEventListener('click', () => {
         const count = state.selectedDetailIds.size;
         if (count === 0) return;
-        els.detailBulkCountText.textContent = `선택된 ${count}건의 출퇴근 시간을 일괄 변경합니다.`;
+        els.detailBulkCountText.textContent = `선택된 ${count}건의 근무 유형 및 출퇴근 시간을 일괄 변경합니다.`;
+        els.detailBulkLeave.value = 'none';
         els.detailBulkStart.value = '08:00';
         els.detailBulkEnd.value = '19:30';
+        syncDetailBulkLeaveState();
         els.detailBulkUpdateNote.checked = false;
         els.detailBulkNote.value = '';
         els.detailBulkNote.disabled = true;
         els.detailBulkEditModal.classList.remove('hidden');
       });
+      els.detailBulkLeave.addEventListener('change', syncDetailBulkLeaveState);
       els.btnCloseDetailBulkModal.addEventListener('click', closeDetailBulkModal);
       els.btnCancelDetailBulk.addEventListener('click', closeDetailBulkModal);
       els.detailBulkEditModal.addEventListener('click', (e) => { if (e.target === els.detailBulkEditModal) closeDetailBulkModal(); });
@@ -2800,7 +3136,7 @@ service cloud.firestore {
       });
       els.detailBulkForm.addEventListener('click', (e) => {
         const btn = e.target.closest('button[data-bulk-end]');
-        if (btn) els.detailBulkEnd.value = btn.dataset.bulkEnd;
+        if (btn && !els.detailBulkEnd.disabled) els.detailBulkEnd.value = btn.dataset.bulkEnd;
       });
 
       els.detailBulkForm.addEventListener('submit', async (e) => {
@@ -2808,9 +3144,10 @@ service cloud.firestore {
         const ids = Array.from(state.selectedDetailIds);
         if (ids.length === 0) { closeDetailBulkModal(); return; }
 
-        const startTime = els.detailBulkStart.value.trim();
-        const endTime = els.detailBulkEnd.value.trim();
-        const sampleCheck = calculateWorkHours(getTodayStr(), startTime, endTime);
+        const leaveType = normalizeLeaveType(els.detailBulkLeave.value);
+        const startTime = leaveType === 'annual' ? '' : els.detailBulkStart.value.trim();
+        const endTime = leaveType === 'annual' ? '' : els.detailBulkEnd.value.trim();
+        const sampleCheck = calculateWorkHours(getTodayStr(), startTime, endTime, leaveType);
         if (!sampleCheck.valid) {
           showToast(sampleCheck.error, 'error');
           return;
@@ -2819,7 +3156,6 @@ service cloud.firestore {
         const shouldUpdateNote = els.detailBulkUpdateNote.checked;
         const newNote = els.detailBulkNote.value.trim();
 
-        // 저장 클릭 시 팝업 즉시 종료 후 Firestore 일괄 업데이트
         closeDetailBulkModal();
         try {
           const batch = writeBatch(db);
@@ -2830,6 +3166,7 @@ service cloud.firestore {
             batch.set(doc(db, 'workRecords', docId), {
               date: rec.date,
               memberId: rec.memberId,
+              leaveType,
               startTime,
               endTime,
               note: shouldUpdateNote ? newNote : (rec.note || ''),
@@ -2859,7 +3196,7 @@ service cloud.firestore {
         }
       });
 
-      // --- 모달 1: 부서/팀 일괄 입력 이벤트 ---
+      // --- 모달 1: 부서원 일괄 입력 이벤트 ---
       els.btnOpenBatchModal.addEventListener('click', () => openBatchModal());
       els.btnCloseBatchModal.addEventListener('click', closeBatchModal);
       els.btnCancelBatchModal.addEventListener('click', closeBatchModal);
@@ -2868,23 +3205,25 @@ service cloud.firestore {
       els.batchDate.addEventListener('change', renderBatchTable);
       els.btnBatchPrevDay.addEventListener('click', () => { els.batchDate.value = addDays(els.batchDate.value || getTodayStr(), -1); renderBatchTable(); });
       els.btnBatchNextDay.addEventListener('click', () => { els.batchDate.value = addDays(els.batchDate.value || getTodayStr(), 1); renderBatchTable(); });
-
       els.batchDeptSelect.addEventListener('change', renderBatchTable);
 
+      els.batchCommonLeave.addEventListener('change', syncBatchCommonLeaveState);
       els.batchCommonStart.addEventListener('input', () => autoFormatTimeInput(els.batchCommonStart));
       els.batchCommonEnd.addEventListener('input', () => autoFormatTimeInput(els.batchCommonEnd));
 
       els.batchModal.addEventListener('click', (e) => {
         const ps = e.target.closest('button[data-batch-preset-start]');
-        if (ps) { els.batchCommonStart.value = ps.dataset.batchPresetStart; return; }
+        if (ps && !els.batchCommonStart.disabled) { els.batchCommonStart.value = ps.dataset.batchPresetStart; return; }
         const pe = e.target.closest('button[data-batch-preset-end]');
-        if (pe) { els.batchCommonEnd.value = pe.dataset.batchPresetEnd; return; }
+        if (pe && !els.batchCommonEnd.disabled) { els.batchCommonEnd.value = pe.dataset.batchPresetEnd; return; }
       });
 
       els.btnApplyCommonTime.addEventListener('click', () => {
-        const sVal = els.batchCommonStart.value.trim();
-        const eVal = els.batchCommonEnd.value.trim();
-        if (!isValidTime24(sVal) || !isValidTime24(eVal)) {
+        const lt = normalizeLeaveType(els.batchCommonLeave.value);
+        const sVal = lt === 'annual' ? '' : els.batchCommonStart.value.trim();
+        const eVal = lt === 'annual' ? '' : els.batchCommonEnd.value.trim();
+
+        if (lt !== 'annual' && (!isValidTime24(sVal) || !isValidTime24(eVal))) {
           showToast('공통 시간을 24시간 형식(HH:MM)으로 입력해 주세요.', 'error');
           return;
         }
@@ -2892,14 +3231,25 @@ service cloud.firestore {
         const checked = els.batchTableBody.querySelectorAll('input[data-batch-check]:checked');
         checked.forEach((cb) => {
           const mId = cb.dataset.batchCheck;
+          const lEl = els.batchTableBody.querySelector(`select[data-batch-leave="${CSS.escape(mId)}"]`);
           const sEl = els.batchTableBody.querySelector(`input[data-batch-start="${CSS.escape(mId)}"]`);
           const eEl = els.batchTableBody.querySelector(`input[data-batch-end="${CSS.escape(mId)}"]`);
           const pEl = els.batchTableBody.querySelector(`td[data-batch-preview="${CSS.escape(mId)}"]`);
-          if (sEl) sEl.value = sVal;
-          if (eEl) eEl.value = eVal;
-          if (pEl) pEl.innerHTML = buildBatchPreviewHtml(dateStr, sVal, eVal);
+          if (lEl) lEl.value = lt;
+          if (sEl) {
+            sEl.disabled = lt === 'annual';
+            sEl.value = sVal;
+            sEl.placeholder = lt === 'annual' ? '-' : '08:00';
+          }
+          if (eEl) {
+            eEl.disabled = lt === 'annual';
+            eEl.value = eVal;
+            eEl.placeholder = lt === 'annual' ? '-' : '17:00';
+          }
+          if (pEl) pEl.innerHTML = buildBatchPreviewHtml(dateStr, sVal, eVal, lt);
         });
-        showToast(`선택된 ${checked.length}명에게 ${sVal} ~ ${eVal} 시간을 적용했습니다.`, 'info');
+        const label = lt === 'annual' ? '연차(8h)' : `${LEAVE_META[lt].shortLabel} (${sVal}~${eVal})`;
+        showToast(`선택된 ${checked.length}명에게 [${label}] 설정을 적용했습니다.`, 'info');
       });
 
       els.btnBatchCheckAll.addEventListener('click', () => {
@@ -2916,15 +3266,48 @@ service cloud.firestore {
         if (target.matches('input[data-batch-start], input[data-batch-end]')) {
           autoFormatTimeInput(target);
           const mId = target.dataset.batchStart || target.dataset.batchEnd;
+          const lEl = els.batchTableBody.querySelector(`select[data-batch-leave="${CSS.escape(mId)}"]`);
           const sEl = els.batchTableBody.querySelector(`input[data-batch-start="${CSS.escape(mId)}"]`);
           const eEl = els.batchTableBody.querySelector(`input[data-batch-end="${CSS.escape(mId)}"]`);
           const pEl = els.batchTableBody.querySelector(`td[data-batch-preview="${CSS.escape(mId)}"]`);
-          if (pEl) pEl.innerHTML = buildBatchPreviewHtml(els.batchDate.value, sEl.value.trim(), eEl.value.trim());
+          if (pEl) pEl.innerHTML = buildBatchPreviewHtml(els.batchDate.value, sEl.value.trim(), eEl.value.trim(), lEl?.value || 'none');
         }
       });
 
       els.batchTableBody.addEventListener('change', (e) => {
-        if (e.target.matches('input[data-batch-check]')) updateBatchSelectionCount();
+        if (e.target.matches('input[data-batch-check]')) {
+          updateBatchSelectionCount();
+          return;
+        }
+        const leaveSel = e.target.closest('select[data-batch-leave]');
+        if (leaveSel) {
+          const mId = leaveSel.dataset.batchLeave;
+          const lt = normalizeLeaveType(leaveSel.value);
+          const sEl = els.batchTableBody.querySelector(`input[data-batch-start="${CSS.escape(mId)}"]`);
+          const eEl = els.batchTableBody.querySelector(`input[data-batch-end="${CSS.escape(mId)}"]`);
+          const pEl = els.batchTableBody.querySelector(`td[data-batch-preview="${CSS.escape(mId)}"]`);
+
+          const isAnnual = lt === 'annual';
+          sEl.disabled = isAnnual;
+          eEl.disabled = isAnnual;
+          sEl.placeholder = isAnnual ? '-' : '08:00';
+          eEl.placeholder = isAnnual ? '-' : '17:00';
+
+          if (isAnnual) {
+            sEl.value = '';
+            eEl.value = '';
+          } else if (lt === 'am_half') {
+            sEl.value = '13:00';
+            eEl.value = '17:00';
+          } else if (lt === 'pm_half') {
+            sEl.value = '08:00';
+            eEl.value = '12:00';
+          } else {
+            if (!isValidTime24(sEl.value) || sEl.value === '13:00') sEl.value = '08:00';
+            if (!isValidTime24(eEl.value) || eEl.value === '12:00') eEl.value = '17:00';
+          }
+          if (pEl) pEl.innerHTML = buildBatchPreviewHtml(els.batchDate.value, sEl.value.trim(), eEl.value.trim(), lt);
+        }
       });
 
       els.batchTableBody.addEventListener('click', (e) => {
@@ -2947,6 +3330,12 @@ service cloud.firestore {
       els.btnCancelSingle.addEventListener('click', closeSingleModal);
       els.singleModal.addEventListener('click', (e) => { if (e.target === els.singleModal) closeSingleModal(); });
       els.singleDate.addEventListener('change', updateSinglePreview);
+
+      els.singleLeaveButtons.addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-single-leave]');
+        if (!btn) return;
+        setSingleLeaveTypeUI(btn.dataset.singleLeave, true);
+      });
 
       els.singleStartInput.addEventListener('input', () => {
         autoFormatTimeInput(els.singleStartInput);
@@ -2972,29 +3361,30 @@ service cloud.firestore {
 
       els.singleForm.addEventListener('click', (e) => {
         const sb = e.target.closest('button[data-single-start]');
-        if (sb) { els.singleStartInput.value = sb.dataset.singleStart; syncSingleSelects(els.singleStartInput, els.singleStartHour, els.singleStartMin); updateSinglePreview(); return; }
+        if (sb && !els.singleStartInput.disabled) { els.singleStartInput.value = sb.dataset.singleStart; syncSingleSelects(els.singleStartInput, els.singleStartHour, els.singleStartMin); updateSinglePreview(); return; }
         const eb = e.target.closest('button[data-single-end]');
-        if (eb) { els.singleEndInput.value = eb.dataset.singleEnd; syncSingleSelects(els.singleEndInput, els.singleEndHour, els.singleEndMin); updateSinglePreview(); }
+        if (eb && !els.singleEndInput.disabled) { els.singleEndInput.value = eb.dataset.singleEnd; syncSingleSelects(els.singleEndInput, els.singleEndHour, els.singleEndMin); updateSinglePreview(); }
       });
 
       els.singleForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const dateStr = els.singleDate.value;
         const memberId = els.singleMember.value;
-        const startTime = els.singleStartInput.value.trim();
-        const endTime = els.singleEndInput.value.trim();
+        const leaveType = normalizeLeaveType(els.singleLeaveType.value);
+        const startTime = leaveType === 'annual' ? '' : els.singleStartInput.value.trim();
+        const endTime = leaveType === 'annual' ? '' : els.singleEndInput.value.trim();
         const note = els.singleNote.value.trim();
 
-        const calc = calculateWorkHours(dateStr, startTime, endTime);
+        const calc = calculateWorkHours(dateStr, startTime, endTime, leaveType);
         if (!calc.valid) { showToast(calc.error, 'error'); return; }
 
-        // 저장 클릭 시 팝업 즉시 종료 후 Firestore 저장
         closeSingleModal();
         try {
           const docId = `${dateStr}_${memberId}`;
           await setDoc(doc(db, 'workRecords', docId), {
             date: dateStr,
             memberId,
+            leaveType,
             startTime,
             endTime,
             note,
@@ -3028,7 +3418,6 @@ service cloud.firestore {
         const parentId = els.newParentDept.value || null;
         if (!deptName) return;
 
-        // 같은 상위 부서 내에 동일한 이름 중복 방지
         if (state.teams.some((t) => (t.parentId || null) === parentId && getDeptName(t) === deptName)) {
           showToast('같은 위치에 이미 존재하는 부서(팀)명입니다.', 'error');
           return;
@@ -3051,9 +3440,7 @@ service cloud.firestore {
         } catch (err) { handleFirestoreError(err, 'addTeam'); }
       });
 
-      // 조직도 내 부서별 하위 팀 추가 & 다중 팀원 일괄 추가
       els.orgChartContainer.addEventListener('submit', async (e) => {
-        // 1) 부서 노드 내부에서 바로 하위 팀 추가
         const subForm = e.target.closest('form[data-org-add-subdept]');
         if (subForm) {
           e.preventDefault();
@@ -3087,7 +3474,6 @@ service cloud.firestore {
           return;
         }
 
-        // 2) 부서 노드 내 다중 팀원 일괄 추가 (쉼표/줄바꿈/공백 구분)
         const form = e.target.closest('form[data-org-add-members]');
         if (!form) return;
         e.preventDefault();
@@ -3131,7 +3517,6 @@ service cloud.firestore {
         }
       });
 
-      // 조직도 내 부서/하위팀 이동
       els.orgChartContainer.addEventListener('change', async (e) => {
         const sel = e.target.closest('select[data-move-member]');
         if (!sel) return;
@@ -3152,7 +3537,6 @@ service cloud.firestore {
         } catch (err) { handleFirestoreError(err, 'moveMember'); }
       });
 
-      // 조직도 내 하위팀 입력창 토글 & 부서 삭제 & 팀원 삭제
       els.orgChartContainer.addEventListener('click', (e) => {
         const toggleSubBtn = e.target.closest('button[data-toggle-subdept-form]');
         if (toggleSubBtn) {
@@ -3182,7 +3566,6 @@ service cloud.firestore {
             try {
               const batch = writeBatch(db);
               batch.delete(doc(db, 'teams', team.id));
-              // 하위 팀이 있는 경우 삭제되는 부서의 상위(parentId)로 승격하여 고아 노드 방지
               childTeams.forEach((ct) => {
                 batch.set(doc(db, 'teams', ct.id), {
                   id: ct.id,
