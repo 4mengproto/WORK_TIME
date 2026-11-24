@@ -1785,7 +1785,7 @@
       const dates = getWeekDates(state.weekStartDate);
       const members = getVisibleMembers();
 
-      // 1) 테이블 헤더 (일~토)
+      // 1) 테이블 헤더 (일~토: 평일은 연장(h)만, 주말·공휴일은 특근(h)만 표시)
       const headRow1 = ['<th rowspan="2" class="px-3 py-2.5 bg-slate-800 text-white font-extrabold text-left border border-slate-700 min-w-[115px] sticky left-0 z-10">성명 / 부서</th>'];
       const headRow2 = [];
 
@@ -1794,6 +1794,7 @@
         const holName = getHolidayName(dStr);
         const isSunOrHol = idx === 0 || Boolean(holName);
         const isSat = idx === 6 && !holName;
+        const isSpecial = isSunOrHol || isSat;
 
         let thBg = 'bg-slate-800 text-white border-slate-700 hover:bg-slate-700';
         let subBg = 'bg-slate-100 text-slate-700 border-slate-200';
@@ -1806,16 +1807,15 @@
         }
 
         headRow1.push(`
-          <th colspan="2" data-header-date="${dStr}" title="클릭하여 ${dStr} 부서원 일괄 입력" class="px-2 py-2 border cursor-pointer transition select-none ${thBg}">
+          <th data-header-date="${dStr}" title="클릭하여 ${dStr} 부서원 일괄 입력" class="px-2 py-2 border cursor-pointer transition select-none min-w-[82px] ${thBg}">
             <div class="font-extrabold text-xs">${DAY_NAMES[idx]}</div>
             <div class="text-[11px] font-semibold opacity-95 mt-0.5">${dt.getMonth() + 1}/${dt.getDate()}일</div>
-            ${holName ? `<div class="mt-0.5 inline-block px-1.5 py-0.2 rounded bg-white/20 text-[10px] font-bold truncate max-w-[105px]">${escapeHtml(holName)}</div>` : ''}
+            ${holName ? `<div class="mt-0.5 inline-block px-1.5 py-0.2 rounded bg-white/20 text-[10px] font-bold truncate max-w-[96px]">${escapeHtml(holName)}</div>` : ''}
           </th>
         `);
 
         headRow2.push(`
-          <th class="px-1.5 py-1.5 border text-[11px] font-bold text-center min-w-[54px] ${subBg}">연장(h)</th>
-          <th class="px-1.5 py-1.5 border text-[11px] font-bold text-center min-w-[54px] ${subBg}">특근(h)</th>
+          <th class="px-2 py-1.5 border text-[11px] font-bold text-center ${subBg}">${isSpecial ? '특근(h)' : '연장(h)'}</th>
         `);
       });
 
@@ -1825,7 +1825,7 @@
       if (members.length === 0) {
         els.weeklyGridBody.innerHTML = `
           <tr>
-            <td colspan="15" class="py-12 text-center text-slate-400 font-medium">
+            <td colspan="8" class="py-12 text-center text-slate-400 font-medium">
               표시할 팀원이 없습니다. 상단 <b>조직도·팀원 관리</b>에서 부서와 팀원을 등록해 주세요.
             </td>
           </tr>
@@ -1852,7 +1852,7 @@
 
           if (!rec) {
             cells.push(`
-              <td colspan="2" data-cell-date="${dStr}" data-cell-member="${escapeHtml(m.id)}" class="px-1.5 py-2 border border-slate-200 text-center cursor-pointer hover:bg-indigo-50 transition ${baseCellBg}">
+              <td data-cell-date="${dStr}" data-cell-member="${escapeHtml(m.id)}" class="px-1.5 py-2 border border-slate-200 text-center cursor-pointer hover:bg-indigo-50 transition ${baseCellBg}">
                 <span class="text-slate-300 text-[11px]">-</span>
               </td>
             `);
@@ -1864,36 +1864,57 @@
           const otVal = calc.overtimeHours;
           const holVal = calc.holidayHours;
           const regVal = calc.regularHours;
+          const leaveTag = lt !== 'normal'
+            ? `<div class="text-[9px] font-bold text-sky-700 leading-tight">${LEAVE_META[lt].short}</div>`
+            : '';
 
-          // 연장 또는 특근이 있는 경우 2칸 분리 표시
-          if (otVal > 0.001 || holVal > 0.001) {
-            const leaveTag = lt !== 'normal'
-              ? `<div class="text-[9px] font-bold text-sky-700 leading-tight">${LEAVE_META[lt].short}</div>`
-              : '';
-            cells.push(`
-              <td data-cell-date="${dStr}" data-cell-member="${escapeHtml(m.id)}" class="px-1 py-1.5 border border-slate-200 text-center cursor-pointer hover:bg-indigo-50 transition ${otVal > 0.001 ? 'bg-amber-50/90' : baseCellBg}">
-                ${otVal > 0.001 ? `<span class="font-extrabold text-amber-800">${formatHoursNum(otVal)}</span>` : '<span class="text-slate-300">-</span>'}
-                ${leaveTag}
-              </td>
-              <td data-cell-date="${dStr}" data-cell-member="${escapeHtml(m.id)}" class="px-1 py-1.5 border border-slate-200 text-center cursor-pointer hover:bg-indigo-50 transition ${holVal > 0.001 ? 'bg-rose-50/90' : baseCellBg}">
-                ${holVal > 0.001 ? `<span class="font-extrabold text-rose-700">${formatHoursNum(holVal)}</span>` : '<span class="text-slate-300">-</span>'}
-              </td>
-            `);
-          } else {
-            // 정상근무(08:00~17:00) 또는 연차/반차만 있는 경우 명확한 배지로 2칸 병합 표시
-            let badgeHtml = `<span class="inline-block px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">정상 ${formatHoursNum(regVal)}h</span>`;
-            if (lt === 'annual') {
-              badgeHtml = `<span class="inline-block px-1.5 py-0.5 rounded bg-sky-100 text-sky-800 border border-sky-200 text-[10px] font-bold">연차 8h</span>`;
-            } else if (lt === 'half_am') {
-              badgeHtml = `<span class="inline-block px-1.5 py-0.5 rounded bg-sky-50 text-sky-700 border border-sky-200 text-[10px] font-bold">오전반차 ${formatHoursNum(regVal)}h</span>`;
-            } else if (lt === 'half_pm') {
-              badgeHtml = `<span class="inline-block px-1.5 py-0.5 rounded bg-sky-50 text-sky-700 border border-sky-200 text-[10px] font-bold">오후반차 ${formatHoursNum(regVal)}h</span>`;
+          if (isSpecial) {
+            // 토요일·일요일·공휴일: 특근(h)만 표시
+            if (holVal > 0.001) {
+              cells.push(`
+                <td data-cell-date="${dStr}" data-cell-member="${escapeHtml(m.id)}" class="px-1.5 py-1.5 border border-slate-200 text-center cursor-pointer hover:bg-indigo-50 transition bg-rose-50/90">
+                  <span class="font-extrabold text-rose-700">${formatHoursNum(holVal)}</span>
+                  ${leaveTag}
+                </td>
+              `);
+            } else if (lt !== 'normal') {
+              const leaveLabel = lt === 'annual' ? '연차 8h' : `${LEAVE_META[lt].short} ${formatHoursNum(regVal)}h`;
+              cells.push(`
+                <td data-cell-date="${dStr}" data-cell-member="${escapeHtml(m.id)}" class="px-1.5 py-1.5 border border-slate-200 text-center cursor-pointer hover:bg-indigo-50 transition ${baseCellBg}">
+                  <span class="inline-block px-1.5 py-0.5 rounded bg-sky-50 text-sky-700 border border-sky-200 text-[10px] font-bold">${leaveLabel}</span>
+                </td>
+              `);
+            } else {
+              cells.push(`
+                <td data-cell-date="${dStr}" data-cell-member="${escapeHtml(m.id)}" class="px-1.5 py-2 border border-slate-200 text-center cursor-pointer hover:bg-indigo-50 transition ${baseCellBg}">
+                  <span class="text-slate-400 text-[11px]">0</span>
+                </td>
+              `);
             }
-            cells.push(`
-              <td colspan="2" data-cell-date="${dStr}" data-cell-member="${escapeHtml(m.id)}" class="px-1 py-1.5 border border-slate-200 text-center cursor-pointer hover:bg-indigo-50 transition ${baseCellBg}">
-                ${badgeHtml}
-              </td>
-            `);
+          } else {
+            // 평일: 연장(h)만 표시 (연장 0h인 정상/연차/반차는 입력 여부 확인용 배지 표시)
+            if (otVal > 0.001) {
+              cells.push(`
+                <td data-cell-date="${dStr}" data-cell-member="${escapeHtml(m.id)}" class="px-1.5 py-1.5 border border-slate-200 text-center cursor-pointer hover:bg-indigo-50 transition bg-amber-50/90">
+                  <span class="font-extrabold text-amber-800">${formatHoursNum(otVal)}</span>
+                  ${leaveTag}
+                </td>
+              `);
+            } else {
+              let badgeHtml = `<span class="inline-block px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">정상 ${formatHoursNum(regVal)}h</span>`;
+              if (lt === 'annual') {
+                badgeHtml = `<span class="inline-block px-1.5 py-0.5 rounded bg-sky-100 text-sky-800 border border-sky-200 text-[10px] font-bold">연차 8h</span>`;
+              } else if (lt === 'half_am') {
+                badgeHtml = `<span class="inline-block px-1.5 py-0.5 rounded bg-sky-50 text-sky-700 border border-sky-200 text-[10px] font-bold">오전반차 ${formatHoursNum(regVal)}h</span>`;
+              } else if (lt === 'half_pm') {
+                badgeHtml = `<span class="inline-block px-1.5 py-0.5 rounded bg-sky-50 text-sky-700 border border-sky-200 text-[10px] font-bold">오후반차 ${formatHoursNum(regVal)}h</span>`;
+              }
+              cells.push(`
+                <td data-cell-date="${dStr}" data-cell-member="${escapeHtml(m.id)}" class="px-1.5 py-1.5 border border-slate-200 text-center cursor-pointer hover:bg-indigo-50 transition ${baseCellBg}">
+                  ${badgeHtml}
+                </td>
+              `);
+            }
           }
         });
 
@@ -2630,13 +2651,12 @@
       }
 
       const wb = XLSX.utils.book_new();
-
-      // 시트 1: 주간 근무표
+      // 시트 1: 주간 근무표 (평일은 연장(h), 주말·공휴일은 특근(h)만 표시)
       const gridHeader = ['부서', '성명'];
       dates.forEach((d, i) => {
         const hol = getHolidayName(d);
         const label = `${d.slice(5)}(${DAY_SHORT[i]}${hol ? '/' + hol : ''})`;
-        gridHeader.push(`${label} 연장(h)`, `${label} 특근(h)`);
+        gridHeader.push(isSpecialDay(d) ? `${label} 특근(h)` : `${label} 연장(h)`);
       });
       const gridRows = [gridHeader];
       members.forEach((m) => {
@@ -2644,13 +2664,14 @@
         dates.forEach((d) => {
           const rec = getRecord(d, m.id);
           if (!rec) {
-            row.push('', '');
+            row.push('');
           } else {
             const c = calculateWorkHours(rec.date, rec.startTime, rec.endTime, rec.leaveType);
-            row.push(
-              c.overtimeHours > 0 ? Number(c.overtimeHours.toFixed(2)) : (c.leaveType !== 'normal' ? LEAVE_META[c.leaveType].short : ''),
-              c.holidayHours > 0 ? Number(c.holidayHours.toFixed(2)) : ''
-            );
+            if (isSpecialDay(d)) {
+              row.push(c.holidayHours > 0 ? Number(c.holidayHours.toFixed(2)) : (c.leaveType !== 'normal' ? LEAVE_META[c.leaveType].short : ''));
+            } else {
+              row.push(c.overtimeHours > 0 ? Number(c.overtimeHours.toFixed(2)) : (c.leaveType !== 'normal' ? LEAVE_META[c.leaveType].short : ''));
+            }
           }
         });
         gridRows.push(row);
