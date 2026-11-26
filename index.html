@@ -131,6 +131,7 @@
         </button>
         <button id="btnOpenBatch" type="button" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold shadow-sm transition">+ 부서원 일괄 입력</button>
         <button id="btnOpenAnnual" type="button" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-xs sm:text-sm font-bold shadow-sm transition">연간 현황</button>
+        <button id="btnOpenMonthlyWeekly" type="button" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs sm:text-sm font-bold shadow-sm transition">월별 주간 현황</button>
         <button id="btnOpenManage" type="button" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-xs sm:text-sm font-bold transition">부서/조직도</button>
         <button id="btnOpenHoliday" type="button" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-xs sm:text-sm font-bold transition">공휴일 관리</button>
         <button id="btnExportExcel" type="button" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold shadow-sm transition">엑셀 (.xlsx)</button>
@@ -653,6 +654,55 @@
     </div>
   </div>
 
+  <!-- 모달 11: 월별 주간 연장근무+특근 현황 -->
+  <div id="monthlyWeeklyModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-[96vw] xl:max-w-[1440px] max-h-[92vh] flex flex-col overflow-hidden">
+      <div class="px-5 py-3.5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 bg-gradient-to-r from-teal-950 to-slate-900 text-white">
+        <div>
+          <h3 class="text-base sm:text-lg font-extrabold">월별 주간 연장근무 + 특근 현황</h3>
+          <p class="text-xs text-teal-200 mt-0.5">선택한 월의 주차별 연장+특근 시간(12.5h 기준)과 우측 주 합산 시간(52h 기준)을 한눈에 확인합니다.</p>
+        </div>
+        <button data-close-modal="monthlyWeeklyModal" type="button" class="px-2.5 py-1 rounded-xl text-teal-200 hover:text-white hover:bg-white/10 font-bold">✕</button>
+      </div>
+      <div class="px-5 py-3 border-b border-slate-200 bg-slate-50 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex flex-wrap items-center gap-2">
+          <div class="inline-flex items-center rounded-xl border border-slate-300 bg-white overflow-hidden">
+            <button id="btnMwPrevMonth" type="button" class="px-3 py-1.5 hover:bg-slate-100 text-slate-700 text-xs font-bold">◀</button>
+            <select id="mwYearSelect" class="px-2.5 py-1.5 border-l border-slate-200 text-xs font-extrabold text-slate-900 bg-white focus:outline-none"></select>
+            <select id="mwMonthSelect" class="px-2.5 py-1.5 border-x border-slate-200 text-xs font-extrabold text-slate-900 bg-white focus:outline-none"></select>
+            <button id="btnMwNextMonth" type="button" class="px-3 py-1.5 hover:bg-slate-100 text-slate-700 text-xs font-bold">▶</button>
+          </div>
+          <select id="mwDeptSelect" class="px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-bold bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"></select>
+          <div class="inline-flex rounded-xl border border-slate-300 bg-white p-0.5 text-xs font-bold" id="mwModeTabs">
+            <button type="button" data-mw-mode="both" class="px-2.5 py-1 rounded-lg transition">연장+특근</button>
+            <button type="button" data-mw-mode="overtime" class="px-2.5 py-1 rounded-lg transition">연장만</button>
+            <button type="button" data-mw-mode="holiday" class="px-2.5 py-1 rounded-lg transition">특근만</button>
+          </div>
+        </div>
+        <div class="flex flex-wrap items-center gap-2 text-xs">
+          <span id="mwKpiBar" class="flex flex-wrap items-center gap-1.5"></span>
+          <button id="btnExportMwExcel" type="button" class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition">월별 주간 엑셀 (.xlsx)</button>
+        </div>
+      </div>
+      <div class="flex-1 overflow-auto custom-scroll">
+        <table class="w-full border-collapse text-xs min-w-[820px]">
+          <thead id="mwTableHead" class="sticky top-0 z-20"></thead>
+          <tbody id="mwTableBody" class="divide-y divide-slate-200"></tbody>
+          <tfoot id="mwTableFoot" class="sticky bottom-0 z-20 bg-slate-900 text-white font-extrabold"></tfoot>
+        </table>
+      </div>
+      <div class="px-5 py-3 border-t border-slate-200 bg-slate-50 flex flex-wrap items-center justify-between gap-2">
+        <div class="flex flex-wrap items-center gap-2 text-[11px] font-bold">
+          <span class="text-slate-500">주간(12.5h) / 합산(52h):</span>
+          <span class="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">미만 (초록)</span>
+          <span class="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">기준 일치 (파랑)</span>
+          <span class="px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200">초과 (빨강)</span>
+        </div>
+        <button data-close-modal="monthlyWeeklyModal" type="button" class="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold transition">닫기</button>
+      </div>
+    </div>
+  </div>
+
   <div id="toastContainer" class="fixed bottom-4 right-4 z-[80] flex flex-col gap-2 max-w-sm w-full pointer-events-none px-2"></div>
 
   <script type="module">
@@ -699,6 +749,7 @@
       selectedDetailIds: new Set(), showAllUserPasswords: false, revealedUserKeys: new Set(),
       holidayYear: new Date().getFullYear(), selectedOrgDeptId: null, orgZoom: 100, draggedDeptId: null,
       annualYear: new Date().getFullYear(), annualDeptFilter: 'ALL', annualMode: 'both',
+      mwYear: new Date().getFullYear(), mwMonth: new Date().getMonth() + 1, mwDeptFilter: 'ALL', mwMode: 'both',
       fbStatus: 'connecting', unsubscribers: [], confirmCallback: null,
     };
 
@@ -841,7 +892,7 @@
       els.btnOpenUserManage.classList.toggle('hidden', !admin);
       els.btnOpenUserManage.classList.toggle('inline-flex', admin);
       setHidden(['adminModeBanner', 'adminDashboardSection'], !admin);
-      setHidden(['btnOpenAnnual', 'btnExportExcel', 'weekNavSection', 'mainWorkGrid'], admin);
+      setHidden(['btnOpenAnnual', 'btnOpenMonthlyWeekly', 'btnExportExcel', 'weekNavSection', 'mainWorkGrid'], admin);
       setHidden(['directorModeBanner', 'weeklyReadOnlyBadge'], !dir);
       setHidden(['btnOpenBatch', 'detailCheckAllTh', 'detailManageTh'], ro);
       els.detailReadOnlyBadge.classList.toggle('hidden', !ro);
@@ -1091,6 +1142,7 @@
       if (!els.holidayModal.classList.contains('hidden')) renderHolidayModal();
       if (!els.userManageModal.classList.contains('hidden')) renderUserManageModal();
       if (!els.annualModal.classList.contains('hidden')) renderAnnualModal();
+      if (!els.monthlyWeeklyModal.classList.contains('hidden')) renderMonthlyWeeklyModal();
     }
 
     function renderDeptFilterTabs() {
@@ -1519,6 +1571,131 @@
       els.annualKpiBar.innerHTML = `<span class="px-2.5 py-1 rounded-xl bg-amber-50 text-amber-800 border border-amber-200 font-extrabold">연간 연장 ${roundH(grandOt)}h</span><span class="px-2.5 py-1 rounded-xl bg-rose-50 text-rose-700 border border-rose-200 font-extrabold">연간 특근 ${roundH(grandHol)}h</span><span class="px-2.5 py-1 rounded-xl bg-violet-100 text-violet-900 border border-violet-200 font-extrabold">합계 ${roundH(grandOt + grandHol)}h</span>${over52 ? `<span class="px-2.5 py-1 rounded-xl bg-rose-600 text-white font-extrabold">월 52h 초과 ${over52}건</span>` : ''}`;
     }
 
+    // ==================== 모달 11: 월별 주간 연장근무+특근 현황 ====================
+    const WEEKLY_EXTRA_STD = 12.5;
+    function getThresholdTextCls(val, limit, isSum = false) {
+      if (val > limit) return isSum ? 'text-rose-600 bg-rose-50/80 font-extrabold' : 'text-rose-600 bg-rose-50/70 font-extrabold';
+      if (val === limit) return isSum ? 'text-blue-600 bg-blue-50/70 font-extrabold' : 'text-blue-600 bg-blue-50/60 font-extrabold';
+      return isSum ? 'text-emerald-600 bg-emerald-50/60 font-extrabold' : 'text-emerald-600 bg-emerald-50/40 font-bold';
+    }
+
+    // 해당 연·월의 날짜를 일~토 주차별로 분할
+    function getWeeksOfMonth(year, month) {
+      const lastDay = new Date(year, month, 0).getDate();
+      const weeks = [];
+      let cur = null;
+      for (let d = 1; d <= lastDay; d++) {
+        const dt = new Date(year, month - 1, d), ds = fmtDate(dt);
+        if (!cur || dt.getDay() === 0) {
+          cur = { index: weeks.length + 1, startDay: d, endDay: d, dates: new Set() };
+          weeks.push(cur);
+        }
+        cur.endDay = d;
+        cur.dates.add(ds);
+      }
+      return weeks.map((w) => ({ ...w, label: `${w.index}주차`, range: `${month}/${w.startDay}~${month}/${w.endDay}` }));
+    }
+
+    function calcMonthlyWeeklyMatrix(year, month, members) {
+      const weeks = getWeeksOfMonth(year, month);
+      const ymPrefix = `${year}-${String(month).padStart(2, '0')}-`;
+      const dateToWeekIdx = new Map();
+      weeks.forEach((w, idx) => w.dates.forEach((ds) => dateToWeekIdx.set(ds, idx)));
+      const byMem = new Map(members.map((m) => [m.id, Array.from({ length: weeks.length }, () => ({ ot: 0, hol: 0 }))]));
+      state.recordsMap.forEach((r) => {
+        if (!r.date?.startsWith(ymPrefix)) return;
+        const arr = byMem.get(r.memberId), wi = dateToWeekIdx.get(r.date);
+        if (!arr || wi === undefined) return;
+        const c = calcWorkHours(r.date, r.startTime, r.endTime, r.leaveType);
+        if (c.valid) { arr[wi].ot += c.overtimeHours; arr[wi].hol += c.holidayHours; }
+      });
+      return { weeks, byMem };
+    }
+
+    function renderMonthlyWeeklyModal() {
+      const curY = new Date().getFullYear(), years = new Set([curY - 1, curY, curY + 1, state.mwYear]);
+      state.recordsMap.forEach((r) => { const y = +String(r.date || '').slice(0, 4); if (y >= 2020 && y <= 2040) years.add(y); });
+      els.mwYearSelect.innerHTML = [...years].sort((a, b) => a - b).map((y) => `<option value="${y}" ${y === state.mwYear ? 'selected' : ''}>${y}년</option>`).join('');
+      els.mwMonthSelect.innerHTML = Array.from({ length: 12 }, (_, i) => `<option value="${i + 1}" ${i + 1 === state.mwMonth ? 'selected' : ''}>${i + 1}월</option>`).join('');
+
+      const teams = accessibleTeams();
+      if (state.mwDeptFilter !== 'ALL' && !teams.some(({ team }) => team.id === state.mwDeptFilter)) state.mwDeptFilter = 'ALL';
+      els.mwDeptSelect.innerHTML = deptOptsHtml(teams, hasAllAccess() ? '전체 부서' : `${state.currentUser?.department || '소속'} 전체`, state.mwDeptFilter);
+      els.mwModeTabs.querySelectorAll('button[data-mw-mode]').forEach((b) => { b.className = `px-2.5 py-1 rounded-lg transition ${b.dataset.mwMode === state.mwMode ? 'bg-teal-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'}`; });
+
+      const members = filterMembersByDept(state.mwDeptFilter);
+      const { weeks, byMem } = calcMonthlyWeeklyMatrix(state.mwYear, state.mwMonth, members);
+      const mode = state.mwMode;
+      const pick = (c) => roundH(mode === 'overtime' ? c.ot : mode === 'holiday' ? c.hol : c.ot + c.hol);
+
+      els.mwTableHead.innerHTML = `<tr class="bg-slate-900 text-white">
+        <th class="px-3.5 py-2.5 text-left font-extrabold min-w-[190px] sticky left-0 z-30 bg-slate-900">성명 / 부서 (${members.length}명)</th>
+        ${weeks.map((w) => `<th class="px-2.5 py-2 text-center font-extrabold border-l border-white/10 min-w-[96px]"><div>${w.label}</div><div class="text-[10px] font-semibold text-slate-300 mt-0.5">${w.range}</div></th>`).join('')}
+        <th class="px-3.5 py-2.5 text-right font-extrabold border-l border-white/20 bg-teal-950 min-w-[104px]">주 합산 (52h)</th>
+      </tr>`;
+
+      if (!members.length) {
+        els.mwTableBody.innerHTML = `<tr><td colspan="${weeks.length + 2}" class="px-4 py-12 text-center text-slate-400 font-semibold">표시할 팀원이 없습니다.</td></tr>`;
+        els.mwTableFoot.innerHTML = els.mwKpiBar.innerHTML = '';
+        return;
+      }
+
+      const weekSums = Array(weeks.length).fill(0);
+      let grandOt = 0, grandHol = 0, overWeekCnt = 0, overMonthCnt = 0;
+
+      els.mwTableBody.innerHTML = members.map((m) => {
+        let rowSum = 0, rowOt = 0, rowHol = 0;
+        const cells = byMem.get(m.id).map((c, i) => {
+          const ot = roundH(c.ot), hol = roundH(c.hol), both = roundH(ot + hol), val = pick(c);
+          rowOt += ot; rowHol += hol; rowSum += val; weekSums[i] += val;
+          if (val > WEEKLY_EXTRA_STD) overWeekCnt++;
+          const cls = val > 0 ? getThresholdTextCls(val, WEEKLY_EXTRA_STD, false) : 'text-slate-300 bg-white';
+          return `<td title="${m.name} ${weeks[i].label}(${weeks[i].range}) | 연장 ${ot}h + 특근 ${hol}h = ${both}h" class="px-2.5 py-2.5 text-center border-l border-slate-200 ${cls}">${val > 0 ? `${val}h` : '-'}</td>`;
+        }).join('');
+        grandOt += rowOt; grandHol += rowHol;
+        const sumVal = roundH(rowSum);
+        if (sumVal > LIMIT_H) overMonthCnt++;
+        const sumCls = getThresholdTextCls(sumVal, LIMIT_H, true);
+        return `<tr class="hover:bg-slate-50">
+          <td class="px-3.5 py-2 bg-white sticky left-0 z-10 border-r border-slate-200"><div class="font-extrabold text-slate-900 truncate">${esc(m.name)}</div><div class="text-[10px] text-slate-500 font-semibold truncate">${esc(memberDeptPath(m))}</div></td>
+          ${cells}
+          <td title="월 합계 | 연장 ${roundH(rowOt)}h + 특근 ${roundH(rowHol)}h = ${roundH(rowOt + rowHol)}h" class="px-3.5 py-2 text-right border-l border-slate-200 ${sumCls}">${sumVal}h</td>
+        </tr>`;
+      }).join('');
+
+      const grandDisp = roundH(weekSums.reduce((a, b) => a + b, 0));
+      els.mwTableFoot.innerHTML = `<tr>
+        <td class="px-3.5 py-2.5 sticky left-0 z-30 bg-slate-900">주차별 합계</td>
+        ${weekSums.map((v) => `<td class="px-2.5 py-2.5 text-center border-l border-white/10">${v > 0 ? `${roundH(v)}h` : '-'}</td>`).join('')}
+        <td class="px-3.5 py-2.5 text-right border-l border-white/20 bg-teal-950 text-amber-300">${grandDisp}h</td>
+      </tr>`;
+
+      els.mwKpiBar.innerHTML = `
+        <span class="px-2.5 py-1 rounded-xl bg-amber-50 text-amber-800 border border-amber-200 font-extrabold">월 연장 ${roundH(grandOt)}h</span>
+        <span class="px-2.5 py-1 rounded-xl bg-rose-50 text-rose-700 border border-rose-200 font-extrabold">월 특근 ${roundH(grandHol)}h</span>
+        <span class="px-2.5 py-1 rounded-xl bg-teal-100 text-teal-900 border border-teal-200 font-extrabold">합계 ${roundH(grandOt + grandHol)}h</span>
+        ${overWeekCnt ? `<span class="px-2.5 py-1 rounded-xl bg-orange-600 text-white font-extrabold">주 12.5h 초과 ${overWeekCnt}건</span>` : ''}
+        ${overMonthCnt ? `<span class="px-2.5 py-1 rounded-xl bg-rose-600 text-white font-extrabold">합산 52h 초과 ${overMonthCnt}명</span>` : ''}`;
+    }
+
+    function exportMonthlyWeeklyExcel() {
+      const members = filterMembersByDept(state.mwDeptFilter);
+      const { weeks, byMem } = calcMonthlyWeeklyMatrix(state.mwYear, state.mwMonth, members);
+      const rows = members.map((m) => {
+        let sumOt = 0, sumHol = 0;
+        const row = { 부서: memberDeptPath(m), 성명: m.name };
+        byMem.get(m.id).forEach((c, i) => {
+          const ot = roundH(c.ot), hol = roundH(c.hol), b = roundH(ot + hol);
+          sumOt += ot; sumHol += hol;
+          row[`${weeks[i].label}(${weeks[i].range})`] = b;
+        });
+        const tot = roundH(sumOt + sumHol);
+        return Object.assign(row, { '월 연장(h)': roundH(sumOt), '월 특근(h)': roundH(sumHol), '주 합산(h)': tot });
+      });
+      const ymStr = `${state.mwYear}년_${state.mwMonth}월`;
+      downloadXlsx([[`${ymStr}_주간현황`, rows]], `월별주간현황_${ymStr}.xlsx`, `${state.mwYear}년 ${state.mwMonth}월 주간 현황 엑셀이 다운로드되었습니다.`);
+    }
+
     // ==================== 엑셀 다운로드 (주간 / 연간) ====================
     function downloadXlsx(sheets, filename, toastMsg) {
       if (typeof XLSX === 'undefined') return showToast('엑셀 라이브러리를 불러오지 못했습니다.', 'error');
@@ -1579,6 +1756,14 @@
       bindClicks(['btnOpenManage', 'btnBannerManage', 'btnAdminQuickOrg', 'btnAdminCardOrg', 'btnDirectorQuickOrg'], openManageModal);
       bindClicks(['btnOpenHoliday', 'btnAdminQuickHoliday', 'btnAdminCardHoliday'], () => { const y = +state.weekStartDate.slice(0, 4); state.holidayYear = [2025, 2026, 2027].includes(y) ? y : 2026; renderHolidayModal(); els.holidayModal.classList.remove('hidden'); });
       els.btnOpenAnnual.onclick = () => { state.annualYear = +state.weekStartDate.slice(0, 4) || new Date().getFullYear(); state.annualDeptFilter = state.selectedDeptFilter; renderAnnualModal(); els.annualModal.classList.remove('hidden'); };
+      els.btnOpenMonthlyWeekly.onclick = () => {
+        const ym = refYearMonth();
+        state.mwYear = +ym.slice(0, 4) || new Date().getFullYear();
+        state.mwMonth = +ym.slice(5, 7) || (new Date().getMonth() + 1);
+        state.mwDeptFilter = state.selectedDeptFilter;
+        renderMonthlyWeeklyModal();
+        els.monthlyWeeklyModal.classList.remove('hidden');
+      };
       els.btnOpenBatch.onclick = () => openBatchModal(todayStr());
       els.btnSeedSample.onclick = seedSampleData;
       els.btnExportExcel.onclick = exportToExcel;
@@ -1596,6 +1781,15 @@
       els.annualDeptSelect.onchange = (e) => { state.annualDeptFilter = e.target.value; renderAnnualModal(); };
       els.annualModeTabs.onclick = (e) => { const b = e.target.closest('button[data-annual-mode]'); if (b) { state.annualMode = b.dataset.annualMode; renderAnnualModal(); } };
       els.btnExportAnnualExcel.onclick = exportAnnualExcel;
+
+      // 월별 주간 현황 컨트롤
+      els.btnMwPrevMonth.onclick = () => { if (state.mwMonth === 1) { state.mwMonth = 12; state.mwYear--; } else state.mwMonth--; renderMonthlyWeeklyModal(); };
+      els.btnMwNextMonth.onclick = () => { if (state.mwMonth === 12) { state.mwMonth = 1; state.mwYear++; } else state.mwMonth++; renderMonthlyWeeklyModal(); };
+      els.mwYearSelect.onchange = (e) => { state.mwYear = +e.target.value; renderMonthlyWeeklyModal(); };
+      els.mwMonthSelect.onchange = (e) => { state.mwMonth = +e.target.value; renderMonthlyWeeklyModal(); };
+      els.mwDeptSelect.onchange = (e) => { state.mwDeptFilter = e.target.value; renderMonthlyWeeklyModal(); };
+      els.mwModeTabs.onclick = (e) => { const b = e.target.closest('button[data-mw-mode]'); if (b) { state.mwMode = b.dataset.mwMode; renderMonthlyWeeklyModal(); } };
+      els.btnExportMwExcel.onclick = exportMonthlyWeeklyExcel;
 
       // 로그인 · 회원가입 신청 · 비번변경
       const showFormErr = (el, msg) => { el.textContent = msg; el.classList.remove('hidden'); };
