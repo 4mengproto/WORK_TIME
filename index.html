@@ -6,6 +6,7 @@
   <title>팀별 주간 근로시간 관리 시스템 (Firebase 연동)</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -114,7 +115,7 @@
               <span id="firebaseStatusText">동기화 중...</span>
             </button>
           </div>
-          <p class="text-[11px] sm:text-xs text-slate-500">정상 08:00~17:00 (08시 이전 고정) · 중식 12~13 / 석식 18~18:30 제외 · 24h · 연차 8h / 반차 4h</p>
+          <p class="text-[11px] sm:text-xs text-slate-500">정상 08:00~17:00 (출근 08시 기본 · 퇴근 계산 30분 버림) · 중식 12~13 / 석식 18~18:30 제외 · 24h · 연차 8h / 반차 4h</p>
         </div>
       </div>
 
@@ -374,6 +375,20 @@
           </div>
           <div><label for="batchDeptSelect" class="block text-xs font-bold text-slate-700 mb-1">대상 부서 (상위 부서 선택 시 하위팀 포함)</label><select id="batchDeptSelect" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"></select></div>
         </div>
+        <!-- 스크린샷 일괄 분석 영역 (이미지 미저장 · 메모리 분석 후 즉시 폐기) -->
+        <div id="batchOcrZone" class="p-3 rounded-xl bg-emerald-50/80 border border-dashed border-emerald-300 flex flex-wrap items-center justify-between gap-2 transition">
+          <div class="flex flex-wrap items-center gap-2 text-xs">
+            <span class="px-2 py-0.5 rounded-lg bg-emerald-600 text-white font-extrabold">스크린샷 분석</span>
+            <span class="text-emerald-950 font-semibold">근태 화면 캡처 후 <strong>Ctrl+V 붙여넣기</strong> · 드래그 · 파일 선택 <span class="text-emerald-700">(이미지 미저장 · 날짜 자동 인식 · 출근 08:00 · 퇴근 원문 입력/계산 30분 버림)</span></span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span id="batchOcrStatus" class="text-[11px] font-bold text-emerald-700"></span>
+            <label class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold cursor-pointer shadow-sm transition whitespace-nowrap">
+              이미지 선택
+              <input id="batchOcrFile" type="file" accept="image/*" class="hidden" />
+            </label>
+          </div>
+        </div>
         <div class="p-3 rounded-xl bg-indigo-50/80 border border-indigo-200 flex flex-wrap items-center gap-2">
           <span class="text-xs font-extrabold text-indigo-900">공통 일괄 적용:</span>
           <select id="batchCommonLeave" data-leave-select class="px-2.5 py-1.5 rounded-lg border border-indigo-300 text-xs font-bold bg-white"></select>
@@ -389,7 +404,7 @@
           <thead class="bg-slate-100 text-slate-600 sticky top-0 z-10 border-b border-slate-200">
             <tr>
               <th class="px-3 py-2.5 w-10 text-center"><input id="batchCheckAll" type="checkbox" checked class="w-4 h-4 rounded border-slate-300 text-indigo-600 cursor-pointer" /></th>
-              <th class="px-3 py-2.5 font-bold">부서 / 성명</th><th class="px-3 py-2.5 font-bold">근무유형</th>
+              <th class="px-3 py-2.5 font-bold">성명</th><th class="px-3 py-2.5 font-bold">근무유형</th>
               <th class="px-3 py-2.5 font-bold">출근 (24h)</th><th class="px-3 py-2.5 font-bold">퇴근 (24h)</th>
               <th class="px-3 py-2.5 font-bold text-center">계산 결과</th><th class="px-3 py-2.5 font-bold">비고</th>
             </tr>
@@ -793,6 +808,8 @@
     }
     const timeToMin = (t) => { const n = normTime24(t); if (!n) return null; const [h, m] = n.split(':').map(Number); return h * 60 + m; };
     const minToTime = (m) => { const c = Math.max(0, Math.min(1440, Math.round(m))); return `${String(Math.floor(c / 60)).padStart(2, '0')}:${String(c % 60).padStart(2, '0')}`; };
+    const floorMin30 = (m) => Math.floor(m / 30) * 30;
+    const floorEndTime30 = (t) => { const m = timeToMin(t); return m === null ? '' : minToTime(floorMin30(m)); };
 
     // 근로시간 계산 (08시 이전 고정, 중식/석식 제외, 연차 8h/반차 4h, 주말·공휴일 특근)
     function calcWorkHours(dateStr, startStr, endStr, rawLeave = 'work') {
@@ -800,7 +817,7 @@
       if (leaveType === 'annual') return { valid: true, leaveType, effectiveStart: '-', effectiveEnd: '-', lunchDeduct: 0, dinnerDeduct: 0, regularHours: 8, overtimeHours: 0, holidayHours: 0, totalHours: 8, isSpecial };
       const sMin = timeToMin(startStr), eMin = timeToMin(endStr);
       if (sMin === null || eMin === null) return { valid: false, leaveType, error: '24시간제 형식(예: 08:00, 17:00)으로 입력해 주세요.', regularHours: leaveH, overtimeHours: 0, holidayHours: 0, totalHours: leaveH };
-      const effS = Math.max(sMin, WORK_START), effE = eMin;
+      const effS = Math.max(sMin, WORK_START), effE = floorMin30(eMin);
       if (effE <= effS) return { valid: false, leaveType, error: '퇴근 시간은 08:00 및 출근 시간보다 늦어야 합니다.', regularHours: leaveH, overtimeHours: 0, holidayHours: 0, totalHours: leaveH };
 
       const lunchDeduct = overlap(effS, effE, LUNCH_S, LUNCH_E), dinnerDeduct = overlap(effS, effE, DINNER_S, DINNER_E);
@@ -812,7 +829,7 @@
         regularHours = roundH(leaveH + Math.max(0, Math.max(0, regEnd - effS) - overlap(effS, regEnd, LUNCH_S, LUNCH_E)) / 60);
         overtimeHours = roundH(Math.max(0, Math.max(0, effE - otStart) - overlap(otStart, effE, DINNER_S, DINNER_E)) / 60);
       }
-      return { valid: true, leaveType, effectiveStart: minToTime(effS), effectiveEnd: minToTime(effE), clampedStart: sMin < WORK_START, lunchDeduct, dinnerDeduct, regularHours, overtimeHours, holidayHours, totalHours: roundH(regularHours + overtimeHours + holidayHours), isSpecial };
+      return { valid: true, leaveType, effectiveStart: minToTime(effS), effectiveEnd: minToTime(effE), clampedStart: sMin < WORK_START, flooredEnd: effE < eMin, lunchDeduct, dinnerDeduct, regularHours, overtimeHours, holidayHours, totalHours: roundH(regularHours + overtimeHours + holidayHours), isSpecial };
     }
 
     function extraTheme(totalExtra) {
@@ -1166,7 +1183,7 @@
         return `<th ${editable ? `data-batch-date="${dt}" title="클릭하여 ${dt} 부서원 일괄 입력"` : ''} class="${bg} text-white px-2 py-2.5 text-center border-l border-white/15 ${editable ? 'cursor-pointer hover:brightness-110' : ''} transition min-w-[92px]"><div class="text-xs font-extrabold">${DAY_NAMES[dow]}요일</div><div class="text-[11px] font-semibold opacity-90 mt-0.5">${d.getMonth() + 1}/${d.getDate()}</div>${hol ? `<div class="mt-0.5 text-[10px] px-1.5 rounded bg-white/20 truncate max-w-[88px] mx-auto" title="${esc(hol)}">${esc(hol)}</div>` : ''}</th>`;
       }).join('');
       const h2 = weekDates.map((dt) => { const sp = isSpecialDay(dt); return `<th class="px-2 py-1.5 text-center text-[11px] font-extrabold border-l border-slate-200 ${sp ? 'bg-rose-50 text-rose-700' : 'bg-amber-50/80 text-amber-800'}">${sp ? '특근(h)' : '연장(h)'}</th>`; }).join('');
-      els.weeklyGridHead.innerHTML = `<tr><th rowspan="2" class="bg-slate-900 text-white px-3.5 py-2.5 text-left font-extrabold min-w-[215px] sticky left-0 z-10"><div class="flex items-center justify-between gap-2"><span>성명 / 부서</span><span class="text-[10px] font-bold text-slate-300">${mNum}월 연장+특근</span></div></th>${h1}</tr><tr class="border-b border-slate-200">${h2}</tr>`;
+      els.weeklyGridHead.innerHTML = `<tr><th rowspan="2" class="bg-slate-900 text-white px-3.5 py-2.5 text-left font-extrabold min-w-[215px] sticky left-0 z-10"><div class="flex items-center justify-between gap-2"><span>성명</span><span class="text-[10px] font-bold text-slate-300">${mNum}월 연장+특근</span></div></th>${h1}</tr><tr class="border-b border-slate-200">${h2}</tr>`;
 
       if (!members.length) { els.weeklyGridBody.innerHTML = '<tr><td colspan="8" class="px-4 py-12 text-center text-slate-400 font-semibold">표시할 팀원이 없습니다. 상단 <strong>부서/조직도</strong>에서 부서와 팀원을 추가해 주세요.</td></tr>'; return; }
 
@@ -1192,7 +1209,7 @@
           }
           return `<td ${editable ? `data-cell-date="${dt}" data-cell-member="${esc(mem.id)}"` : ''} class="${bg} px-2 py-2.5 text-center border-l border-slate-200 ${editable ? 'cursor-pointer' : ''} transition align-middle">${inner}</td>`;
         }).join('');
-        return `<tr class="hover:bg-slate-50/60"><td class="px-3.5 py-2.5 bg-white sticky left-0 z-10 border-r border-slate-200"><div class="flex items-center justify-between gap-2"><div class="min-w-0"><div class="font-extrabold text-slate-900 text-xs sm:text-sm truncate">${esc(mem.name)}</div><div class="text-[10px] text-slate-500 font-semibold truncate">${esc(memberDeptPath(mem))}</div></div><span title="${mNum}월 연장 ${ms.overtime}h + 특근 ${ms.holiday}h (${ms.theme.label})" class="shrink-0 px-2 py-0.5 rounded-full text-[11px] font-extrabold ${ms.theme.badgeCls}">${ms.totalExtra}h</span></div></td>${cells}</tr>`;
+        return `<tr class="hover:bg-slate-50/60"><td class="px-3.5 py-2.5 bg-white sticky left-0 z-10 border-r border-slate-200"><div class="flex items-center justify-between gap-2"><div class="min-w-0"><div class="font-extrabold text-slate-900 text-xs sm:text-sm truncate">${esc(mem.name)}</div></div><span title="${mNum}월 연장 ${ms.overtime}h + 특근 ${ms.holiday}h (${ms.theme.label})" class="shrink-0 px-2 py-0.5 rounded-full text-[11px] font-extrabold ${ms.theme.badgeCls}">${ms.totalExtra}h</span></div></td>${cells}</tr>`;
       }).join('');
     }
 
@@ -1255,7 +1272,6 @@
           <div class="flex items-start justify-between gap-2">
             <div class="min-w-0">
               <div class="flex flex-wrap items-center gap-1.5"><span class="font-extrabold text-slate-900 text-sm">${esc(mem.name)}</span><span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold ${ms.theme.badgeCls}">${mNum}월 ${ms.totalExtra}h</span>${ws.annualCnt ? `<span class="px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 text-[10px] font-bold">연차 ${ws.annualCnt}</span>` : ''}${ws.halfCnt ? `<span class="px-1.5 py-0.5 rounded bg-violet-50 text-violet-700 text-[10px] font-bold">반차 ${ws.halfCnt}</span>` : ''}</div>
-              <div class="text-[11px] text-slate-500 font-semibold truncate mt-0.5">${esc(memberDeptPath(mem))}</div>
             </div>
             <div class="shrink-0">${badge}</div>
           </div>
@@ -1300,7 +1316,7 @@
       if (!canEditSchedule()) return;
       const members = accessibleMembers();
       if (!members.length) return showToast('먼저 조직도에서 부서와 팀원을 등록해 주세요.', 'warning');
-      els.singleMember.innerHTML = members.map((m) => `<option value="${esc(m.id)}">[${esc(memberDeptPath(m))}] ${esc(m.name)}</option>`).join('');
+      els.singleMember.innerHTML = members.map((m) => `<option value="${esc(m.id)}">${esc(m.name)}</option>`).join('');
       els.singleDate.value = dateStr || todayStr();
       els.singleMember.value = memId && members.some((m) => m.id === memId) ? memId : members[0].id;
       loadSingleRecord(); els.singleModal.classList.remove('hidden');
@@ -1320,7 +1336,7 @@
       els.singleDayBadge.textContent = b.text; els.singleDayBadge.className = `px-2 py-0.5 rounded-full text-[10px] font-bold ${b.cls}`;
       els.singleTimeInputsWrap.classList.toggle('hidden', lt === 'annual');
       const c = calcWorkHours(dt, els.singleStartInput.value, els.singleEndInput.value, lt);
-      els.singlePrevRange.textContent = !c.valid ? (c.error || '입력 확인 필요') : lt === 'annual' ? '연차 종일 (8h)' : `${c.effectiveStart}~${c.effectiveEnd}${c.clampedStart ? ' (08시 고정)' : ''}`;
+      els.singlePrevRange.textContent = !c.valid ? (c.error || '입력 확인 필요') : lt === 'annual' ? '연차 종일 (8h)' : `${c.effectiveStart}~${c.effectiveEnd}${c.clampedStart ? ' (08시 고정)' : ''}${c.flooredEnd ? ' (30분 버림)' : ''}`;
       els.singlePrevDeduct.textContent = c.valid ? `중${c.lunchDeduct}/석${c.dinnerDeduct}분` : '-';
       [els.singlePrevRegular.textContent, els.singlePrevOvertime.textContent, els.singlePrevHoliday.textContent] = c.valid ? [c.regularHours, c.overtimeHours, c.holidayHours] : [0, 0, 0];
     }
@@ -1332,6 +1348,7 @@
       els.batchDate.value = dateStr || todayStr();
       const sel = state.selectedDeptFilter !== 'ALL' && teams.some(({ team }) => team.id === state.selectedDeptFilter) ? state.selectedDeptFilter : 'ALL';
       els.batchDeptSelect.innerHTML = deptOptsHtml(teams, hasAllAccess() ? '전체 부서' : `${state.currentUser?.department || '소속'} 전체`, sel);
+      if (els.batchOcrStatus) els.batchOcrStatus.textContent = '';
       renderBatchTable(); els.batchModal.classList.remove('hidden');
     }
 
@@ -1344,9 +1361,9 @@
         const r = getRecord(dt, m.id), lt = r ? normLeave(r.leaveType) : 'work', ann = lt === 'annual';
         return `<tr data-batch-row="${esc(m.id)}" class="hover:bg-slate-50/80">
           <td class="px-3 py-2 text-center"><input type="checkbox" data-b-check checked class="w-4 h-4 rounded border-slate-300 text-indigo-600 cursor-pointer" /></td>
-          <td class="px-3 py-2 whitespace-nowrap"><div class="font-extrabold text-slate-900">${esc(m.name)}</div><div class="text-[10px] text-slate-500 font-semibold">${esc(memberDeptPath(m))}</div></td>
+          <td class="px-3 py-2 whitespace-nowrap"><div class="font-extrabold text-slate-900">${esc(m.name)}</div></td>
           <td class="px-3 py-2"><select data-b-leave class="px-2 py-1.5 rounded-lg border border-slate-300 text-xs font-bold bg-white">${leaveOptsHtml(lt)}</select></td>
-          <td class="px-3 py-2"><input type="text" data-b-start value="${esc(r ? r.startTime || '' : '08:00')}" ${ann ? 'disabled' : ''} placeholder="08:00" class="w-20 px-2 py-1.5 rounded-lg border border-slate-300 text-xs font-mono font-bold text-center disabled:bg-slate-100 disabled:text-slate-400" /></td>
+          <td class="px-3 py-2"><input type="text" data-b-start value="${esc(ann ? '' : (r?.startTime || '08:00'))}" ${ann ? 'disabled' : ''} placeholder="08:00" class="w-20 px-2 py-1.5 rounded-lg border border-slate-300 text-xs font-mono font-bold text-center disabled:bg-slate-100 disabled:text-slate-400" /></td>
           <td class="px-3 py-2"><input type="text" data-b-end value="${esc(r ? r.endTime || '' : '17:00')}" ${ann ? 'disabled' : ''} placeholder="17:00" class="w-20 px-2 py-1.5 rounded-lg border border-slate-300 text-xs font-mono font-bold text-center disabled:bg-slate-100 disabled:text-slate-400" /></td>
           <td class="px-3 py-2 text-center whitespace-nowrap" data-b-result>-</td>
           <td class="px-3 py-2"><input type="text" data-b-note value="${esc(r?.note || '')}" placeholder="비고" class="w-full min-w-[100px] px-2 py-1.5 rounded-lg border border-slate-300 text-xs" /></td>
@@ -1368,6 +1385,115 @@
       const rows = [...els.batchMemberTableBody.querySelectorAll('tr[data-batch-row]')], chk = rows.filter((tr) => tr.querySelector('[data-b-check]')?.checked);
       els.batchSummaryText.textContent = `${chk.length} / ${rows.length}명 선택됨`;
       els.batchCheckAll.checked = rows.length > 0 && chk.length === rows.length;
+    }
+
+    function extractDateFromOcrText(text, fallbackDateStr) {
+      const makeValidDate = (y, m, d) => {
+        const yi = +y, mi = +m, di = +d;
+        if (yi < 2000 || yi > 2099 || mi < 1 || mi > 12 || di < 1 || di > 31) return '';
+        const dt = new Date(yi, mi - 1, di);
+        if (dt.getFullYear() !== yi || dt.getMonth() !== mi - 1 || dt.getDate() !== di) return '';
+        return `${yi}-${String(mi).padStart(2, '0')}-${String(di).padStart(2, '0')}`;
+      };
+      // 1) YYYY-MM-DD / YYYY.MM.DD / YYYY/MM/DD
+      for (const m of text.matchAll(/(20\d{2})\s*[-./년]\s*(\d{1,2})\s*[-./월]\s*(\d{1,2})\s*일?/g)) {
+        const res = makeValidDate(m[1], m[2], m[3]);
+        if (res) return res;
+      }
+      // 2) YY-MM-DD / YY.MM.DD / YY/MM/DD (시간 포맷 HH:MM 제외)
+      for (const m of text.matchAll(/(?<![\d:])(\d{2})\s*[-./]\s*(\d{1,2})\s*[-./]\s*(\d{1,2})(?![\d:])/g)) {
+        const res = makeValidDate(2000 + +m[1], m[2], m[3]);
+        if (res) return res;
+      }
+      // 3) MM월 DD일 (연도는 현재 선택된 근무 날짜 기준)
+      const baseYear = +(String(fallbackDateStr || todayStr()).slice(0, 4)) || new Date().getFullYear();
+      for (const m of text.matchAll(/(\d{1,2})\s*월\s*(\d{1,2})\s*일/g)) {
+        const res = makeValidDate(baseYear, m[1], m[2]);
+        if (res) return res;
+      }
+      return '';
+    }
+
+    async function analyzeBatchScreenshot(file) {
+      if (!file || !file.type?.startsWith('image/')) return showToast('이미지 파일만 분석할 수 있습니다.', 'warning');
+      if (typeof Tesseract === 'undefined') return showToast('OCR 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인해 주세요.', 'error');
+
+      if (!els.batchMemberTableBody.querySelector('tr[data-batch-row]')) return showToast('먼저 대상 부서를 선택해 부서원을 불러와 주세요.', 'warning');
+
+      // 이미지는 메모리(ObjectURL)에만 올려 분석하고 저장하지 않으며 완료 즉시 해제
+      const objUrl = URL.createObjectURL(file);
+      els.batchOcrStatus.textContent = '이미지 분석 중... (0%)';
+
+      try {
+        const { data: { text } } = await Tesseract.recognize(objUrl, 'kor+eng', {
+          logger: (m) => {
+            if (m.status === 'recognizing text') {
+              els.batchOcrStatus.textContent = `이미지 분석 중... (${Math.round((m.progress || 0) * 100)}%)`;
+            } else if (m.status === 'loading language traineddata') {
+              els.batchOcrStatus.textContent = '한글 인식 데이터 로딩 중...';
+            }
+          },
+        });
+
+        // 1) 이미지에서 근무 날짜 추출 후 날짜 변경 및 표 갱신
+        const detectedDate = extractDateFromOcrText(text, els.batchDate.value);
+        if (detectedDate && els.batchDate.value !== detectedDate) {
+          els.batchDate.value = detectedDate;
+          renderBatchTable();
+        }
+
+        const rows = [...els.batchMemberTableBody.querySelectorAll('tr[data-batch-row]')];
+        const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+        const extractTimes = (str) => [...str.matchAll(/(\d{1,2})\s*[:시.]\s*(\d{2})/g)]
+          .map((m) => normTime24(`${m[1]}:${m[2]}`))
+          .filter(Boolean);
+
+        let matchedCount = 0;
+
+        rows.forEach((tr) => {
+          const mem = memberById(tr.dataset.batchRow);
+          if (!mem?.name) return;
+          const cleanName = mem.name.replace(/\s+/g, '');
+
+          // 이름이 포함된 줄 검색 (공백 오인식 보정)
+          const idx = lines.findIndex((line) => line.replace(/\s+/g, '').includes(cleanName));
+          if (idx === -1) return;
+
+          // 해당 줄에서 시간 추출, 없으면 바로 다음 줄까지 보조 탐색
+          let times = extractTimes(lines[idx]);
+          if (!times.length && lines[idx + 1]) times = extractTimes(lines[idx + 1]);
+          if (!times.length) return;
+
+          // 가장 늦은 시간을 퇴근 시간 원문 그대로 입력 (계산은 calcWorkHours에서 30분 단위 버림 적용)
+          const latestRaw = times.reduce((a, b) => (timeToMin(b) > timeToMin(a) ? b : a));
+          if (!latestRaw || timeToMin(latestRaw) <= WORK_START) return;
+
+          tr.querySelector('[data-b-check]').checked = true;
+          tr.querySelector('[data-b-leave]').value = 'work';
+          tr.querySelector('[data-b-start]').value = '08:00';
+          tr.querySelector('[data-b-end]').value = latestRaw;
+          updateBatchRow(tr);
+          matchedCount++;
+        });
+
+        updateBatchSummary();
+        const dateTag = detectedDate ? `날짜 ${detectedDate} · ` : '';
+        els.batchOcrStatus.textContent = matchedCount ? `분석 완료 (${dateTag}${matchedCount}명 반영)` : (detectedDate ? `날짜 ${detectedDate} 변경 · 일치 인원 없음` : '일치하는 인원/시간 없음');
+        showToast(
+          matchedCount
+            ? `${detectedDate ? `근무 날짜(${detectedDate}) 변경 및 ` : ''}${matchedCount}명의 퇴근 시간을 반영했습니다. (계산은 30분 버림 적용)`
+            : detectedDate
+              ? `근무 날짜를 ${detectedDate}로 변경했으나 일치하는 부서원/시간을 찾지 못했습니다.`
+              : '인식된 텍스트에서 일치하는 부서원/퇴근 시간을 찾지 못했습니다.',
+          matchedCount ? 'success' : 'warning'
+        );
+      } catch (err) {
+        els.batchOcrStatus.textContent = '분석 실패';
+        showToast('스크린샷 분석 중 오류가 발생했습니다.', 'error');
+      } finally {
+        URL.revokeObjectURL(objUrl);
+        if (els.batchOcrFile) els.batchOcrFile.value = '';
+      }
     }
 
     // ==================== 모달 4: 수직 계층형 조직도 ====================
@@ -1548,7 +1674,7 @@
 
       const members = filterMembersByDept(state.annualDeptFilter), matrix = calcAnnualMatrix(state.annualYear, members), mode = state.annualMode;
       const pick = (c) => roundH(mode === 'overtime' ? c.ot : mode === 'holiday' ? c.hol : c.ot + c.hol);
-      els.annualTableHead.innerHTML = `<tr class="bg-slate-900 text-white"><th class="px-3.5 py-2.5 text-left font-extrabold min-w-[180px] sticky left-0 z-30 bg-slate-900">성명 / 부서 (${members.length}명)</th>${Array.from({ length: 12 }, (_, i) => `<th class="px-2 py-2.5 text-center font-extrabold border-l border-white/10 min-w-[66px]">${i + 1}월</th>`).join('')}<th class="px-3 py-2.5 text-right font-extrabold border-l border-white/20 bg-violet-950 min-w-[82px]">연간 합계</th><th class="px-3 py-2.5 text-right font-extrabold border-l border-white/10 bg-slate-800 min-w-[74px]">월평균</th></tr>`;
+      els.annualTableHead.innerHTML = `<tr class="bg-slate-900 text-white"><th class="px-3.5 py-2.5 text-left font-extrabold min-w-[180px] sticky left-0 z-30 bg-slate-900">성명 (${members.length}명)</th>${Array.from({ length: 12 }, (_, i) => `<th class="px-2 py-2.5 text-center font-extrabold border-l border-white/10 min-w-[66px]">${i + 1}월</th>`).join('')}<th class="px-3 py-2.5 text-right font-extrabold border-l border-white/20 bg-violet-950 min-w-[82px]">연간 합계</th><th class="px-3 py-2.5 text-right font-extrabold border-l border-white/10 bg-slate-800 min-w-[74px]">월평균</th></tr>`;
       if (!members.length) { els.annualTableBody.innerHTML = '<tr><td colspan="15" class="px-4 py-12 text-center text-slate-400 font-semibold">표시할 팀원이 없습니다.</td></tr>'; els.annualTableFoot.innerHTML = els.annualKpiBar.innerHTML = ''; return; }
 
       const monthSums = Array(12).fill(0);
@@ -1563,7 +1689,7 @@
           return `<td title="${m.name} ${state.annualYear}년 ${i + 1}월 | 연장 ${ot}h + 특근 ${hol}h = ${both}h" class="px-2 py-2.5 text-center border-l border-slate-200 ${cls}">${val > 0 ? val : '-'}</td>`;
         }).join('');
         grandOt += rowOt; grandHol += rowHol;
-        return `<tr class="hover:bg-slate-50"><td class="px-3.5 py-2 bg-white sticky left-0 z-10 border-r border-slate-200"><div class="font-extrabold text-slate-900 truncate">${esc(m.name)}</div><div class="text-[10px] text-slate-500 font-semibold truncate">${esc(memberDeptPath(m))}</div></td>${cells}<td title="연장 ${roundH(rowOt)}h + 특근 ${roundH(rowHol)}h" class="px-3 py-2 text-right font-extrabold text-violet-900 bg-violet-50/60 border-l border-slate-200">${roundH(rowSum)}h</td><td class="px-3 py-2 text-right font-bold text-slate-600 bg-slate-50 border-l border-slate-200">${active ? roundH(rowSum / active) : 0}h</td></tr>`;
+        return `<tr class="hover:bg-slate-50"><td class="px-3.5 py-2 bg-white sticky left-0 z-10 border-r border-slate-200"><div class="font-extrabold text-slate-900 truncate">${esc(m.name)}</div></td>${cells}<td title="연장 ${roundH(rowOt)}h + 특근 ${roundH(rowHol)}h" class="px-3 py-2 text-right font-extrabold text-violet-900 bg-violet-50/60 border-l border-slate-200">${roundH(rowSum)}h</td><td class="px-3 py-2 text-right font-bold text-slate-600 bg-slate-50 border-l border-slate-200">${active ? roundH(rowSum / active) : 0}h</td></tr>`;
       }).join('');
 
       const gDisp = roundH(monthSums.reduce((a, b) => a + b, 0)), actM = monthSums.filter((v) => v > 0).length;
@@ -1629,7 +1755,7 @@
       const pick = (c) => roundH(mode === 'overtime' ? c.ot : mode === 'holiday' ? c.hol : c.ot + c.hol);
 
       els.mwTableHead.innerHTML = `<tr class="bg-slate-900 text-white">
-        <th class="px-3.5 py-2.5 text-left font-extrabold min-w-[190px] sticky left-0 z-30 bg-slate-900">성명 / 부서 (${members.length}명)</th>
+        <th class="px-3.5 py-2.5 text-left font-extrabold min-w-[190px] sticky left-0 z-30 bg-slate-900">성명 (${members.length}명)</th>
         ${weeks.map((w) => `<th class="px-2.5 py-2 text-center font-extrabold border-l border-white/10 min-w-[96px]"><div>${w.label}</div><div class="text-[10px] font-semibold text-slate-300 mt-0.5">${w.range}</div></th>`).join('')}
         <th class="px-3.5 py-2.5 text-right font-extrabold border-l border-white/20 bg-teal-950 min-w-[104px]">주 합산 (52h)</th>
       </tr>`;
@@ -1657,7 +1783,7 @@
         if (sumVal > LIMIT_H) overMonthCnt++;
         const sumCls = getThresholdTextCls(sumVal, LIMIT_H, true);
         return `<tr class="hover:bg-slate-50">
-          <td class="px-3.5 py-2 bg-white sticky left-0 z-10 border-r border-slate-200"><div class="font-extrabold text-slate-900 truncate">${esc(m.name)}</div><div class="text-[10px] text-slate-500 font-semibold truncate">${esc(memberDeptPath(m))}</div></td>
+          <td class="px-3.5 py-2 bg-white sticky left-0 z-10 border-r border-slate-200"><div class="font-extrabold text-slate-900 truncate">${esc(m.name)}</div></td>
           ${cells}
           <td title="월 합계 | 연장 ${roundH(rowOt)}h + 특근 ${roundH(rowHol)}h = ${roundH(rowOt + rowHol)}h" class="px-3.5 py-2 text-right border-l border-slate-200 ${sumCls}">${sumVal}h</td>
         </tr>`;
@@ -1995,6 +2121,24 @@
       els.batchCheckAll.onchange = (e) => { els.batchMemberTableBody.querySelectorAll('[data-b-check]').forEach((c) => { c.checked = e.target.checked; }); updateBatchSummary(); };
       els.batchMemberTableBody.onchange = (e) => { const tr = e.target.closest('tr[data-batch-row]'); if (!tr) return; if (e.target.matches('[data-b-check]')) return updateBatchSummary(); if (e.target.matches('[data-b-leave]')) applyLeaveTimes(e.target.value, tr.querySelector('[data-b-start]'), tr.querySelector('[data-b-end]'), true); updateBatchRow(tr); };
       els.batchMemberTableBody.oninput = (e) => { const tr = e.target.closest('tr[data-batch-row]'); if (tr && (e.target.matches('[data-b-start]') || e.target.matches('[data-b-end]'))) updateBatchRow(tr); };
+      els.batchOcrFile.onchange = (e) => { const f = e.target.files?.[0]; if (f) analyzeBatchScreenshot(f); };
+      els.batchOcrZone.ondragover = (e) => { e.preventDefault(); els.batchOcrZone.classList.add('ring-2', 'ring-emerald-500', 'bg-emerald-100/80'); };
+      els.batchOcrZone.ondragleave = () => { els.batchOcrZone.classList.remove('ring-2', 'ring-emerald-500', 'bg-emerald-100/80'); };
+      els.batchOcrZone.ondrop = (e) => {
+        e.preventDefault();
+        els.batchOcrZone.classList.remove('ring-2', 'ring-emerald-500', 'bg-emerald-100/80');
+        const f = e.dataTransfer?.files?.[0];
+        if (f) analyzeBatchScreenshot(f);
+      };
+      document.addEventListener('paste', (e) => {
+        if (els.batchModal.classList.contains('hidden')) return;
+        const item = [...(e.clipboardData?.items || [])].find((it) => it.type.startsWith('image/'));
+        if (item) {
+          e.preventDefault();
+          const f = item.getAsFile();
+          if (f) analyzeBatchScreenshot(f);
+        }
+      });
 
       els.bulkEditChangeDateCheck.onchange = (e) => { els.bulkEditDate.disabled = !e.target.checked; };
       els.bulkEditLeaveType.onchange = (e) => { els.bulkEditTimeWrap.classList.toggle('hidden', e.target.value === 'annual'); applyLeaveTimes(e.target.value, els.bulkEditStart, els.bulkEditEnd); };
